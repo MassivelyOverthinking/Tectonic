@@ -34,6 +34,9 @@ pub struct VectorCache {
     /// Dimensionality of stored vectors (Immutable).
     vector_dimensions: usize,
 
+    /// Number of internal cache partitions (Immutable, SIMD).
+    partition_count: usize,
+
     /// Number of internal logical shards (Immutable).
     shard_count: usize,
 
@@ -76,6 +79,7 @@ impl VectorCache {
         cache_id: String,
         max_entries: usize,
         vector_dimensions: usize,
+        partition_count: usize,
         shard_count: usize,
         quantization_enabled: bool,
         membership_filter: Option<Arc<dyn Send + Sync>>,
@@ -93,6 +97,7 @@ impl VectorCache {
             created_at: Instant::now(),
             max_entries,
             vector_dimensions,
+            partition_count,
             shard_count,
             quantization_enabled,
             membership_filter,
@@ -114,6 +119,7 @@ impl Default for VectorCache {
             "default_cache".to_string(),
             1000,
             128,
+            4,
             1,
             false,
             None,
