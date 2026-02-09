@@ -10,6 +10,5 @@ impl<const D: usize> DistanceMetric<D> for DotProduct {
             similarity += x[i] * y[i];
         }
         -similarity
-    }
-    
+    }   
 }
