@@ -1,4 +1,5 @@
 use crate::cache::cache_partition::CachePartition;
+use crate::vector::vector_entry::VectorEntry;
 
 /* ==============================
     * Vector Cache Implementation
@@ -154,6 +155,33 @@ impl VectorCache {
         }
 
         partitions
+    }
+
+    pub fn query(&self, vector: &[f32], top_k: usize, threshold: f32) -> Vec<VectorEntry<D>> {
+        // Placeholder for query implementation.
+        // This would involve calculating distances/similarities based on the search_metric,
+        // retrieving candidates from the relevant partitions, and returning the top_k results.
+        Vec::new()
+    }
+
+    pub fn insert(&mut self, vector: &[f32]) -> bool {
+        // Placeholder for insert implementation.
+        // This would involve determining the appropriate partition for the vector,
+        // inserting it, and potentially triggering eviction if the partition is full.
+        true
+    }
+
+    pub fn rebuild(&mut self) {
+        // Placeholder for rebuild implementation.
+        // This would involve recalculating partition centroids, redistributing vectors,
+        // and updating any relevant metadata or membership filters.
+    }
+
+    pub fn metrics(&self) -> String {
+        // Placeholder for metrics implementation.
+        // This would involve collecting and formatting performance metrics such as hit/miss rates,
+        // average query times, eviction counts, and other relevant statistics.
+        "Metrics not implemented".to_string()
     }
 
     pub fn size(&self) -> usize {
