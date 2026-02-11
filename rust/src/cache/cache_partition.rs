@@ -10,7 +10,7 @@ pub struct CachePartition<const D: usize> {
     max_entries: usize,
 
     /// Current number of vectors stored in the partition (Mutable).
-    entry_count: usize,
+    pub entry_count: usize,
 
     /// K-means centroids representing the partition's vector clusters (Mutable).
     centroid: Option<Vec<[f32; D]>>,

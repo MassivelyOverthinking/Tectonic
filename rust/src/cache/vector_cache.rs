@@ -1,3 +1,5 @@
+use crate::cache::cache_partition::CachePartition;
+
 /* ==============================
     * Vector Cache Implementation
     *
@@ -40,6 +42,9 @@ pub struct VectorCache {
     /// Number of internal logical shards (Immutable).
     shard_count: usize,
 
+    /// Number of actions before partition centroids are recalculated.
+    centroid_update: usize,
+
     /// Flag to determine if quantization is enabled for stored vectors (Immutable).
     quantization_enabled: bool,
 
@@ -72,6 +77,9 @@ pub struct VectorCache {
 
     /// Whether to enable verbose logging for debugging purposes.
     debug_mode: bool,
+
+    /// Internal partitions for vector storage and management (Mutable).
+    partitions: Vec<CachePartition<D>>,
 }
 
 #[allow(dead_code)]
@@ -82,6 +90,7 @@ impl VectorCache {
         vector_dimensions: usize,
         partition_count: usize,
         shard_count: usize,
+        centroid_update: usize,
         quantization_enabled: bool,
         membership_filter: Option<Arc<dyn Send + Sync>>,
         search_metric: String,
@@ -100,6 +109,7 @@ impl VectorCache {
             vector_dimensions,
             partition_count,
             shard_count,
+            centroid_update,
             quantization_enabled,
             membership_filter,
             search_metric,
@@ -110,6 +120,7 @@ impl VectorCache {
             thread_safe,
             metrics_enabled,
             debug_mode,
+            partitions: Self::initialize_partitions(&self),
         }
     }
 
@@ -132,6 +143,34 @@ impl VectorCache {
         // Return calculated partition sizes.
         sizes
     }
+
+    fn initialize_partitions(&self) -> Vec<CachePartition<D>> {
+        let partition_sizes = self.calculate_partition_size();
+        let mut partitions = Vec::with_capacity(self.partition_count as usize);
+
+        for (i, size) in partition_sizes.into_iter().enumerate() {
+            let partition_id = i as u64;
+            partitions.push(CachePartition::new(partition_id, size));
+        }
+
+        partitions
+    }
+
+    pub fn size(&self) -> usize {
+        let mut result = 0;
+        for partition in &self.partitions {
+            result += partition.entry_count;
+        }
+        result
+    }
+
+    pub fn factor(&self) -> f32 {
+        self.size() as f32 / self.max_entries as f32
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.size() >= self.max_entries
+    }
 }
 
 impl Default for VectorCache {
@@ -142,6 +181,7 @@ impl Default for VectorCache {
             128,
             4,
             1,
+            100,
             false,
             None,
             "cosine".to_string(),
