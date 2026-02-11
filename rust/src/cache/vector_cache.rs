@@ -19,7 +19,7 @@
 
 use std::{sync::Arc, time::Instant};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[allow(dead_code)]
 pub struct VectorCache {
     /// Human-readable cache idenntifier (Debugging, Metrics, Logging).
@@ -74,6 +74,7 @@ pub struct VectorCache {
     debug_mode: bool,
 }
 
+#[allow(dead_code)]
 impl VectorCache {
     fn new(
         cache_id: String,
@@ -110,6 +111,26 @@ impl VectorCache {
             metrics_enabled,
             debug_mode,
         }
+    }
+
+    fn calculate_partition_size(&self) -> Vec<usize> {
+        // Base Case -> No partitions defined.
+        if self.partition_count == 0 {
+            return Vec::new();
+        }
+
+        // Evenly distribute max_entries across partitions.
+        let base = self.max_entries / self.partition_count;
+        let remainder = self.max_entries % self.partition_count;
+
+        // Allocate reamainders to individual partitions to ensure total matches max_entries.
+        let mut sizes = vec![base; self.partition_count as usize];
+        for i in 0..remainder as usize {
+            sizes[i] += 1;
+        }
+
+        // Return calculated partition sizes.
+        sizes
     }
 }
 

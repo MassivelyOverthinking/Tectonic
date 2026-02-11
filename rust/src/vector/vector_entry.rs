@@ -1,6 +1,6 @@
 use crate::utility::hashing_util;
 
-
+#[derive(Clone)]
 #[repr(align(32))]
 pub struct VectorEntry<const D: usize> {
     /// Unique identifier for the vector entry (Immutable).
