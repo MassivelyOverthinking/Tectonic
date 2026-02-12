@@ -116,8 +116,26 @@ impl<const D: usize> VectorCache<D> {
             thread_safe,
             metrics_enabled,
             debug_mode,
-            partitions: Self::initialize_partitions(max_entries, partition_count),
+            partitions: Self::initialize_partitions(max_entries, partition_count, shard_count),
         }
+    }
+
+    fn calculate_shard_size(max_entries: usize, shard_count: usize) -> Vec<usize> {
+        // Base Case -> No shards defined.
+        assert!(shard_count > 0, "Shard count must be greater than 0");
+
+        // Evenly distribute max_entries across shards.
+        let base = max_entries / shard_count;
+        let remainder = max_entries % shard_count;
+
+        // Allocate reamainders to individual shards to ensure total matches max_entries.
+        let mut sizes = vec![base; shard_count as usize];
+        for i in 0..remainder as usize {
+            sizes[i] += 1;
+        }
+
+        // Return calculated shard sizes.
+        sizes
     }
 
     fn calculate_partition_size(max_entries: usize, partition_count: usize) -> Vec<usize> {
@@ -138,13 +156,14 @@ impl<const D: usize> VectorCache<D> {
         sizes
     }
 
-    fn initialize_partitions(max_entries: usize, partition_count: usize) -> Vec<CachePartition<D>> {
+    fn initialize_partitions(max_entries: usize, partition_count: usize, shard_count: usize) -> Vec<CachePartition<D>> {
         let partition_sizes = Self::calculate_partition_size(max_entries, partition_count);
+        let shard_sizes = Self::calculate_shard_size(max_entries, shard_count);
         let mut partitions = Vec::with_capacity(partition_count as usize);
 
         for (i, size) in partition_sizes.into_iter().enumerate() {
             let partition_id = i as u64;
-            partitions.push(CachePartition::new(partition_id, size));
+            partitions.push(CachePartition::new(partition_id, size, shard_sizes[i]));
         }
 
         partitions
