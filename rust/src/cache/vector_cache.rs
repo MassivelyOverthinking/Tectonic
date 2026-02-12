@@ -24,7 +24,7 @@ use std::{sync::Arc, time::Instant};
 
 #[derive(Clone)]
 #[allow(dead_code)]
-pub struct VectorCache {
+pub struct VectorCache<const D: usize> {
     /// Human-readable cache idenntifier (Debugging, Metrics, Logging).
     cache_id: String,
 
@@ -33,9 +33,6 @@ pub struct VectorCache {
 
     /// Maximum number of high-dimensional vectors able to be stored in the cache.
     max_entries: usize,
-
-    /// Dimensionality of stored vectors (Immutable).
-    vector_dimensions: usize,
 
     /// Number of internal cache partitions (Immutable, SIMD).
     partition_count: usize,
@@ -84,11 +81,10 @@ pub struct VectorCache {
 }
 
 #[allow(dead_code)]
-impl VectorCache {
+impl<const D: usize> VectorCache<D> {
     fn new(
         cache_id: String,
         max_entries: usize,
-        vector_dimensions: usize,
         partition_count: usize,
         shard_count: usize,
         centroid_update: usize,
@@ -107,7 +103,6 @@ impl VectorCache {
             cache_id,
             created_at: Instant::now(),
             max_entries,
-            vector_dimensions,
             partition_count,
             shard_count,
             centroid_update,
@@ -121,22 +116,20 @@ impl VectorCache {
             thread_safe,
             metrics_enabled,
             debug_mode,
-            partitions: Self::initialize_partitions(&self),
+            partitions: Self::initialize_partitions(max_entries, partition_count),
         }
     }
 
-    fn calculate_partition_size(&self) -> Vec<usize> {
+    fn calculate_partition_size(max_entries: usize, partition_count: usize) -> Vec<usize> {
         // Base Case -> No partitions defined.
-        if self.partition_count == 0 {
-            return Vec::new();
-        }
+        assert!(partition_count > 0, "Partition count must be greater than 0");
 
         // Evenly distribute max_entries across partitions.
-        let base = self.max_entries / self.partition_count;
-        let remainder = self.max_entries % self.partition_count;
+        let base = max_entries / partition_count;
+        let remainder = max_entries % partition_count;
 
         // Allocate reamainders to individual partitions to ensure total matches max_entries.
-        let mut sizes = vec![base; self.partition_count as usize];
+        let mut sizes = vec![base; partition_count as usize];
         for i in 0..remainder as usize {
             sizes[i] += 1;
         }
@@ -145,9 +138,9 @@ impl VectorCache {
         sizes
     }
 
-    fn initialize_partitions(&self) -> Vec<CachePartition<D>> {
-        let partition_sizes = self.calculate_partition_size();
-        let mut partitions = Vec::with_capacity(self.partition_count as usize);
+    fn initialize_partitions(max_entries: usize, partition_count: usize) -> Vec<CachePartition<D>> {
+        let partition_sizes = Self::calculate_partition_size(max_entries, partition_count);
+        let mut partitions = Vec::with_capacity(partition_count as usize);
 
         for (i, size) in partition_sizes.into_iter().enumerate() {
             let partition_id = i as u64;
@@ -175,6 +168,9 @@ impl VectorCache {
         // Placeholder for rebuild implementation.
         // This would involve recalculating partition centroids, redistributing vectors,
         // and updating any relevant metadata or membership filters.
+        for partition in &mut self.partitions {
+            partition.update_centroid();
+        }
     }
 
     pub fn metrics(&self) -> String {
@@ -182,6 +178,10 @@ impl VectorCache {
         // This would involve collecting and formatting performance metrics such as hit/miss rates,
         // average query times, eviction counts, and other relevant statistics.
         "Metrics not implemented".to_string()
+    }
+
+    pub fn partition_sizes(&self) -> Vec<usize> {
+        self.partitions.iter().map(|p| p.entry_count).collect()
     }
 
     pub fn size(&self) -> usize {
@@ -201,12 +201,11 @@ impl VectorCache {
     }
 }
 
-impl Default for VectorCache {
+impl<const D: usize> Default for VectorCache<D> {
     fn default() -> Self {
         Self::new(
             "default_cache".to_string(),
             1000,
-            128,
             4,
             1,
             100,

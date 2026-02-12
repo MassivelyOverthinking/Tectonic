@@ -20,6 +20,7 @@
 - **Search**    (Custom Semantic Search Options)
 - **Utility**   (Collective Utility Methods)
 - **Vector**    (Main Vector Interface)
+- **FFI Layer** (Safety layer between Rust & Python)
 
 ## Core Design Choices
 
