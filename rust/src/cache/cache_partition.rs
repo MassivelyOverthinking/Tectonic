@@ -36,6 +36,21 @@ impl<const D: usize> CachePartition<D> {
         }
     }
 
+    pub fn query(&self, _vector: &[f32; D], _top_k: usize) -> Vec<(u64, f32)> {
+        // Placeholder for actual query logic.
+        Vec::new()
+    }
+
+    pub fn insert(&mut self, _entry: VectorEntry<D>) -> Result<(), String> {
+        // Placeholder for actual insert logic.
+        Ok(())
+    }
+
+    pub fn metrics(&self) -> String {
+        // Placeholder for metrics implementation.
+        "Partition metrics not implemented".to_string()
+    }
+
     pub fn update_centroid(&mut self){
         assert!(self.shards.is_empty(), "Cannot update centroid for an empty partition");
 
