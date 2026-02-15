@@ -1,12 +1,18 @@
 use crate::vector::vector_entry::VectorEntry;
 use crate::cache::cache_shard::CacheShard;
-use crate::std::collections::HashMap;
+use crate::utility::hashing_util::hash_vector_id;
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 #[derive(Clone)]
 #[allow(dead_code)]
 pub struct CachePartition<const D: usize> {
     /// Unique identifier for the cache partition (Immutable).
     pub partition_id: u64,
+
+    /// Atomic counter for generating unique vector entry IDs (Mutable).
+    pub id_counter: Arc<AtomicUsize>,
 
     /// Maximum number of vectors this partition can hold (Immutable).
     pub max_entries: usize,
@@ -18,7 +24,7 @@ pub struct CachePartition<const D: usize> {
     pub centroid: Option<Vec<[f32; D]>>,
 
     /// ID map for quick lookup of vector entries (Mutable).
-    pub id_map: HashMap<u64, usize>,
+    pub id_map: HashMap<u64, Vec<[i16; D]>>,
 
     /// Internal storage for vector entries (Mutable).
     pub entries: Vec<VectorEntry<D>>,
@@ -32,6 +38,7 @@ impl<const D: usize> CachePartition<D> {
     pub fn new(partition_id: u64, max_entries: usize, shard_count: usize) -> Self {
         Self {
             partition_id,
+            id_counter: Arc::new(AtomicUsize::new(0)),
             max_entries,
             entry_count: 0,
             centroid: None,
@@ -48,12 +55,34 @@ impl<const D: usize> CachePartition<D> {
 
     pub fn insert(&mut self, _entry: VectorEntry<D>) -> Result<(), String> {
         // Placeholder for actual insert logic.
+        assert!(self.is_full(), "Cannot insert into a full partition");
+
         Ok(())
     }
 
     pub fn metrics(&self) -> String {
         // Placeholder for metrics implementation.
         "Partition metrics not implemented".to_string()
+    }
+
+    fn scalar_quantize(vec: &[f32], levels: u32) -> Vec<u8> {
+        let min = vec.iter().cloned().fold(f32::INFINITY, f32::min);
+        let max = vec.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+
+        let scale = (max - min) / (levels as f32 - 1.0);
+
+        let quantized: Vec<u8> = vec.iter()
+            .map(|&x| {
+                let q = ((x - min) / scale).round();
+                q.clamp(0.0, (levels - 1) as f32) as u8
+            })
+            .collect();
+    
+        quantized
+    }
+
+    fn generate_vector_id(&self, vector: &[f32; D]) -> u64 {
+        hash_vector_id(vector)
     }
 
     fn calculate_shard_size(max_entries: usize, shard_count: usize) -> Vec<usize> {
@@ -75,7 +104,10 @@ impl<const D: usize> CachePartition<D> {
     }
 
     pub fn initiate_shards(&mut self, total_size: usize, shard_count: usize) {
+        // Calcuate shard sizes based on total partition size and number of shards.
         let sizes = Self::calculate_shard_size(total_size, shard_count);
+        
+        // Initialize shards with calculated sizes and unique shard IDs.
         for (shard_id, size) in sizes.iter().enumerate() {
             self.shards.push(CacheShard::new(shard_id as u64, *size));
         }

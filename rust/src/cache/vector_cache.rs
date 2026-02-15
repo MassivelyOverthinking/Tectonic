@@ -133,15 +133,18 @@ impl<const D: usize> VectorCache<D> {
     }
 
     fn initialize_partitions(max_entries: usize, partition_count: usize, shard_count: usize) -> Vec<CachePartition<D>> {
+        // Calculate partition sizes based on total cache size and number of partitions.
         let partition_sizes = Self::calculate_partition_size(max_entries, partition_count);
         let mut partitions = Vec::with_capacity(partition_count as usize);
 
+        // Initialize partitions with calculated sizes, unique partition IDs, and shard counts.
         for (id, size) in partition_sizes.into_iter().enumerate() {
             let mut partition = CachePartition::new(id as u64, size, shard_count);
             partition.initiate_shards(size, shard_count);
             partitions.push(partition);
         }
 
+        // Return initialized cache partitions.
         partitions
     }
 
