@@ -46,10 +46,6 @@ pub struct VectorCache<const D: usize> {
     /// Flag to determine if quantization is enabled for stored vectors (Immutable).
     quantization_enabled: bool,
 
-    /// Optional membership filter for efficient vector existence checks (Immutable).
-    /// (Bloom, Cuckoo, XOR etc.)
-    membership_filter: Option<Arc<dyn Send + Sync>>,
-
     /// Vector distance / similarity metric utilised during queries (Immutable).
     /// (cosine, euclidean, dot-product, cosine, L2 etc.)
     search_metric: String,
@@ -89,7 +85,6 @@ impl<const D: usize> VectorCache<D> {
         shard_count: usize,
         centroid_update: usize,
         quantization_enabled: bool,
-        membership_filter: Option<Arc<dyn Send + Sync>>,
         search_metric: String,
         search_candidates: usize,
         eviction_strategy: String,
@@ -107,7 +102,6 @@ impl<const D: usize> VectorCache<D> {
             shard_count,
             centroid_update,
             quantization_enabled,
-            membership_filter,
             search_metric,
             search_candidates,
             eviction_strategy,
@@ -118,24 +112,6 @@ impl<const D: usize> VectorCache<D> {
             debug_mode,
             partitions: Self::initialize_partitions(max_entries, partition_count, shard_count),
         }
-    }
-
-    fn calculate_shard_size(max_entries: usize, shard_count: usize) -> Vec<usize> {
-        // Base Case -> No shards defined.
-        assert!(shard_count > 0, "Shard count must be greater than 0");
-
-        // Evenly distribute max_entries across shards.
-        let base = max_entries / shard_count;
-        let remainder = max_entries % shard_count;
-
-        // Allocate reamainders to individual shards to ensure total matches max_entries.
-        let mut sizes = vec![base; shard_count as usize];
-        for i in 0..remainder as usize {
-            sizes[i] += 1;
-        }
-
-        // Return calculated shard sizes.
-        sizes
     }
 
     fn calculate_partition_size(max_entries: usize, partition_count: usize) -> Vec<usize> {
@@ -158,12 +134,12 @@ impl<const D: usize> VectorCache<D> {
 
     fn initialize_partitions(max_entries: usize, partition_count: usize, shard_count: usize) -> Vec<CachePartition<D>> {
         let partition_sizes = Self::calculate_partition_size(max_entries, partition_count);
-        let shard_sizes = Self::calculate_shard_size(max_entries, shard_count);
         let mut partitions = Vec::with_capacity(partition_count as usize);
 
-        for (i, size) in partition_sizes.into_iter().enumerate() {
-            let partition_id = i as u64;
-            partitions.push(CachePartition::new(partition_id, size, shard_sizes[i]));
+        for (id, size) in partition_sizes.into_iter().enumerate() {
+            let mut partition = CachePartition::new(id as u64, size, shard_count);
+            partition.initiate_shards(size, shard_count);
+            partitions.push(partition);
         }
 
         partitions
@@ -229,7 +205,6 @@ impl<const D: usize> Default for VectorCache<D> {
             1,
             100,
             false,
-            None,
             "cosine".to_string(),
             100,
             "LRU".to_string(),

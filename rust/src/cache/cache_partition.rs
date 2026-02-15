@@ -1,5 +1,6 @@
 use crate::vector::vector_entry::VectorEntry;
 use crate::cache::cache_shard::CacheShard;
+use crate::std::collections::HashMap;
 
 #[derive(Clone)]
 #[allow(dead_code)]
@@ -16,6 +17,9 @@ pub struct CachePartition<const D: usize> {
     /// K-means centroids representing the partition's vector clusters (Mutable).
     pub centroid: Option<Vec<[f32; D]>>,
 
+    /// ID map for quick lookup of vector entries (Mutable).
+    pub id_map: HashMap<u64, usize>,
+
     /// Internal storage for vector entries (Mutable).
     pub entries: Vec<VectorEntry<D>>,
 
@@ -31,6 +35,7 @@ impl<const D: usize> CachePartition<D> {
             max_entries,
             entry_count: 0,
             centroid: None,
+            id_map: HashMap::new(),
             entries: Vec::with_capacity(max_entries),
             shards: Vec::with_capacity(shard_count),
         }
@@ -49,6 +54,31 @@ impl<const D: usize> CachePartition<D> {
     pub fn metrics(&self) -> String {
         // Placeholder for metrics implementation.
         "Partition metrics not implemented".to_string()
+    }
+
+    fn calculate_shard_size(max_entries: usize, shard_count: usize) -> Vec<usize> {
+        // Base Case -> No shards defined.
+        assert!(shard_count > 0, "Shard count must be greater than 0");
+
+        // Evenly distribute max_entries across shards.
+        let base = max_entries / shard_count;
+        let remainder = max_entries % shard_count;
+
+        // Allocate reamainders to individual shards to ensure total matches max_entries.
+        let mut sizes = vec![base; shard_count as usize];
+        for i in 0..remainder as usize {
+            sizes[i] += 1;
+        }
+
+        // Return calculated shard sizes.
+        sizes
+    }
+
+    pub fn initiate_shards(&mut self, total_size: usize, shard_count: usize) {
+        let sizes = Self::calculate_shard_size(total_size, shard_count);
+        for (shard_id, size) in sizes.iter().enumerate() {
+            self.shards.push(CacheShard::new(shard_id as u64, *size));
+        }
     }
 
     pub fn update_centroid(&mut self){
