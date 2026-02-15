@@ -1,5 +1,9 @@
 use crate::cache::cache_partition::CachePartition;
 use crate::vector::vector_entry::VectorEntry;
+use crate::search::distance_metric::DistanceMetric;
+use crate::search::cosine_strategy::CosineProduct;
+use crate::search::euclidean_strategy::EuclideanProduct;
+use crate::search::dot_strategy::DotProduct;
 
 /* ==============================
     * Vector Cache Implementation
@@ -20,7 +24,7 @@ use crate::vector::vector_entry::VectorEntry;
     * - Metrics collection and debug mode
 ============================== */
 
-use std::{sync::Arc, time::Instant};
+use std::time::Instant;
 
 #[derive(Clone)]
 #[allow(dead_code)]
@@ -48,7 +52,7 @@ pub struct VectorCache<const D: usize> {
 
     /// Vector distance / similarity metric utilised during queries (Immutable).
     /// (cosine, euclidean, dot-product, cosine, L2 etc.)
-    search_metric: String,
+    search_metric: Box<dyn DistanceMetric<D>>,
 
     /// Maximum number of vectors examined per query.
     search_candidates: usize,
@@ -102,7 +106,7 @@ impl<const D: usize> VectorCache<D> {
             shard_count,
             centroid_update,
             quantization_enabled,
-            search_metric,
+            search_metric: Self::initialise_search_metric(search_metric),
             search_candidates,
             eviction_strategy,
             eager_eviction,
@@ -132,6 +136,15 @@ impl<const D: usize> VectorCache<D> {
         sizes
     }
 
+    fn initialise_search_metric(search_metric: String) -> Box<dyn DistanceMetric<D>> {
+        match search_metric.to_lowercase().as_str() {
+            "cosine" => Box::new(CosineProduct),
+            "euclidean" => Box::new(EuclideanProduct),
+            "dot-product" => Box::new(DotProduct),
+            _ => panic!("Unsupported search metric: {}", search_metric),
+        }
+    }
+
     fn initialize_partitions(max_entries: usize, partition_count: usize, shard_count: usize) -> Vec<CachePartition<D>> {
         // Calculate partition sizes based on total cache size and number of partitions.
         let partition_sizes = Self::calculate_partition_size(max_entries, partition_count);
@@ -155,7 +168,10 @@ impl<const D: usize> VectorCache<D> {
         Vec::new()
     }
 
-    pub fn insert(&mut self, vector: &[f32]) -> bool {
+    pub fn insert(&mut self, vector: &[f32], overwrite: bool) -> bool {
+        assert!(!self.is_full(), "Cannot insert into a full cache");
+
+        
         // Placeholder for insert implementation.
         // This would involve determining the appropriate partition for the vector,
         // inserting it, and potentially triggering eviction if the partition is full.

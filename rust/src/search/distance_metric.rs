@@ -1,4 +1,5 @@
 
+
 pub trait DistanceMetric<const D: usize>: Send + Sync {
     /// Compute distance between two vectors of dimension D.
     /// Lower distance indicates higher similarity.
