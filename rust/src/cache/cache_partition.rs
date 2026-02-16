@@ -21,10 +21,10 @@ pub struct CachePartition<const D: usize> {
     pub entry_count: usize,
 
     /// K-means centroids representing the partition's vector clusters (Mutable).
-    pub centroid: Option<Vec<[f32; D]>>,
+    pub centroid: Option<[f32; D]>,
 
     /// ID map for quick lookup of vector entries (Mutable).
-    pub id_map: HashMap<u64, Vec<[i16; D]>>,
+    pub id_map: HashMap<u64, [u8; D]>,
 
     /// Internal storage for vector entries (Mutable).
     pub entries: Vec<VectorEntry<D>>,
@@ -82,7 +82,7 @@ impl<const D: usize> CachePartition<D> {
         "Partition metrics not implemented".to_string()
     }
 
-    fn scalar_quantize(vec: &[f32], levels: u32) -> Vec<u8> {
+    fn scalar_quantize(vec: &[f32], levels: u32) -> [u8; D] {
         let min = vec.iter().cloned().fold(f32::INFINITY, f32::min);
         let max = vec.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
 
@@ -95,10 +95,10 @@ impl<const D: usize> CachePartition<D> {
             })
             .collect();
     
-        quantized
+        quantized.try_into().expect("Vector length does not match array size D")
     }
 
-    fn generate_vector_id(&self, vector: &[f32; D]) -> u64 {
+    fn generate_vector_id(&self, vector: &[u8; D]) -> u64 {
         hash_vector_id(vector)
     }
 
@@ -147,7 +147,7 @@ impl<const D: usize> CachePartition<D> {
         }
 
         mean.iter_mut().for_each(|x| *x /= total_entries as f32);
-        self.centroid = Some(vec![mean]);
+        self.centroid = Some(mean);
     }
 
     fn is_full(&self) -> bool {

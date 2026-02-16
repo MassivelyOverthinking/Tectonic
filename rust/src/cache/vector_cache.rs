@@ -4,6 +4,9 @@ use crate::search::distance_metric::DistanceMetricDyn;
 use crate::search::cosine_strategy::CosineProduct;
 use crate::search::euclidean_strategy::EuclideanProduct;
 use crate::search::dot_strategy::DotProduct;
+use crate::utility::vector_utils::compare_vectors;
+
+use std::cmp::Ordering;
 
 /* ==============================
     * Vector Cache Implementation
@@ -168,10 +171,21 @@ impl<const D: usize> VectorCache<D> {
         Vec::new()
     }
 
-    pub fn insert(&mut self, vector: &[f32], overwrite: bool) -> bool {
-        assert!(!self.is_full(), "Cannot insert into a full cache");
+    pub fn insert(&mut self, vector: &[f32; D], overwrite: bool) -> bool {
+        assert!(!self.is_full(), "The Cache is currently full. Eviction or rebuild is required before inserting new vectors.");
 
-        
+        let mut closet_distance = [f32::INFINITY; D];
+        let mut target_partition = None;
+        for partition in &self.partitions {
+            let distance = self.search_metric.distance(vector, &partition.centroid.unwrap_or([0.0; D]));
+            match compare_vectors(closet_distance, &distance) {
+                Ordering::Less => {
+                    closet_distance = &distance;
+                    target_partition = Some(partition);
+                },
+                _ => continue,
+            }
+        }
         // Placeholder for insert implementation.
         // This would involve determining the appropriate partition for the vector,
         // inserting it, and potentially triggering eviction if the partition is full.
