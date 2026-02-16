@@ -1,6 +1,6 @@
 use crate::cache::cache_partition::CachePartition;
 use crate::vector::vector_entry::VectorEntry;
-use crate::search::distance_metric::DistanceMetric;
+use crate::search::distance_metric::DistanceMetricDyn;
 use crate::search::cosine_strategy::CosineProduct;
 use crate::search::euclidean_strategy::EuclideanProduct;
 use crate::search::dot_strategy::DotProduct;
@@ -52,7 +52,7 @@ pub struct VectorCache<const D: usize> {
 
     /// Vector distance / similarity metric utilised during queries (Immutable).
     /// (cosine, euclidean, dot-product, cosine, L2 etc.)
-    search_metric: Box<dyn DistanceMetric<D>>,
+    search_metric: Box<dyn DistanceMetricDyn<D>>,
 
     /// Maximum number of vectors examined per query.
     search_candidates: usize,
@@ -136,7 +136,7 @@ impl<const D: usize> VectorCache<D> {
         sizes
     }
 
-    fn initialise_search_metric(search_metric: String) -> Box<dyn DistanceMetric<D>> {
+    fn initialise_search_metric(search_metric: String) -> Box<dyn DistanceMetricDyn<D>> {
         match search_metric.to_lowercase().as_str() {
             "cosine" => Box::new(CosineProduct),
             "euclidean" => Box::new(EuclideanProduct),

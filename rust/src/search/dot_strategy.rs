@@ -1,5 +1,6 @@
 use crate::search::distance_metric::DistanceMetric;
 
+#[derive(Clone)]
 pub struct DotProduct;
 
 impl<const D: usize> DistanceMetric<D> for DotProduct {

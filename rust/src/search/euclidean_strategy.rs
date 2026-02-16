@@ -1,5 +1,6 @@
 use crate::search::distance_metric::DistanceMetric;
 
+#[derive(Clone)]
 pub struct EuclideanProduct;
 
 impl<const D: usize> DistanceMetric<D> for EuclideanProduct {
