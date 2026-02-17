@@ -172,16 +172,16 @@ impl<const D: usize> VectorCache<D> {
         assert!(!self.is_full(), "The Cache is currently full. Eviction or rebuild is required before inserting new vectors.");
 
         let mut closet_distance = f32::INFINITY;
-        let mut target_partition = None;
-        for partition in &self.partitions {
+        let mut target_partition_idx = None;
+        for (idx, partition) in self.partitions.iter().enumerate() {
             let distance = self.search_metric.distance(vector, &partition.centroid.unwrap_or([0.0; D]));
             if distance < closet_distance {
                 closet_distance = distance;
-                target_partition = Some(partition);
+                target_partition_idx = Some(idx);
             }
         }
 
-        target_partition.unwrap().insert(vector, overwrite);
+        let _ = self.partitions[target_partition_idx.unwrap()].insert(vector, overwrite);
         // Placeholder for insert implementation.
         // This would involve determining the appropriate partition for the vector,
         // inserting it, and potentially triggering eviction if the partition is full.

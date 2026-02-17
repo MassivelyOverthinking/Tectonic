@@ -27,6 +27,26 @@ impl <const D: usize> CacheShard<D> {
         }
     }
 
+    pub fn insert(&mut self, vector: &[f32; D], overwrite: bool, id: u64) -> bool {
+        if self.is_full() {
+            return false; // Shard is full, cannot insert.
+        }
+
+        // Check for existing entry if overwrite is false.
+        if !overwrite {
+            for entry in &self.entries {
+                if entry.vector == *vector {
+                    return false; // Duplicate entry found, insertion aborted.
+                }
+            }
+        }
+
+        // Insert the new vector entry.
+        self.entries.push(VectorEntry::new(id, *vector));
+        self.entry_count += 1;
+        true
+    }
+
     pub fn get_shard_centroid(&self) -> Option<([f32; D], f32)> {
         let count = self.entry_count as f32;
         if count == 0.0 {

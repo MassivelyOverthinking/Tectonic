@@ -1,7 +1,7 @@
 use crate::vector::vector_entry::VectorEntry;
 use crate::cache::cache_shard::CacheShard;
 use crate::utility::hashing_util::generate_vector_id;
-use crate::utility::vector_utils::scalar_quantize;
+use crate::utility::vector_utils::{generate_vector_unique_id, scalar_quantize};
 use std::collections::HashMap;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
@@ -54,7 +54,7 @@ impl<const D: usize> CachePartition<D> {
         Vec::new()
     }
 
-    pub fn insert(&mut self, entry: &[f32], overwrite: bool) -> Result<bool, Err> {
+    pub fn insert(&mut self, entry: &[f32; D], overwrite: bool) -> Result<bool, bool> {
         // Placeholder for actual insert logic.
         assert!(self.is_full(), "Cannot insert into a full partition");
 
@@ -73,7 +73,11 @@ impl<const D: usize> CachePartition<D> {
         };
 
         self.id_map.insert(map_id, quantized_vector);
-        self.entries.push(entry);
+        let atom_id = self.id_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst) as u64;
+        
+        let vector_id = generate_vector_unique_id(self.partition_id, atom_id);
+        let shard_id = (vector_id % self.shards.len() as u64) as usize;
+        self.shards[shard_id].insert(entry, overwrite, vector_id);
         self.entry_count += 1;
         Ok(true)
     }
