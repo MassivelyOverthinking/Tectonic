@@ -1,15 +1,15 @@
-use std::cmp::Ordering;
+pub fn scalar_quantize<const D: usize>(vec: &[f32], levels: u32) -> [u8; D] {
+        let min = vec.iter().cloned().fold(f32::INFINITY, f32::min);
+        let max = vec.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
 
-pub fn compare_vectors<const D: usize>(x: &[f32; D], y: &[f32; D]) -> Ordering {
-    assert_eq!(x.len(), y.len());
+        let scale = (max - min) / (levels as f32 - 1.0);
 
-    let mut sum_x = 0.0f32;
-    let mut sum_y = 0.0f32;
-
-    for num in 0..D {
-        sum_x += x[num];
-        sum_y += y[num];
+        let quantized: Vec<u8> = vec.iter()
+            .map(|&x| {
+                let q = ((x - min) / scale).round();
+                q.clamp(0.0, (levels - 1) as f32) as u8
+            })
+            .collect();
+    
+        quantized.try_into().expect("Vector length does not match array size D")
     }
-
-    return sum_x.total_cmp(&sum_y);
-}

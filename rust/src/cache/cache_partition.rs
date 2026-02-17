@@ -1,8 +1,9 @@
 use crate::vector::vector_entry::VectorEntry;
 use crate::cache::cache_shard::CacheShard;
-use crate::utility::hashing_util::hash_vector_id;
+use crate::utility::hashing_util::generate_vector_id;
+use crate::utility::vector_utils::scalar_quantize;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -57,8 +58,8 @@ impl<const D: usize> CachePartition<D> {
         // Placeholder for actual insert logic.
         assert!(self.is_full(), "Cannot insert into a full partition");
 
-        let quantized_vector = Self::scalar_quantize(&entry, 256);
-        let map_id = self.generate_vector_id(&quantized_vector);
+        let quantized_vector = scalar_quantize(entry, 256);
+        let map_id = generate_vector_id(&quantized_vector);
 
         if self.id_map.contains_key(&map_id) {
             if !overwrite {
@@ -80,26 +81,6 @@ impl<const D: usize> CachePartition<D> {
     pub fn metrics(&self) -> String {
         // Placeholder for metrics implementation.
         "Partition metrics not implemented".to_string()
-    }
-
-    fn scalar_quantize(vec: &[f32], levels: u32) -> [u8; D] {
-        let min = vec.iter().cloned().fold(f32::INFINITY, f32::min);
-        let max = vec.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-
-        let scale = (max - min) / (levels as f32 - 1.0);
-
-        let quantized: Vec<u8> = vec.iter()
-            .map(|&x| {
-                let q = ((x - min) / scale).round();
-                q.clamp(0.0, (levels - 1) as f32) as u8
-            })
-            .collect();
-    
-        quantized.try_into().expect("Vector length does not match array size D")
-    }
-
-    fn generate_vector_id(&self, vector: &[u8; D]) -> u64 {
-        hash_vector_id(vector)
     }
 
     fn calculate_shard_size(max_entries: usize, shard_count: usize) -> Vec<usize> {

@@ -4,9 +4,6 @@ use crate::search::distance_metric::DistanceMetricDyn;
 use crate::search::cosine_strategy::CosineProduct;
 use crate::search::euclidean_strategy::EuclideanProduct;
 use crate::search::dot_strategy::DotProduct;
-use crate::utility::vector_utils::compare_vectors;
-
-use std::cmp::Ordering;
 
 /* ==============================
     * Vector Cache Implementation
@@ -164,7 +161,7 @@ impl<const D: usize> VectorCache<D> {
         partitions
     }
 
-    pub fn query(&self, vector: &[f32], top_k: usize, threshold: f32) -> Vec<VectorEntry<D>> {
+    pub fn query(&self, _vector: &[f32], _top_k: usize, _threshold: f32) -> Vec<VectorEntry<D>> {
         // Placeholder for query implementation.
         // This would involve calculating distances/similarities based on the search_metric,
         // retrieving candidates from the relevant partitions, and returning the top_k results.
@@ -174,18 +171,17 @@ impl<const D: usize> VectorCache<D> {
     pub fn insert(&mut self, vector: &[f32; D], overwrite: bool) -> bool {
         assert!(!self.is_full(), "The Cache is currently full. Eviction or rebuild is required before inserting new vectors.");
 
-        let mut closet_distance = [f32::INFINITY; D];
+        let mut closet_distance = f32::INFINITY;
         let mut target_partition = None;
         for partition in &self.partitions {
             let distance = self.search_metric.distance(vector, &partition.centroid.unwrap_or([0.0; D]));
-            match compare_vectors(closet_distance, &distance) {
-                Ordering::Less => {
-                    closet_distance = &distance;
-                    target_partition = Some(partition);
-                },
-                _ => continue,
+            if distance < closet_distance {
+                closet_distance = distance;
+                target_partition = Some(partition);
             }
         }
+
+        target_partition.unwrap().insert(vector, overwrite);
         // Placeholder for insert implementation.
         // This would involve determining the appropriate partition for the vector,
         // inserting it, and potentially triggering eviction if the partition is full.

@@ -12,3 +12,7 @@ pub fn hash_vector_id<const D: usize>(vector: &[u8; D]) -> u64 {
     vector.hash(&mut hasher);
     hasher.finish()
 }
+
+pub fn generate_vector_id<const D: usize>(vector: &[u8; D]) -> u64 {
+        hash_vector_id(vector)
+}
