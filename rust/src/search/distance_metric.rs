@@ -10,7 +10,8 @@ pub trait DistanceMetricDyn<const D: usize>: DistanceMetric<D> {
     fn clone_box(&self) -> Box<dyn DistanceMetricDyn<D>>;
 }
 
-impl<const D: usize, T> DistanceMetricDyn<D> for T where
+impl<const D: usize, T> DistanceMetricDyn<D> for T 
+where
     T: 'static + DistanceMetric<D> + Clone,
 {
     fn clone_box(&self) -> Box<dyn DistanceMetricDyn<D>> {

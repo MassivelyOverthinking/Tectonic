@@ -4,6 +4,7 @@ use crate::search::distance_metric::DistanceMetricDyn;
 use crate::search::cosine_strategy::CosineProduct;
 use crate::search::euclidean_strategy::EuclideanProduct;
 use crate::search::dot_strategy::DotProduct;
+use crate::quantization::strategy::{QuantizationStrategyDyn, ScalarQuantization};
 
 /* ==============================
     * Vector Cache Implementation
@@ -48,7 +49,7 @@ pub struct VectorCache<const D: usize> {
     centroid_update: usize,
 
     /// Flag to determine if quantization is enabled for stored vectors (Immutable).
-    quantization_enabled: bool,
+    quantization_strategy: Option<Box<dyn QuantizationStrategyDyn<D>>>,
 
     /// Vector distance / similarity metric utilised during queries (Immutable).
     /// (cosine, euclidean, dot-product, cosine, L2 etc.)
@@ -88,7 +89,7 @@ impl<const D: usize> VectorCache<D> {
         partition_count: usize,
         shard_count: usize,
         centroid_update: usize,
-        quantization_enabled: bool,
+        quantization_strategy: Option<Box<dyn QuantizationStrategyDyn<D>>>,
         search_metric: String,
         search_candidates: usize,
         eviction_strategy: String,
@@ -105,7 +106,7 @@ impl<const D: usize> VectorCache<D> {
             partition_count,
             shard_count,
             centroid_update,
-            quantization_enabled,
+            quantization_strategy,
             search_metric: Self::initialise_search_metric(search_metric),
             search_candidates,
             eviction_strategy,
@@ -233,7 +234,7 @@ impl<const D: usize> Default for VectorCache<D> {
             4,
             1,
             100,
-            false,
+            Some(Box::new(ScalarQuantization)),
             "cosine".to_string(),
             100,
             "LRU".to_string(),
