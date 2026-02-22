@@ -34,12 +34,12 @@ venv/
 *.egg
 
 # Rust
-rust/target/
+/target/
 **/*.rs.bk
-rust/Cargo.lock 
+Cargo.lock
 
 # Testing
-/tests/
+crates/tectonic-core/src/tests/
 test_*.py
 *_test.py
 
