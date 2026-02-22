@@ -89,3 +89,7 @@ docs/_build/
 
 # Pyenv
 .python-version
+
+# Added by cargo
+
+/target

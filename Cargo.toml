@@ -1,0 +1,17 @@
+[workspace.package]
+name = "TectonicProject"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/tectonic-core",
+    "crates/tectonic-py",
+    "crates/tectonic-cli",
+]
+
+[workspace.dependencies]
+core = { path = "crates/tectonic-core"}
+py = { path = "crates/tectonic-py" }
+cli = { path = "crates/tectonic-cli"}
