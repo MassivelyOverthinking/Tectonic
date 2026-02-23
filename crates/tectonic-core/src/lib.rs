@@ -11,8 +11,23 @@ mod utility;
 mod config;
 mod error;
 
+use crate::config::CacheConfig;
+use crate::error::TectonicError;
+
+// ============================================================
+// MAIN CACHE IMPLEMENTATION
+// ============================================================
+
 #[allow(dead_code)]
 pub struct VectorCache<const D: usize> {
-    // Empty shell -> Initialization handled by .builder-pattern & CacheConfig
+    config: CacheConfig,
+}
+
+impl<const D: usize> VectorCache<D> {
+    pub fn new(config: CacheConfig) -> Result<Self, TectonicError> {
+        config.validate()?;
+
+        Ok(Self { config })
+    }
 }
 

@@ -9,7 +9,9 @@ use crate::eviction::eviction_strategy::EvictionStrategy;
 // ============================================================
 // INTERNAL CONFIGURATION OBJECTS
 // ============================================================
+
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CacheConfig {
     pub max_entries: usize,
     pub num_partitions: usize,
@@ -22,10 +24,13 @@ pub struct CacheConfig {
     pub metrics: MetricsConfig,
 }
 
+#[allow(dead_code)]
 impl CacheConfig {
+    // Entry point for VectorCache -builder functionality
     pub fn builder() -> CacheConfigBuilder {
         CacheConfigBuilder::default()
     }
+
     // Validation-method for CacheConfig to ensure parameter integrity.
     pub fn validate(&self) -> Result<(), TectonicError> {
         if self.max_entries <= 0 { 
@@ -47,7 +52,12 @@ impl CacheConfig {
     }
 }
 
+// ============================================================
+// INTERNAL BUILDER
+// ============================================================
+
 #[derive(Default)]
+#[allow(dead_code)]
 pub struct CacheConfigBuilder {
     max_entries: Option<usize>,
     num_partitions: Option<usize>,
@@ -64,6 +74,7 @@ pub struct CacheConfigBuilder {
     metrics_enabled: Option<bool>,
 }
 
+#[allow(dead_code)]
 impl CacheConfigBuilder {
     pub fn max_entries(mut self, value: usize) -> Self { 
         self.max_entries = Some(value); 
@@ -190,12 +201,14 @@ impl CacheConfigBuilder {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SearchConfig {
     pub distance_metric: DistanceMetric,
     pub similarity_threshold: f32,
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct EvictionConfig {
     pub eviction_strategy: EvictionStrategy,
 }
@@ -206,6 +219,7 @@ pub struct RoutingConfig {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MaintenanceConfig {
     coopoerative: bool,
     hysteresis: f32,
@@ -214,6 +228,7 @@ pub struct MaintenanceConfig {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MetricsConfig {
     pub metrics_enabled: bool
 }
