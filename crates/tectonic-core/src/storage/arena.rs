@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 
 
-
 #[derive(Debug, Clone)]
 pub struct VectorArena<const D: usize> {
     next_index: usize,
