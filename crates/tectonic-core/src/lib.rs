@@ -10,6 +10,7 @@ mod storage;
 mod utility;
 mod config;
 mod error;
+mod result;
 
 use crate::config::CacheConfig;
 use crate::error::TectonicError;

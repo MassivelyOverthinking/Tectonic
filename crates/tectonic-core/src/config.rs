@@ -34,19 +34,19 @@ impl CacheConfig {
     // Validation-method for CacheConfig to ensure parameter integrity.
     pub fn validate(&self) -> Result<(), TectonicError> {
         if self.max_entries <= 0 { 
-            return Err(TectonicError::new("Max Entries must be a positive integer!")); 
+            return Err(TectonicError::InvalidParamaterError { param: "Max Entries", issue: "be a Positive Integer" }); 
         }
         if self.num_partitions <= 0 {
-            return Err(TectonicError::new("Number of partitions must be a positive integer")); 
+            return Err(TectonicError::InvalidParamaterError { param: "Number of partitions", issue: "be a Positive Integer" }); 
         }
         if self.num_shards <= 0 {
-            return Err(TectonicError::new("Number of shard must be a positive integer"));
+            return Err(TectonicError::InvalidParamaterError { param: "Number of shards", issue: "be a Positive Integer" });
         }
         if self.routing.search_partitions <= 0 {
-            return Err(TectonicError::new("Search partitions must be a positive integer"));
+            return Err(TectonicError::InvalidParamaterError { param: "Search partitions", issue: "be a Positive Integer" });
         }
         if self.routing.search_partitions > self.num_partitions {
-            return Err(TectonicError::new("Search partitions must not be greater than number of current partitions")); 
+            return Err(TectonicError::InvalidParamaterError { param: "Search partitions", issue: "not be greater than number of partitions" }); 
         }
         Ok(())
     }
@@ -139,10 +139,10 @@ impl CacheConfigBuilder {
     pub fn build(self) -> Result<CacheConfig, TectonicError> {
         let max_entries = self
             .max_entries
-            .ok_or_else(|| TectonicError::new("User must specify Max Entries"))?;
+            .ok_or_else(|| TectonicError::RequiredFieldError { field: "Max Entries" })?;
         let num_partitions = self
             .num_partitions
-            .ok_or_else(|| TectonicError::new("User must specify number of partitions"))?;
+            .ok_or_else(|| TectonicError::RequiredFieldError { field: "Number of Partitions" })?;
 
         const DEFAULT_SHARDS: usize = 1;
         const DEFAULT_DISTANCE_METRIC: DistanceMetric = DistanceMetric::Euclidean;

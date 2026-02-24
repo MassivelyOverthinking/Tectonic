@@ -11,7 +11,10 @@ use std::{error::Error, fmt};
 #[derive(Debug)]
 pub enum TectonicError {          // Simple Error with custom messaging
     InvalidInputError { what: &'static str, got: String},
-    CacheLimitError { size: usize, limit: usize }
+    InvalidParamaterError { param: &'static str, issue: &'static str},
+    RequiredFieldError { field: &'static str },
+    CacheLimitError { size: usize, limit: usize },
+    GeneralError { message: &'static str }
 }
 
 
@@ -20,8 +23,14 @@ impl fmt::Display for TectonicError {
         match self {
             TectonicError::InvalidInputError { what, got} => 
                 write!(f, "Invalid Input format: Expected value {} - Recieved value {}", what, got),
+            TectonicError::InvalidParamaterError { param, issue } =>
+                write!(f, "Invalid Paramater: The paramater {}, must {}", param, issue),
+            TectonicError::RequiredFieldError { field } => 
+                write!(f, "Required Field: The parameter {} is required field and must be filled!", field),
             TectonicError::CacheLimitError { size, limit } =>
-                write!(f, "Cache Limit Exceeded: Current size {} > Max entries {}", size, limit)
+                write!(f, "Cache Limit Exceeded: Current size {} > Max entries {}", size, limit),
+            TectonicError::GeneralError { message } => 
+                write!(f, "General Error: {}", message)
         }
     }
 }
