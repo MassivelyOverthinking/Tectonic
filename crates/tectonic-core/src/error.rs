@@ -2,32 +2,29 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::fmt;
+use std::{error::Error, fmt};
 
 // ============================================================
 // CUSTOM ERROS (TECTONIC-ERROR)
 // ============================================================
 
 #[derive(Debug)]
-pub struct TectonicError {          // Simple Error with custom messaging
-    message: String,
-}
-
-// Add .into() type conversion to TectonicError to ensure String messaging
-impl TectonicError {
-    pub fn new(message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
-        }
-    }
+pub enum TectonicError {          // Simple Error with custom messaging
+    InvalidInputError { what: &'static str, got: String},
+    CacheLimitError { size: usize, limit: usize }
 }
 
 
 impl fmt::Display for TectonicError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.message)
+        match self {
+            TectonicError::InvalidInputError { what, got} => 
+                write!(f, "Invalid Input format: Expected value {} - Recieved value {}", what, got),
+            TectonicError::CacheLimitError { size, limit } =>
+                write!(f, "Cache Limit Exceeded: Current size {} > Max entries {}", size, limit)
+        }
     }
 }
 
 // Provide Error trait functionality for TectonicError (dyn)
-impl std::error::Error for TectonicError {}
+impl Error for TectonicError {}
