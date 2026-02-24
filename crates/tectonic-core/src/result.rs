@@ -7,9 +7,10 @@
 // ============================================================
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct VectorEntry<const D: usize> {
-    vector_id: usize,
-    vector: [f32; D]
+    pub vector_id: usize,
+    pub vector: [f32; D]
 }
 
 impl<const D: usize> VectorEntry<D> {

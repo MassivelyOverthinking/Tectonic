@@ -3,7 +3,8 @@
 // ============================================================
 
 use std::collections::VecDeque;
-use crate::utility::utils::VectorID;
+use std::iter::repeat_with;
+use crate::utility::utils::{VectorID};
 use crate::{error::TectonicError, result::VectorEntry};
 
 // ============================================================
@@ -17,11 +18,11 @@ pub struct VectorArena<const D: usize> {
     size: usize,
     id: VectorID,
     free_list: VecDeque<usize>,
-    arena: [VectorEntry<D>; D]
+    arena: Vec<Option<VectorEntry<D>>>
 }
 
+#[allow(dead_code)]
 impl<const D: usize> VectorArena<D> {
-
     fn insert(&mut self, value: [f32; D]) -> Result<bool, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::CacheLimitError { size: self.size, limit: self.capacity })
@@ -32,7 +33,7 @@ impl<const D: usize> VectorArena<D> {
                 self.id.get_and_increment(),
                 value
             );
-            self.arena[available_index] = new_vector;
+            self.arena[available_index] = Some(new_vector);
             self.size += 1;
             return Ok(true);
         } else {
@@ -41,11 +42,29 @@ impl<const D: usize> VectorArena<D> {
                 self.id.get_and_increment(),
                 value
             );
-            self.arena[next_index] = new_vector;
+            self.arena[next_index] = Some(new_vector);
             self.next_index += 1;
             self.size += 1;
             return Ok(true);
         }
+    }
+
+    pub fn remove(&mut self, id: &usize, index: &usize) -> Result<bool, TectonicError> {
+        let vector_id = *id;
+        let vector_index = *index;
+
+        if let Some(entry) = &self.arena[vector_index] {
+            if entry.vector_id == vector_id {
+                self.arena[vector_index] = None;
+                self.size -= 1;
+                self.free_list.push_front(vector_index);
+                return Ok(true);
+            } else {
+                return Err(TectonicError::GeneralError { message: "IDs do not match!" });
+            }
+        }
+
+        Err(TectonicError::GeneralError { message: "No Vector entry located at specified index" })
     }
 
     pub fn load_factor(&self) -> f32 {
@@ -58,5 +77,16 @@ impl<const D: usize> VectorArena<D> {
 
     pub fn is_full(&self) -> bool {
         self.size > self.capacity
+    }
+
+    pub fn with_capacity(max_entries: usize) -> Self {
+        Self { 
+            next_index: 0,
+            capacity: max_entries,
+            size: 0,
+            id: VectorID::new(),
+            free_list: VecDeque::new(),
+            arena: repeat_with(|| None).take(max_entries).collect()
+        }
     }
 }
