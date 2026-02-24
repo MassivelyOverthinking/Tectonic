@@ -60,11 +60,11 @@ impl<const D: usize> VectorArena<D> {
                 self.free_list.push_front(vector_index);
                 return Ok(true);
             } else {
-                return Err(TectonicError::GeneralError { message: "IDs do not match!" });
+                return Err(TectonicError::ArenaError { message: "IDs do not match!" });
             }
         }
 
-        Err(TectonicError::GeneralError { message: "No Vector entry located at specified index" })
+        Err(TectonicError::ArenaError { message: "No Vector entry located at specified index" })
     }
 
     pub fn load_factor(&self) -> f32 {
