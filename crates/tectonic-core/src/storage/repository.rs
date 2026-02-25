@@ -2,19 +2,13 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use crate::storage::partition::CachePartition;
+
 // ============================================================
-// INTERNAL PARTITIONS (SEARCH SPACE)
+// INTERNAL STORE (PARTITIONS + SHARDS)
 // ============================================================
 
-pub struct CachePartition {
-    pub partition_id: usize,
-    pub size: usize,
-    pub capacity: usize,
-    pub shards: Vec<None>,
+pub struct CacheRepo {
+    pub vector_repo: Vec<CachePartition>,
 }
 
-impl CachePartition {
-    pub fn with_capacity(capacity: usize, num_shards: usize) -> Self {
-        
-    }
-}
