@@ -3,45 +3,37 @@
 // ============================================================
 
 use crate::storage::shard::CacheShard;
+use crate::utility::utils::calculate_sizes;
 
 // ============================================================
 // INTERNAL PARTITIONS (SEARCH SPACE)
 // ============================================================
 
-#[allow(unused_variables)]
-pub struct CachePartition {
+#[allow(dead_code)]
+pub struct CachePartition<const D: usize> {
     pub partition_id: usize,
+    pub centroid: Option<[f32; D]>,
     pub size: usize,
     pub capacity: usize,
     pub shards: Vec<CacheShard>,
 }
 
 #[allow(dead_code)]
-impl CachePartition {
+impl<const D: usize> CachePartition<D> {
     pub fn with_capacity(partition_id: usize, capacity: usize, num_shards: usize) -> Self {
-        if num_shards == 0 {
-            return Self { 
-                partition_id, 
-                size: 0, 
-                capacity: capacity, 
-                shards: Vec::new() 
-            };
-        }
-        
-        let base = capacity / num_shards;
-        let remainder = capacity % num_shards;
+        let shard_sizes = calculate_sizes(capacity, num_shards);
 
-        let mut shards = Vec::with_capacity(num_shards);
-        for shard_id in 0..num_shards {
-            let shard_capacity = base + if shard_id < remainder { 1 } else { 0 };
-            shards.push(CacheShard::with_capacity(shard_id, shard_capacity));
+        let mut shard_vectors = Vec::with_capacity(shard_sizes.len());
+        for (id, &cap) in shard_sizes.iter().enumerate() {
+            shard_vectors.push(CacheShard::with_capacity(id, cap));
         }
 
         Self { 
-            partition_id, 
+            partition_id,
+            centroid: None,
             size: 0, 
             capacity, 
-            shards 
+            shards: shard_vectors,
         }
     }
 }

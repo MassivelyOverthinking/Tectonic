@@ -8,6 +8,7 @@ use crate::storage::location::Location;
 // INTERNAL SHARDS (MULTITHREADING)
 // ============================================================
 
+#[allow(dead_code)]
 pub struct CacheShard {
     pub shard_id: usize,
     pub capacity: usize,

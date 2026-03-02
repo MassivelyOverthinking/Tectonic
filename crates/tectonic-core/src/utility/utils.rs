@@ -25,11 +25,11 @@ impl VectorID {
     }
 }
 
-pub fn calculate_sizes(max_entries: usize, partitions: usize) -> Vec<usize> {
-    let base_value = max_entries / partitions;
-    let remainder_value = max_entries % partitions;
+pub fn calculate_sizes(max_entries: usize, elements: usize) -> Vec<usize> {
+    let base_value = max_entries / elements;
+    let remainder_value = max_entries % elements;
 
-    let mut sizes = vec![base_value; partitions];
+    let mut sizes = vec![base_value; elements];
 
     for size in &mut sizes[..remainder_value] {
         *size += 1;

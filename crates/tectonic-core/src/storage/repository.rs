@@ -12,12 +12,12 @@ use crate::utility::utils::calculate_sizes;
 // ============================================================
 
 #[allow(dead_code)]
-pub struct CacheRepo {
-    pub vector_repo: Vec<CachePartition>,
+pub struct CacheRepo<const D: usize> {
+    pub vector_repo: Vec<CachePartition<D>>,
 }
 
 #[allow(dead_code)]
-impl CacheRepo {
+impl<const D: usize> CacheRepo<D> {
     pub fn with_capacity(max_entries: usize, partitions: usize, shards: usize) -> Self {
         let partition_capacities = calculate_sizes(max_entries, partitions);
 
