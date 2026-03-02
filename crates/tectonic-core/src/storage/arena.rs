@@ -4,7 +4,7 @@
 
 use std::collections::VecDeque;
 use std::iter::repeat_with;
-use crate::utility::utils::{VectorID};
+use crate::utility::utils::{VectorID, DimVector};
 use crate::{error::TectonicError, result::VectorEntry};
 
 // ============================================================
@@ -23,7 +23,7 @@ pub struct VectorArena<const D: usize> {
 
 #[allow(dead_code)]
 impl<const D: usize> VectorArena<D> {
-    fn insert(&mut self, value: [f32; D]) -> Result<bool, TectonicError> {
+    fn insert(&mut self, value: DimVector<D>) -> Result<bool, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::CacheLimitError { size: self.size, limit: self.capacity })
         };
