@@ -14,7 +14,8 @@ pub enum TectonicError {          // Simple Error with custom messaging
     InvalidParamaterError { param: &'static str, issue: &'static str},
     RequiredFieldError { field: &'static str },
     CacheLimitError { size: usize, limit: usize },
-    ArenaError { message: &'static str }
+    ArenaError { message: &'static str },
+    CentroidError { message: &'static str },
 }
 
 
@@ -30,7 +31,9 @@ impl fmt::Display for TectonicError {
             TectonicError::CacheLimitError { size, limit } =>
                 write!(f, "Cache Limit Exceeded: Current size {} > Max entries {}", size, limit),
             TectonicError::ArenaError { message } => 
-                write!(f, "Arena Storage Error: {}", message)
+                write!(f, "Arena Storage Error: {}", message),
+            TectonicError::CentroidError { message } => 
+                write!(f, "Centroid Error: {}", message),
         }
     }
 }

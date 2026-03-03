@@ -2,6 +2,8 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use crate::error::TectonicError;
+use crate::result::DimVector;
 use crate::storage::shard::CacheShard;
 use crate::utility::utils::calculate_sizes;
 
@@ -35,5 +37,35 @@ impl<const D: usize> CachePartition<D> {
             capacity, 
             shards: shard_vectors,
         }
+    }
+
+    #[inline]
+    pub fn add_centroid_vector(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
+        if self.centroid.is_some() {
+            return Err(TectonicError::CentroidError { message: "Centroid is already initialized!" });
+        }
+
+        self.centroid = Some(*vector);
+        self.size += 1;
+
+        Ok(true)
+    }
+
+    #[inline]
+    fn moving_centroid_average(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
+        let centroid = self.centroid.as_mut().ok_or_else(|| {
+            TectonicError::CentroidError { message: "No centroid available!" }
+        })?;
+
+        let old_n = self.size;
+        let new_n = old_n + 1;
+        let inv_new_avg = 1.0f32 / (new_n as f32);
+
+        for index in 0..D {
+            centroid[index] = (centroid[index] * old_n as f32 + vector[index]) * inv_new_avg;
+        }
+
+        self.size = new_n;
+        Ok(true)
     }
 }
