@@ -16,6 +16,7 @@ use crate::config::CacheConfig;
 use crate::error::TectonicError;
 use crate::storage::arena::VectorArena;
 use crate::storage::repository::CacheRepo;
+use crate::result::DimVector;
 
 // ============================================================
 // MAIN CACHE IMPLEMENTATION
@@ -39,9 +40,17 @@ impl<const D: usize> VectorCache<D> {
             Self { 
                 config: config, 
                 arena: VectorArena::with_capacity(max_entries),
-                repository: CacheRepo::with_capacity(max_entries, num_partitions, num_shards),
+                repository: CacheRepo::with_capacity(max_entries, num_partitions, num_shards), 
             }
         )
+    }
+
+    pub fn insert(&mut self, vector: DimVector<D>, id: &str) -> Result<bool, TectonicError> {
+        !todo!()
+    }
+
+    pub fn remove(&mut self) -> Result<bool, TectonicError> {
+        !todo!()
     }
 }
 

@@ -13,7 +13,7 @@ pub struct CacheShard {
     pub shard_id: usize,
     pub capacity: usize,
     pub size: usize,
-    pub location_storage: Vec<Option<Location>>
+    pub location_storage: Vec<Option<Location<'static>>>
 }
 
 impl CacheShard {
