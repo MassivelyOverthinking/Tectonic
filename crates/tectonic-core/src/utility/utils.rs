@@ -6,6 +6,10 @@
 // GENERAL UTILITY METHODS & STRUCTS
 // ============================================================
 
+use std::hash::{DefaultHasher, Hash, Hasher};
+
+use crate::result::DimVector;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(dead_code)]
 pub struct VectorID {
@@ -36,4 +40,13 @@ pub fn calculate_sizes(max_entries: usize, elements: usize) -> Vec<usize> {
     }
 
     sizes
+}
+
+pub fn hash_dimvector<const D: usize>(vector: &DimVector<D>) -> u64 {
+    let mut vec_hash = DefaultHasher::new();
+    for &value in vector.iter() {
+        value.to_bits().hash(&mut vec_hash);
+    }
+
+    vec_hash.finish()
 }

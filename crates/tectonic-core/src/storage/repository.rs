@@ -2,10 +2,12 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use std::collections::HashMap;
 use std::usize;
 
 use crate::error::TectonicError;
 use crate::result::DimVector;
+use crate::storage::location::Location;
 use crate::storage::partition::CachePartition;
 use crate::utility::utils::calculate_sizes;
 
@@ -16,6 +18,11 @@ use crate::utility::utils::calculate_sizes;
 #[allow(dead_code)]
 pub struct CacheRepo<const D: usize> {
     pub vector_repo: Vec<CachePartition<D>>,
+    pub by_internal_id: HashMap<usize, Location>,
+    pub by_user_id: HashMap<&str, usize>,
+    pub by_vector_hash: HashMap<u64, usize>,
+    pub size: usize,
+    pub capacity: usize,
 }
 
 #[allow(dead_code)]
@@ -30,6 +37,11 @@ impl<const D: usize> CacheRepo<D> {
 
         Self {
             vector_repo: partitions_vector,
+            by_internal_id: HashMap::new(),
+            by_user_id: HashMap::new(),
+            by_vector_hash: HashMap::new(),
+            capacity: max_entries,
+            size: 0,
         }
     }
 

@@ -45,7 +45,7 @@ impl<const D: usize> VectorCache<D> {
         )
     }
 
-    pub fn insert(&mut self, vector: DimVector<D>, id: &str) -> Result<bool, TectonicError> {
+    pub fn insert(&mut self, vector: DimVector<D>, id: Option<String>, overwrite: bool) -> Result<bool, TectonicError> {
         !todo!()
     }
 
