@@ -4,8 +4,9 @@
 
 use std::collections::VecDeque;
 use std::iter::repeat_with;
-use crate::utility::utils::{VectorID, DimVector};
-use crate::{error::TectonicError, result::VectorEntry};
+use crate::utility::utils::{VectorID};
+use crate::result::{VectorEntry, DimVector};
+use crate::error::TectonicError;
 
 // ============================================================
 // VECTOR STORAGE (ARENA)
