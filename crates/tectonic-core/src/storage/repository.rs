@@ -4,6 +4,8 @@
 
 use std::usize;
 
+use crate::error::TectonicError;
+use crate::result::DimVector;
 use crate::storage::partition::CachePartition;
 use crate::utility::utils::calculate_sizes;
 
@@ -29,5 +31,9 @@ impl<const D: usize> CacheRepo<D> {
         Self {
             vector_repo: partitions_vector,
         }
+    }
+
+    pub fn insert(&mut self, vector: DimVector<D>) -> Result<bool, TectonicError> {
+        !todo!()
     }
 }

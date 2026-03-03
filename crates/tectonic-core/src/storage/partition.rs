@@ -4,7 +4,8 @@
 
 use crate::error::TectonicError;
 use crate::result::DimVector;
-use crate::storage::shard::CacheShard;
+use crate::storage::shard::{CacheShard};
+use crate::storage::location::{Location};
 use crate::utility::utils::calculate_sizes;
 
 // ============================================================
@@ -39,8 +40,12 @@ impl<const D: usize> CachePartition<D> {
         }
     }
 
+    pub fn insert(&self, location: Location) -> Result<bool, TectonicError> {
+        !todo!()
+    }
+
     #[inline]
-    pub fn add_centroid_vector(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
+    fn add_centroid_vector(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
         if self.centroid.is_some() {
             return Err(TectonicError::CentroidError { message: "Centroid is already initialized!" });
         }
