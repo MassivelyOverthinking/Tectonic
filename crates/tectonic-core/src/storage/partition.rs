@@ -14,21 +14,21 @@ use crate::utility::utils::calculate_sizes;
 
 #[allow(dead_code)]
 pub struct CachePartition<const D: usize> {
-    pub partition_id: usize,
+    pub partition_id: u32,
     pub centroid: Option<[f32; D]>,
-    pub size: usize,
-    pub capacity: usize,
+    pub size: u64,
+    pub capacity: u64,
     pub shards: Vec<CacheShard>,
 }
 
 #[allow(dead_code)]
 impl<const D: usize> CachePartition<D> {
-    pub fn with_capacity(partition_id: usize, capacity: usize, num_shards: usize) -> Self {
-        let shard_sizes = calculate_sizes(capacity, num_shards);
+    pub fn with_capacity(partition_id: u32, capacity: u64, num_shards: u32) -> Self {
+        let shard_sizes = calculate_sizes(capacity as usize, num_shards as usize);
 
         let mut shard_vectors = Vec::with_capacity(shard_sizes.len());
         for (id, &cap) in shard_sizes.iter().enumerate() {
-            shard_vectors.push(CacheShard::with_capacity(id, cap));
+            shard_vectors.push(CacheShard::with_capacity(id as u32, cap as u64));
         }
 
         Self { 

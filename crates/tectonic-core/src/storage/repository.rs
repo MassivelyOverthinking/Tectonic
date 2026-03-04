@@ -8,7 +8,6 @@ use std::usize;
 
 use crate::error::TectonicError;
 use crate::result::DimVector;
-use crate::storage::location::{ArenaLocation, RepoLocation};
 use crate::storage::partition::CachePartition;
 use crate::storage::slot::RepoSlot;
 use crate::utility::utils::calculate_sizes;
@@ -35,7 +34,7 @@ impl<const D: usize> CacheRepo<D> {
 
         let mut partitions_vector = Vec::with_capacity(partition_capacities.len());
         for (id, &cap) in partition_capacities.iter().enumerate() {
-            partitions_vector.push(CachePartition::with_capacity( id, cap, shards));
+            partitions_vector.push(CachePartition::with_capacity( id as u32, cap as u64, shards as u32));
         }
 
         Self {
