@@ -53,9 +53,9 @@ impl<const D: usize> VectorArena<D> {
         let vector_id = *id;
         let vector_index = *index;
 
-        if let Some(entry) = &self.arena[vector_index] {
-            if entry.vector_id == vector_id {
-                self.arena[vector_index] = None;
+        if let Some(entry) = &self.arena[vector_index].vector {
+            if entry.vector_id.slot_id == vector_id {
+                self.arena[vector_index].vector = None;
                 self.size -= 1;
                 self.free_list.push_front(vector_index);
                 return Ok(true);

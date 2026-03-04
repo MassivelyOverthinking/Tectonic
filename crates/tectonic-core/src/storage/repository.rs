@@ -7,10 +7,11 @@ use std::iter::repeat_with;
 use std::usize;
 
 use crate::error::TectonicError;
-use crate::result::DimVector;
+use crate::result::{DimVector, VectorEntry};
+use crate::storage::location::{ArenaLocation, RepoLocation};
 use crate::storage::partition::CachePartition;
 use crate::storage::slot::RepoSlot;
-use crate::utility::utils::calculate_sizes;
+use crate::utility::utils::{calculate_sizes, hash_dimvector};
 
 // ============================================================
 // INTERNAL STORE (PARTITIONS + SHARDS)
@@ -48,7 +49,33 @@ impl<const D: usize> CacheRepo<D> {
         }
     }
 
-    pub fn insert(&mut self, vector: DimVector<D>) -> Result<bool, TectonicError> {
-        !todo!()
+    pub fn insert(&mut self, location: ArenaLocation, vector: &DimVector<D>, user_id: Option<&str>, overwrite: bool) -> Result<bool, TectonicError> {
+        if self.is_full() {
+            return Err(TectonicError::RepoError { message: "Vector Repository is currently full!" });
+        }
+
+        let vec_hash = hash_dimvector(vector);
+        if let Some(found_hash) = self.by_vector_hash.get(&vec_hash) {
+            if !overwrite {
+                Ok(true)
+            } else {
+                Err(TectonicError::RepoError { message: "Duplicate entry!" })
+            }
+        } else {
+            Ok(true)
+        }
+    }
+
+    pub fn get_vector_by_location(&self, location: &RepoLocation) -> Result<VectorEntry<D>, TectonicError> {
+        let arena_loc = self.vector_repo[*location.get_partition_index()]
+            .shards[*location.get_shard_index()]
+            .location_storage[*location.get_slot_index()]
+            .ok_or(|| TectonicError::RepoError { message: "No Location located!" })?;
+
+        let arena_index = arena_loc.get_index();
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.size >= self.capacity
     }
 }

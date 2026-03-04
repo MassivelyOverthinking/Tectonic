@@ -15,6 +15,7 @@ pub enum TectonicError {          // Simple Error with custom messaging
     RequiredFieldError { field: &'static str },
     CacheLimitError { size: usize, limit: usize },
     ArenaError { message: &'static str },
+    RepoError { message: &'static str },
     CentroidError { message: &'static str },
 }
 
@@ -32,6 +33,8 @@ impl fmt::Display for TectonicError {
                 write!(f, "Cache Limit Exceeded: Current size {} > Max entries {}", size, limit),
             TectonicError::ArenaError { message } => 
                 write!(f, "Arena Storage Error: {}", message),
+            TectonicError::RepoError { message } =>
+                write!(f, "Repository Storage Error: {}", message),
             TectonicError::CentroidError { message } => 
                 write!(f, "Centroid Error: {}", message),
         }

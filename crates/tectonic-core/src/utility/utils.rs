@@ -13,8 +13,8 @@ use crate::result::DimVector;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(dead_code)]
 pub struct UniqueID {
-    slot_id: usize,
-    gen_id: u32,
+    pub slot_id: usize,
+    pub gen_id: u32,
 }
 
 #[allow(dead_code)]
@@ -40,6 +40,7 @@ pub fn calculate_sizes(max_entries: usize, elements: usize) -> Vec<usize> {
     sizes
 }
 
+#[allow(dead_code)]
 pub fn hash_dimvector<const D: usize>(vector: &DimVector<D>) -> u64 {
     let mut vec_hash = DefaultHasher::new();
     for &value in vector.iter() {
