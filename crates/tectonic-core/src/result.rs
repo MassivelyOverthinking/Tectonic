@@ -16,13 +16,15 @@ pub type DimVector<const D: usize> = [f32; D];
 #[allow(dead_code)]
 pub struct VectorEntry<const D: usize> {
     pub vector_id: usize,
+    pub gen_id: u32,
     pub vector: DimVector<D>,
 }
 
 impl<const D: usize> VectorEntry<D> {
-    pub fn new(id: usize, vector: DimVector<D>) -> Self {
+    pub fn new(id: usize, generation: u32, vector: DimVector<D>) -> Self {
         Self { 
             vector_id: id,
+            gen_id: generation,
             vector
         }
     }

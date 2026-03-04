@@ -4,6 +4,7 @@
 
 use std::collections::VecDeque;
 use std::iter::repeat_with;
+use crate::storage::slot::ArenaSlot;
 use crate::utility::utils::{VectorID};
 use crate::result::{VectorEntry, DimVector};
 use crate::error::TectonicError;
@@ -14,12 +15,10 @@ use crate::error::TectonicError;
 
 #[derive(Debug, Clone)]
 pub struct VectorArena<const D: usize> {
-    next_index: usize,
     capacity: usize,
     size: usize,
-    id: VectorID,
     free_list: VecDeque<usize>,
-    arena: Vec<Option<VectorEntry<D>>>
+    arena: Vec<ArenaSlot<D>>
 }
 
 #[allow(dead_code)]
@@ -31,20 +30,21 @@ impl<const D: usize> VectorArena<D> {
 
         if let Some(available_index) = self.free_list.pop_back() {
             let new_vector = VectorEntry::new(
-                self.id.get_and_increment(),
+                available_index,
+                self.arena[available_index].get_and_increment(),
                 value
             );
-            self.arena[available_index] = Some(new_vector);
+            self.arena[available_index].vector = Some(new_vector);
             self.size += 1;
             return Ok(true);
         } else {
-            let next_index = self.next_index;
+            let next_index = self.size;
             let new_vector = VectorEntry::new(
-                self.id.get_and_increment(),
-                value
+                next_index,
+                self.arena[next_index].get_and_increment(),
+                value,
             );
-            self.arena[next_index] = Some(new_vector);
-            self.next_index += 1;
+            self.arena[next_index].vector = Some(new_vector);
             self.size += 1;
             return Ok(true);
         }
@@ -82,12 +82,10 @@ impl<const D: usize> VectorArena<D> {
 
     pub fn with_capacity(max_entries: usize) -> Self {
         Self { 
-            next_index: 0,
             capacity: max_entries,
             size: 0,
-            id: VectorID::new(),
             free_list: VecDeque::new(),
-            arena: repeat_with(|| None).take(max_entries).collect()
+            arena: repeat_with(|| ArenaSlot::<D>::default()).take(max_entries).collect()
         }
     }
 }
