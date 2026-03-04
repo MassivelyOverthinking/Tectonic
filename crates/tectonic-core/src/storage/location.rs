@@ -8,14 +8,14 @@
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct Location<'a> {
+pub struct ArenaLocation<'a> {
     user_id: Option<&'a str>,
     entry_id: usize,
     entry_index: usize,
 }
 
 #[allow(dead_code)]
-impl<'a> Location<'a> {
+impl<'a> ArenaLocation<'a> {
     pub fn new(user_id: Option<&'a str>, id: usize, index: usize) -> Self {
         Self { 
             user_id: user_id,

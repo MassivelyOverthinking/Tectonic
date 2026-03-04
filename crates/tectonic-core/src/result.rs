@@ -12,7 +12,7 @@ pub type DimVector<const D: usize> = [f32; D];
 // CUSTOM RESULT STRUCTURES
 // ============================================================
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
 pub struct VectorEntry<const D: usize> {
     pub vector_id: usize,

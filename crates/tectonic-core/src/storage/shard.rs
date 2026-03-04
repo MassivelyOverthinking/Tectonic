@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::storage::location::Location;
+use crate::storage::location::ArenaLocation;
 
 // ============================================================
 // INTERNAL SHARDS (MULTITHREADING)
@@ -13,7 +13,7 @@ pub struct CacheShard {
     pub shard_id: usize,
     pub capacity: usize,
     pub size: usize,
-    pub location_storage: Vec<Option<Location<'static>>>
+    pub location_storage: Vec<Option<ArenaLocation<'static>>>
 }
 
 impl CacheShard {

@@ -7,7 +7,7 @@ use std::usize;
 
 use crate::error::TectonicError;
 use crate::result::DimVector;
-use crate::storage::location::Location;
+use crate::storage::location::ArenaLocation;
 use crate::storage::partition::CachePartition;
 use crate::utility::utils::calculate_sizes;
 
