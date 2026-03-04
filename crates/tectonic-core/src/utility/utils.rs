@@ -12,20 +12,18 @@ use crate::result::DimVector;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(dead_code)]
-pub struct VectorID {
-    next_id: usize,
+pub struct UniqueID {
+    slot_id: usize,
+    gen_id: u32,
 }
 
 #[allow(dead_code)]
-impl VectorID {
-    pub fn new() -> Self {
-        Self { next_id: 1 }
-    }
-
-    pub fn get_and_increment(&mut self) -> usize {
-        let id = self.next_id;
-        self.next_id += 1;
-        id
+impl UniqueID {
+    pub fn new(slot: usize, generation: u32) -> Self {
+        Self {
+            slot_id: slot,
+            gen_id: generation,
+        }
     }
 }
 
