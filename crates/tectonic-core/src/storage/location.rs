@@ -36,3 +36,34 @@ impl<'a> ArenaLocation<'a> {
         &self.entry_index
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
+pub struct RepoLocation {
+    pub partition_idx: usize,
+    pub shard_idx: usize,
+    pub slot_idx: usize,
+}
+
+#[allow(dead_code)]
+impl RepoLocation {
+    pub fn new(partition: usize, shard: usize, slot: usize) -> Self {
+        Self { 
+            partition_idx: partition, 
+            shard_idx: shard, 
+            slot_idx: slot 
+        }
+    }
+
+    pub fn get_partition_index(&self) -> &usize {
+        &self.partition_idx
+    }
+
+    pub fn get_shard_index(&self) -> &usize {
+        &self.shard_idx
+    }
+
+    pub fn get_slot_index(&self) -> &usize {
+        &self.slot_idx
+    }
+}

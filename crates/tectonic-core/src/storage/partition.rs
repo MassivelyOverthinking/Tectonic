@@ -40,7 +40,7 @@ impl<const D: usize> CachePartition<D> {
         }
     }
 
-    pub fn insert(&self, location: ArenaLocation) -> Result<bool, TectonicError> {
+    pub fn insert(&self, _location: ArenaLocation) -> Result<bool, TectonicError> {
         !todo!()
     }
 

@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::{result::VectorEntry, storage::location::ArenaLocation};
+use crate::{result::VectorEntry, storage::location::{RepoLocation}};
 
 // ============================================================
 // INTERNAL SLOTS
@@ -30,16 +30,16 @@ impl<const D: usize> ArenaSlot<D> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct RepoSlot<'a> {
+pub struct RepoSlot {
     pub generation: u32,
-    pub vector: Option<ArenaLocation<'a>>
+    pub location: Option<RepoLocation>
 }
 
-impl RepoSlot<'static> {
+impl RepoSlot {
     pub fn default() -> Self {
         Self { 
             generation: 1,
-            vector: None
+            location: None
         }
     }
 

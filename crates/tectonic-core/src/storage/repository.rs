@@ -2,13 +2,15 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
+use std::iter::repeat_with;
 use std::usize;
 
 use crate::error::TectonicError;
 use crate::result::DimVector;
-use crate::storage::location::ArenaLocation;
+use crate::storage::location::{ArenaLocation, RepoLocation};
 use crate::storage::partition::CachePartition;
+use crate::storage::slot::RepoSlot;
 use crate::utility::utils::calculate_sizes;
 
 // ============================================================
@@ -18,9 +20,10 @@ use crate::utility::utils::calculate_sizes;
 #[allow(dead_code)]
 pub struct CacheRepo<const D: usize> {
     pub vector_repo: Vec<CachePartition<D>>,
-    pub by_internal_id: HashMap<usize, Location>,
-    pub by_user_id: HashMap<&str, usize>,
+    pub by_internal_id: Vec<RepoSlot>,
+    pub by_user_id: HashMap<String, usize>,
     pub by_vector_hash: HashMap<u64, usize>,
+    pub free_list: VecDeque<usize>,
     pub size: usize,
     pub capacity: usize,
 }
@@ -37,9 +40,10 @@ impl<const D: usize> CacheRepo<D> {
 
         Self {
             vector_repo: partitions_vector,
-            by_internal_id: HashMap::new(),
+            by_internal_id: repeat_with(|| RepoSlot::default()).take(max_entries).collect(),
             by_user_id: HashMap::new(),
             by_vector_hash: HashMap::new(),
+            free_list: VecDeque::new(),
             capacity: max_entries,
             size: 0,
         }
