@@ -7,7 +7,7 @@ use std::iter::repeat_with;
 use std::usize;
 
 use crate::error::TectonicError;
-use crate::result::{DimVector, VectorEntry};
+use crate::result::DimVector;
 use crate::storage::location::{ArenaLocation, RepoLocation};
 use crate::storage::partition::CachePartition;
 use crate::storage::slot::RepoSlot;
@@ -78,7 +78,7 @@ impl<const D: usize> CacheRepo<D> {
     }
 
     #[inline]
-    pub fn is_vectors_equal(x: &DimVector<D>, y: &DimVector<D>) -> bool {
+    pub fn is_vectors_equal(&self, x: &DimVector<D>, y: &DimVector<D>) -> bool {
         x == y
     }
 
