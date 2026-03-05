@@ -2,9 +2,12 @@
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
 pub enum Eviction {
-    Lifo,
-    Fifo,
-    Lru,
+    LIFO,
+    FIFO,
+    LRU,
+    MRU,
+    ARC,
+    LIRS
 }
 
 pub trait EvictionStrategy {

@@ -4,7 +4,7 @@
 
 use crate::error::TectonicError;
 use crate::search::distance::DistanceMetric;
-use crate::eviction::eviction_strategy::EvictionStrategy;
+use crate::eviction::eviction_strategy::{Eviction};
 
 // ============================================================
 // INTERNAL CONFIGURATION OBJECTS
@@ -65,7 +65,7 @@ pub struct CacheConfigBuilder {
     quantization_enabled: Option<bool>,
     distance_metric: Option<DistanceMetric>,
     similarity_threshold: Option<f32>,
-    eviction_strategy: Option<EvictionStrategy>,
+    eviction_strategy: Option<Eviction>,
     search_partitions: Option<usize>,
     coopoerative: Option<bool>,
     hysteresis: Option<f32>,
@@ -101,7 +101,7 @@ impl CacheConfigBuilder {
         self
     }
 
-    pub fn eviction_strategy(mut self, value: EvictionStrategy) -> Self {
+    pub fn eviction_strategy(mut self, value: Eviction) -> Self {
         self.eviction_strategy = Some(value);
         self
     }
@@ -147,7 +147,7 @@ impl CacheConfigBuilder {
         const DEFAULT_SHARDS: usize = 1;
         const DEFAULT_DISTANCE_METRIC: DistanceMetric = DistanceMetric::Euclidean;
         const DEFAULT_SIM_THRESHOLD: f32 = 0.0;
-        const DEFAULT_EVICTION: EvictionStrategy = EvictionStrategy::Fifo;
+        const DEFAULT_EVICTION: Eviction = Eviction::FIFO;
         const DEFAULT_SEARCH_PARTITIONS: usize = 3;
         const DEFAULT_COOPOERATIVE: bool = true;
         const DEFAULT_HYSTERESIS: f32 = 0.2;
@@ -210,7 +210,7 @@ pub struct SearchConfig {
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct EvictionConfig {
-    pub eviction_strategy: EvictionStrategy,
+    pub eviction_strategy: Eviction,
 }
 
 #[derive(Debug, Clone)]
