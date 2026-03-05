@@ -66,13 +66,20 @@ impl<const D: usize> CacheRepo<D> {
         }
     }
 
-    pub fn get_vector_by_location(&self, location: &RepoLocation) -> Result<VectorEntry<D>, TectonicError> {
+    pub fn get_id_by_location(&self, location: &RepoLocation) -> Result<usize, TectonicError> {
         let arena_loc = self.vector_repo[*location.get_partition_index()]
             .shards[*location.get_shard_index()]
             .location_storage[*location.get_slot_index()]
-            .ok_or(|| TectonicError::RepoError { message: "No Location located!" })?;
+            .as_ref()
+            .ok_or_else(|| TectonicError::RepoError { message: "No Location located!" })?;
 
         let arena_index = arena_loc.get_index();
+        Ok(*arena_index)
+    }
+
+    #[inline]
+    pub fn is_vectors_equal(x: &DimVector<D>, y: &DimVector<D>) -> bool {
+        x == y
     }
 
     pub fn is_full(&self) -> bool {
