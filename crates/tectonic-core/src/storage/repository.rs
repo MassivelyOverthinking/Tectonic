@@ -9,8 +9,8 @@ use std::usize;
 
 use crate::error::TectonicError;
 use crate::result::DimVector;
-use crate::search::distance::{DistanceMetric, SearchMethod};
-use crate::storage::location::{ArenaLocation, RepoLocation};
+use crate::search::distance::{SearchMethod};
+use crate::storage::location::{RepoLocation};
 use crate::storage::partition::CachePartition;
 use crate::storage::slot::RepoSlot;
 use crate::utility::utils::{calculate_sizes, hash_dimvector};
@@ -61,7 +61,7 @@ impl<const D: usize> CacheRepo<D> {
             if !overwrite {
                 Ok(true)
             } else {
-                Err(TectonicError::RepoError { message: "Duplicate entry!" })
+                return Ok(true);
             }
         } else {
             Ok(true)
@@ -100,6 +100,15 @@ impl<const D: usize> CacheRepo<D> {
         }
 
         Ok(result)
+    }
+
+    #[inline]
+    pub fn find_arena_by_hash(&self, value: &usize) -> Result<&RepoLocation, TectonicError> {
+        if let Some(found_location) = self.by_internal_id[*value].location.as_ref() {
+            Ok(found_location)
+        } else {
+            Err(TectonicError::RepoError { message: "Could not find RepoLocation!" })
+        }
     }
 
     #[inline]
