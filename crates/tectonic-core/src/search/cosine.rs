@@ -8,6 +8,7 @@ use crate::search::distance::SearchMethod;
 // COSINE DISTANCE METRICS
 // ============================================================
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct Cosine;
 
 impl<const D: usize> SearchMethod<D> for Cosine {

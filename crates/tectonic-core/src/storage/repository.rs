@@ -59,7 +59,9 @@ impl<const D: usize> CacheRepo<D> {
         let vec_hash = hash_dimvector(vector);
         if let Some(found_hash) = self.by_vector_hash.get(&vec_hash) {
             if !overwrite {
-                Ok(true)
+                let found_loc = self.find_arena_by_hash(found_hash)?;
+                let found_vec = self.get_id_by_location(found_loc)?;
+                return Ok(false);
             } else {
                 return Ok(true);
             }

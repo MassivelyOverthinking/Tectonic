@@ -9,6 +9,7 @@ use crate::search::distance::SearchMethod;
 // DOT PRODUCT DISTANCE METRICS
 // ============================================================
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct DotProduct;
 
 impl<const D: usize> SearchMethod<D> for DotProduct {

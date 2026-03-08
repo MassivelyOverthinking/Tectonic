@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::utility::utils::UniqueID;
+use crate::{metrics::vector_metric::VectorMetrics, utility::utils::UniqueID};
 
 // ============================================================
 // CUSTOM DTYPES ANNOTATIONS
@@ -19,13 +19,15 @@ pub type DimVector<const D: usize> = [f32; D];
 pub struct VectorEntry<const D: usize> {
     pub vector_id: UniqueID,
     pub vector: DimVector<D>,
+    pub metrics: Option<VectorMetrics<D>>
 }
 
 impl<const D: usize> VectorEntry<D> {
-    pub fn new(id: usize, generation: u32, vector: DimVector<D>) -> Self {
+    pub fn new(id: usize, generation: u32, vector: DimVector<D>, metrics_enabled: bool) -> Self {
         Self { 
             vector_id: UniqueID::new(id, generation),
-            vector
+            vector,
+            metrics: if metrics_enabled { Some(VectorMetrics::default()) } else { None },
         }
     }
 }
