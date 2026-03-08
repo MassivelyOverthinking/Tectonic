@@ -2,12 +2,14 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use core::f32;
 use std::collections::{HashMap, VecDeque};
 use std::iter::repeat_with;
 use std::usize;
 
 use crate::error::TectonicError;
 use crate::result::DimVector;
+use crate::search::distance::{DistanceMetric, SearchMethod};
 use crate::storage::location::{ArenaLocation, RepoLocation};
 use crate::storage::partition::CachePartition;
 use crate::storage::slot::RepoSlot;
@@ -49,7 +51,7 @@ impl<const D: usize> CacheRepo<D> {
         }
     }
 
-    pub fn insert(&mut self, location: ArenaLocation, vector: &DimVector<D>, user_id: Option<&str>, overwrite: bool) -> Result<bool, TectonicError> {
+    pub fn insert(&mut self, vector: &DimVector<D>, user_id: Option<&str>, overwrite: bool) -> Result<bool, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::RepoError { message: "Vector Repository is currently full!" });
         }
@@ -75,6 +77,29 @@ impl<const D: usize> CacheRepo<D> {
 
         let arena_index = arena_loc.get_index();
         Ok(*arena_index)
+    }
+
+    pub fn find_nearest_centroid(&self, vector: &DimVector<D>, distance: &dyn SearchMethod<D>) -> Result<usize, TectonicError> {
+        if self.vector_repo.is_empty() {
+            return Err(TectonicError::RepoError { message: "No internal partitions found!" });
+        }
+
+        let mut result = 0;
+        let mut shortest_distance = f32::MAX;
+
+        for (position, partition) in self.vector_repo.iter().enumerate() {
+            if let Some(par_centroid) = partition.centroid.as_ref() {
+                let centroid_distance = distance.distance(vector, &par_centroid);
+                if centroid_distance <= shortest_distance {
+                    shortest_distance = centroid_distance;
+                    result = position
+                }
+            } else {
+                continue;
+            }
+        }
+
+        Ok(result)
     }
 
     #[inline]
