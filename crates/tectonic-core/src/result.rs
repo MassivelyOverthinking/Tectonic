@@ -29,3 +29,19 @@ impl<const D: usize> VectorEntry<D> {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct VectorResult<const D: usize> {
+   pub size: usize,
+   pub vectors: Vec<DimVector<D>>,
+}
+
+impl<const D: usize> VectorResult<D> {
+    pub fn new(num_vectors: usize, result_vectors: Vec<DimVector<D>>) -> Self {
+        Self { 
+            size: num_vectors,
+            vectors: result_vectors, 
+        }
+    }
+}

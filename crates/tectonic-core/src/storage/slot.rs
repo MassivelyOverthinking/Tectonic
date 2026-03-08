@@ -30,11 +30,13 @@ impl<const D: usize> ArenaSlot<D> {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub struct RepoSlot {
     pub generation: u32,
     pub location: Option<RepoLocation>
 }
 
+#[allow(dead_code)]
 impl RepoSlot {
     pub fn default() -> Self {
         Self { 
