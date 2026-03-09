@@ -14,7 +14,7 @@ mod result;
 
 use crate::config::CacheConfig;
 use crate::error::TectonicError;
-use crate::metrics::vector_metric::CacheMetrics;
+use crate::metrics::cache_metrics::CacheMetrics;
 use crate::storage::arena::VectorArena;
 use crate::storage::repository::CacheRepo;
 use crate::result::DimVector;
