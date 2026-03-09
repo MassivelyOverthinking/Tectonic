@@ -14,6 +14,7 @@ mod result;
 
 use crate::config::CacheConfig;
 use crate::error::TectonicError;
+use crate::metrics::vector_metric::CacheMetrics;
 use crate::storage::arena::VectorArena;
 use crate::storage::repository::CacheRepo;
 use crate::result::DimVector;
@@ -27,6 +28,7 @@ pub struct VectorCache<const D: usize> {
     config: CacheConfig,
     arena: VectorArena<D>,
     repository: CacheRepo<D>,
+    metrics: CacheMetrics,
 }
 
 impl<const D: usize> VectorCache<D> {
@@ -40,7 +42,8 @@ impl<const D: usize> VectorCache<D> {
             Self { 
                 config: config, 
                 arena: VectorArena::with_capacity(max_entries),
-                repository: CacheRepo::with_capacity(max_entries, num_partitions, num_shards), 
+                repository: CacheRepo::with_capacity(max_entries, num_partitions, num_shards),
+                metrics: CacheMetrics::default(), 
             }
         )
     }
