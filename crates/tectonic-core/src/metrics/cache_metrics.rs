@@ -13,18 +13,25 @@ use std::time::Instant;
 pub struct CacheMetrics {
     created_at: Instant,
     size: usize,
+    capacity: usize,
     load_factor: f32,
     actions: ActionMetrics,
 }
 
 impl CacheMetrics {
-    pub fn default() -> Self {
+    pub fn with_capacity(capacity: usize) -> Self {
         Self { 
             created_at: Instant::now(),
             size: 0, 
+            capacity: capacity,
             load_factor: 0.0, 
             actions: ActionMetrics::default(),  
         }
+    }
+
+    pub fn increment_size(&mut self) {
+        self.size += 1;
+        self.load_factor = self.size as f32 / self.capacity as f32;
     }
 }
 

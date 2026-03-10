@@ -43,7 +43,7 @@ impl<const D: usize> VectorCache<D> {
                 config: config, 
                 arena: VectorArena::with_capacity(max_entries),
                 repository: CacheRepo::with_capacity(max_entries, num_partitions, num_shards),
-                metrics: CacheMetrics::default(), 
+                metrics: CacheMetrics::with_capacity(max_entries), 
             }
         )
     }
