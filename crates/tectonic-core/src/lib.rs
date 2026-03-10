@@ -17,7 +17,7 @@ use crate::error::TectonicError;
 use crate::metrics::cache_metrics::CacheMetrics;
 use crate::storage::arena::VectorArena;
 use crate::storage::repository::CacheRepo;
-use crate::result::DimVector;
+use crate::result::{DimVector, VectorEntry};
 
 // ============================================================
 // MAIN CACHE IMPLEMENTATION
@@ -49,7 +49,23 @@ impl<const D: usize> VectorCache<D> {
     }
 
     pub fn insert(&mut self, vector: DimVector<D>, id: Option<String>, overwrite: bool) -> Result<bool, TectonicError> {
-        !todo!()
+        if self.metrics.is_full() {
+            !todo!() // Eviction takes place here!
+        }
+
+        let arena_index = self.arena.insert(
+            vector,
+            id,
+            self.config.metrics.metrics_enabled
+        )?;
+
+        self.repository.insert(
+            &vector,
+            id,
+            overwrite
+        )
+
+
     }
 
     pub fn remove(&mut self) -> Result<bool, TectonicError> {

@@ -22,7 +22,7 @@ pub struct VectorArena<const D: usize> {
 
 #[allow(dead_code)]
 impl<const D: usize> VectorArena<D> {
-    fn insert(&mut self, value: DimVector<D>, metrics_enabled: bool) -> Result<bool, TectonicError> {
+    pub fn insert(&mut self, value: DimVector<D>, user_id: Option<String>, metrics_enabled: bool) -> Result<usize, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::CacheLimitError { size: self.size, limit: self.capacity })
         };
@@ -31,23 +31,25 @@ impl<const D: usize> VectorArena<D> {
             let new_vector = VectorEntry::new(
                 available_index,
                 self.arena[available_index].get_and_increment(),
+                user_id,
                 value,
                 metrics_enabled,
             );
             self.arena[available_index].vector = Some(new_vector);
             self.size += 1;
-            return Ok(true);
+            return Ok(available_index);
         } else {
             let next_index = self.size;
             let new_vector = VectorEntry::new(
                 next_index,
                 self.arena[next_index].get_and_increment(),
+                user_id,
                 value,
                 metrics_enabled,
             );
             self.arena[next_index].vector = Some(new_vector);
             self.size += 1;
-            return Ok(true);
+            return Ok(next_index);
         }
     }
 

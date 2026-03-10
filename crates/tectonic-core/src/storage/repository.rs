@@ -81,7 +81,9 @@ impl<const D: usize> CacheRepo<D> {
         Ok(*arena_index)
     }
 
-    pub fn find_nearest_centroid(&self, vector: &DimVector<D>, distance: &dyn SearchMethod<D>) -> Result<usize, TectonicError> {
+    pub fn find_nearest_centroid<M>(&self, vector: &DimVector<D>, distance: &M) -> Result<usize, TectonicError> 
+    where M: SearchMethod<D> {
+        
         if self.vector_repo.is_empty() {
             return Err(TectonicError::RepoError { message: "No internal partitions found!" });
         }

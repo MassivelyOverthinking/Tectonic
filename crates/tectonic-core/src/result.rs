@@ -18,14 +18,16 @@ pub type DimVector<const D: usize> = [f32; D];
 #[allow(dead_code)]
 pub struct VectorEntry<const D: usize> {
     pub vector_id: UniqueID,
+    pub user_id: Option<String>,
     pub vector: DimVector<D>,
     pub metrics: Option<VectorMetrics<D>>
 }
 
 impl<const D: usize> VectorEntry<D> {
-    pub fn new(id: usize, generation: u32, vector: DimVector<D>, metrics_enabled: bool) -> Self {
+    pub fn new(id: usize, generation: u32, user_id: Option<String>, vector: DimVector<D>, metrics_enabled: bool) -> Self {
         Self { 
             vector_id: UniqueID::new(id, generation),
+            user_id: user_id,
             vector,
             metrics: if metrics_enabled { Some(VectorMetrics::default()) } else { None },
         }

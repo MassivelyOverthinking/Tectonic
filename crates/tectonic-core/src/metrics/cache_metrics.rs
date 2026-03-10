@@ -33,6 +33,10 @@ impl CacheMetrics {
         self.size += 1;
         self.load_factor = self.size as f32 / self.capacity as f32;
     }
+
+    pub fn is_full(&self) -> bool {
+        self.size >= self.capacity
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
