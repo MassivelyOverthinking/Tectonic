@@ -2,6 +2,8 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use std::collections::VecDeque;
+
 use crate::{error::TectonicError, storage::location::ArenaLocation};
 
 // ============================================================
@@ -14,6 +16,7 @@ pub struct CacheShard {
     pub capacity: usize,
     pub size: usize,
     pub load_factor: f32,
+    pub free_list: VecDeque<usize>,
     pub location_storage: Vec<Option<ArenaLocation<'static>>>
 }
 
@@ -24,22 +27,44 @@ impl CacheShard {
             capacity: capacity,
             size: 0,
             load_factor: 0.0,
+            free_list: VecDeque::new(),
             location_storage: vec![None; capacity as usize],
         }
     }
 
-    pub fn insert(&mut self, location: ArenaLocation) -> Result<bool, TectonicError> {
+    pub fn insert(&mut self, location: ArenaLocation<'static>) -> Result<bool, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::RepoError { message: "Internal Shard is currently full!" });
         }
 
-        self.location_storage[self.size] = Some(location);
-        self.size += 1;
-        self.update_load_factor();
-        Ok(true)
+        if let Some(free_index) = self.free_list.pop_back() {
+            self.location_storage[free_index] = Some(location);
+            self.increment_and_update_factor();
+            Ok(true)
+        } else {
+            self.location_storage[self.size] = Some(location);
+            self.increment_and_update_factor();
+            Ok(true)
+        }
     }
 
-    fn update_load_factor(&mut self) {
+    pub fn remove(&mut self, index: usize) -> Result<ArenaLocation<'static>, TectonicError> {
+        if let Some(slot) = self.location_storage[index] {
+            self.free_list.push_front(index);
+            self.decrement_and_update_factor();
+            Ok(slot.clone())
+        } else {
+            return Err(TectonicError::RepoError { message: "Could not locate Location inside Repo" });
+        }
+    }
+
+    fn increment_and_update_factor(&mut self) {
+        self.size += 1;
+        self.load_factor = self.size as f32 / self.capacity as f32
+    }
+
+    fn decrement_and_update_factor(&mut self) {
+        self.size -= 1;
         self.load_factor = self.size as f32 / self.capacity as f32
     }
 
