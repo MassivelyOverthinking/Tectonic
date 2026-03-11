@@ -6,7 +6,7 @@ use crate::error::TectonicError;
 use crate::result::DimVector;
 use crate::storage::shard::{CacheShard};
 use crate::storage::location::{ArenaLocation};
-use crate::utility::utils::calculate_sizes;
+use crate::utility::utils::{calculate_sizes, hash_arena_location};
 
 // ============================================================
 // INTERNAL PARTITIONS (SEARCH SPACE)
@@ -28,7 +28,7 @@ impl<const D: usize> CachePartition<D> {
 
         let mut shard_vectors = Vec::with_capacity(shard_sizes.len());
         for (id, &cap) in shard_sizes.iter().enumerate() {
-            shard_vectors.push(CacheShard::with_capacity(id as u32, cap as u64));
+            shard_vectors.push(CacheShard::with_capacity(id as u32, cap));
         }
 
         Self { 
@@ -72,5 +72,10 @@ impl<const D: usize> CachePartition<D> {
 
         self.size = new_n;
         Ok(true)
+    }
+
+    #[inline]
+    fn route_to_shard(&self, location: ArenaLocation<'static>) -> Result<bool, TectonicError> {
+        let hash_value: u64 = hash_arena_location(location);
     }
 }

@@ -8,7 +8,7 @@
 
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use crate::result::DimVector;
+use crate::{result::DimVector, storage::location::ArenaLocation};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(dead_code)]
@@ -48,4 +48,15 @@ pub fn hash_dimvector<const D: usize>(vector: &DimVector<D>) -> u64 {
     }
 
     vec_hash.finish()
+}
+
+#[allow(dead_code)]
+pub fn hash_arena_location(location: ArenaLocation<'static>) -> u64 {
+    let mut loc_hash = DefaultHasher::new();
+
+    location.get_entry_id().hash(&mut loc_hash);
+    location.get_user_id().hash(&mut loc_hash);
+    location.get_index().hash(&mut loc_hash);
+
+    loc_hash.finish()
 }

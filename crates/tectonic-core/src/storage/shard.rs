@@ -49,10 +49,16 @@ impl CacheShard {
     }
 
     pub fn remove(&mut self, index: usize) -> Result<ArenaLocation<'static>, TectonicError> {
-        if let Some(slot) = self.location_storage[index] {
+        if index >= self.capacity {
+            return Err(TectonicError::RepoError { message: 
+                "Index out of bounds (Repository Shard)"
+            });
+        }
+
+        if let Some(slot) = self.location_storage[index].take() {
             self.free_list.push_front(index);
             self.decrement_and_update_factor();
-            Ok(slot.clone())
+            Ok(slot)
         } else {
             return Err(TectonicError::RepoError { message: "Could not locate Location inside Repo" });
         }
