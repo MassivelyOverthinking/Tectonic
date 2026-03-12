@@ -75,13 +75,29 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    fn route_to_shard(&self, location: ArenaLocation<'static>) -> Result<bool, TectonicError> {
-        let hash_value: u64 = hash_arena_location(location);
-        let length = self.shards.len() as u64;
+    fn route_to_shard(&mut self, location: ArenaLocation<'static>) -> Result<bool, TectonicError> {
+        let hash_value = hash_arena_location(&location);
+        let length = self.shards.len();
 
-        let idx1: u64 = hash_value % length;
-        let idx2: u64 = secondary_arena_hash(hash_value) % length;
+        if length == 0 {
+            return Err(TectonicError::RepoError { message: "No Shards initiated in Partition!" });
+        }
 
-        
+        let idx1 = (hash_value as usize) % length;
+        let idx2 = (secondary_arena_hash(hash_value) as usize) % length;
+
+        if idx1 == idx2 {
+            self.shards[idx1].insert(location);
+            return Ok(true);
+        }
+
+        let tartget_index = if self.shards[idx1].load_factor <= self.shards[idx2].load_factor {
+            idx1
+        } else {
+            idx2
+        };
+
+        self.shards[tartget_index].insert(location);
+        Ok(true)
     }
 }
