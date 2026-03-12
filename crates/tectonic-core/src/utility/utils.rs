@@ -60,3 +60,8 @@ pub fn hash_arena_location(location: ArenaLocation<'static>) -> u64 {
 
     loc_hash.finish()
 }
+
+#[allow(dead_code)]
+pub fn secondary_arena_hash(hash: u64) -> u64 {
+    hash.rotate_left(32) ^ 0x9e3779b97f4a7c15
+}
