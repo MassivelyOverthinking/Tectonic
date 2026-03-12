@@ -64,6 +64,20 @@ impl CacheShard {
         }
     }
 
+    pub fn get(&self, index: usize) -> Result<ArenaLocation<'static>, TectonicError> {
+        if index >= self.capacity {
+            return Err(TectonicError::RepoError { message: 
+                "Index out of bounds (Repository Shard)"
+            });
+        }
+
+        if let Some(slot) = &self.location_storage[index] {
+            Ok(slot.clone())
+        } else {
+            return Err(TectonicError::RepoError { message: "Could not locate Location inside Repo" });
+        }
+    }
+
     fn increment_and_update_factor(&mut self) {
         self.size += 1;
         self.load_factor = self.size as f32 / self.capacity as f32
