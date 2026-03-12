@@ -2,9 +2,9 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::collections::VecDeque;
+use std::{collections::{BinaryHeap, VecDeque}, ptr::null};
 
-use crate::{error::TectonicError, storage::location::ArenaLocation};
+use crate::{error::TectonicError, result::DimVector, search::{self, distance::SearchMethod}, storage::location::ArenaLocation};
 
 // ============================================================
 // INTERNAL SHARDS (MULTITHREADING)
@@ -90,5 +90,9 @@ impl CacheShard {
 
     fn is_full(&self) -> bool {
         self.size >= self.capacity
+    }
+
+    fn is_empty(&self) -> bool {
+        self.size == 0
     }
 }

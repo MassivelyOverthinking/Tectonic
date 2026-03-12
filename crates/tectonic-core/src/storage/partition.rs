@@ -3,7 +3,7 @@
 // ============================================================
 
 use crate::error::TectonicError;
-use crate::result::DimVector;
+use crate::result::{DimVector};
 use crate::storage::shard::{CacheShard};
 use crate::storage::location::{ArenaLocation};
 use crate::utility::utils::{calculate_sizes, hash_arena_location, secondary_arena_hash};

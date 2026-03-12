@@ -9,6 +9,7 @@ use crate::{metrics::vector_metric::VectorMetrics, utility::utils::UniqueID};
 // ============================================================
 
 pub type DimVector<const D: usize> = [f32; D]; 
+pub type SearchVector<const D: usize> = [i8; D];
 
 // ============================================================
 // CUSTOM RESULT STRUCTURES
