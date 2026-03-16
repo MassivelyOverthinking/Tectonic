@@ -2,13 +2,14 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use std::hash::{DefaultHasher, Hash, Hasher};
+
+use crate::storage::location::ArenaLocation;
+use crate::utility::typings::DimVector;
+
 // ============================================================
 // GENERAL UTILITY METHODS & STRUCTS
 // ============================================================
-
-use std::hash::{DefaultHasher, Hash, Hasher};
-
-use crate::{result::DimVector, storage::location::ArenaLocation};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(dead_code)]

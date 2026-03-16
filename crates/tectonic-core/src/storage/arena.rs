@@ -5,8 +5,9 @@
 use std::collections::VecDeque;
 use std::iter::repeat_with;
 use crate::storage::slot::ArenaSlot;
-use crate::result::{VectorEntry, DimVector};
+use crate::result::{VectorEntry};
 use crate::error::TectonicError;
+use crate::utility::typings::DimVector;
 
 // ============================================================
 // VECTOR STORAGE (ARENA)

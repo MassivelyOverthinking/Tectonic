@@ -2,9 +2,10 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::{collections::{BinaryHeap, VecDeque}, ptr::null};
+use std::collections::{BinaryHeap, VecDeque};
 
-use crate::{error::TectonicError, result::DimVector, search::{self, distance::SearchMethod}, storage::location::ArenaLocation};
+use crate::utility::typings::DimVector;
+use crate::{error::TectonicError, search::{self, distance::SearchMethod}, storage::location::ArenaLocation};
 
 // ============================================================
 // INTERNAL SHARDS (MULTITHREADING)

@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::result::DimVector;
+use crate::utility::typings::DimVector;
 
 // ============================================================
 // DISTANCE & SEARCH METHODS

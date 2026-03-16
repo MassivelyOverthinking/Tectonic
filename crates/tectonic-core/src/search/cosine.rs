@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::result::DimVector;
+use crate::utility::typings::DimVector;
 use crate::search::distance::SearchMethod;
 // ============================================================
 // COSINE DISTANCE METRICS
