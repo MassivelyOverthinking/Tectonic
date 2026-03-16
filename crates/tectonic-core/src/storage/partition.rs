@@ -18,7 +18,7 @@ pub struct CachePartition<const D: usize> {
     pub centroid: Option<[f32; D]>,
     pub size: u64,
     pub capacity: u64,
-    pub shards: Vec<CacheShard>,
+    pub shards: Vec<CacheShard<D>>,
 }
 
 #[allow(dead_code)]
@@ -40,7 +40,7 @@ impl<const D: usize> CachePartition<D> {
         }
     }
 
-    pub fn insert(&self, _location: ArenaLocation) -> Result<bool, TectonicError> {
+    pub fn insert(&self, _location: ArenaLocation<D>) -> Result<bool, TectonicError> {
         !todo!()
     }
 
@@ -75,7 +75,7 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    fn route_to_shard(&mut self, location: ArenaLocation<'static>) -> Result<bool, TectonicError> {
+    fn route_to_shard(&mut self, location: ArenaLocation<'static, D>) -> Result<bool, TectonicError> {
         let hash_value = hash_arena_location(&location);
         let length = self.shards.len();
 

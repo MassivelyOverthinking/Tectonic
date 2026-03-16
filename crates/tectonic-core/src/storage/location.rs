@@ -6,21 +6,25 @@
 // CACHE LOCATION
 // ============================================================
 
+use crate::utility::typings::SearchVector;
+
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct ArenaLocation<'a> {
+pub struct ArenaLocation<'a, const D: usize> {
     user_id: Option<&'a str>,
     entry_id: usize,
     entry_index: usize,
+    search_vector: SearchVector<D>,
 }
 
 #[allow(dead_code)]
-impl<'a> ArenaLocation<'a> {
-    pub fn new(user_id: Option<&'a str>, id: usize, index: usize) -> Self {
+impl<'a, const D: usize > ArenaLocation<'a, D> {
+    pub fn new(user_id: Option<&'a str>, id: usize, index: usize, vector: SearchVector<D>) -> Self {
         Self { 
             user_id: user_id,
             entry_id: id, 
-            entry_index: index 
+            entry_index: index,
+            search_vector: vector,
         }
     }
 
@@ -34,6 +38,10 @@ impl<'a> ArenaLocation<'a> {
 
     pub fn get_index(&self) -> &usize {
         &self.entry_index
+    }
+
+    pub fn get_vector(&self) -> &[i8; D] {
+        &self.search_vector
     }
 }
 

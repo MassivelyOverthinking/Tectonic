@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::utility::typings::DimVector;
+use crate::utility::typings::{DimVector, SearchVector};
 
 // ============================================================
 // DISTANCE & SEARCH METHODS
@@ -18,7 +18,9 @@ pub enum DistanceMetric {
 } 
 
 pub trait SearchMethod<const D: usize>: Send + Sync {
-    fn distance(&self, x: &DimVector<D>, y: &DimVector<D>) -> f32;
+    fn distance_f32(&self, x: &DimVector<D>, y: &DimVector<D>) -> f32;
+
+    fn distance_i8(&self, x: &SearchVector<D>, y: &SearchVector<D>) -> i8;
 }
 
 pub trait SearchMethodDyn<const D: usize>: SearchMethod<D> {

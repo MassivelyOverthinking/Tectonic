@@ -12,16 +12,16 @@ use crate::{error::TectonicError, search::{self, distance::SearchMethod}, storag
 // ============================================================
 
 #[allow(dead_code)]
-pub struct CacheShard {
+pub struct CacheShard<const D: usize> {
     pub shard_id: u32,
     pub capacity: usize,
     pub size: usize,
     pub load_factor: f32,
     pub free_list: VecDeque<usize>,
-    pub location_storage: Vec<Option<ArenaLocation<'static>>>
+    pub location_storage: Vec<Option<ArenaLocation<'static, D>>>
 }
 
-impl CacheShard {
+impl<const D: usize> CacheShard<D> {
     pub fn with_capacity(id: u32, capacity: usize) -> Self {
         Self { 
             shard_id: id,
@@ -33,7 +33,7 @@ impl CacheShard {
         }
     }
 
-    pub fn insert(&mut self, location: ArenaLocation<'static>) -> Result<bool, TectonicError> {
+    pub fn insert(&mut self, location: ArenaLocation<'static, D>) -> Result<bool, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::RepoError { message: "Internal Shard is currently full!" });
         }
@@ -49,7 +49,7 @@ impl CacheShard {
         }
     }
 
-    pub fn remove(&mut self, index: usize) -> Result<ArenaLocation<'static>, TectonicError> {
+    pub fn remove(&mut self, index: usize) -> Result<ArenaLocation<'static, D>, TectonicError> {
         if index >= self.capacity {
             return Err(TectonicError::RepoError { message: 
                 "Index out of bounds (Repository Shard)"
@@ -65,7 +65,7 @@ impl CacheShard {
         }
     }
 
-    pub fn get(&self, index: usize) -> Result<ArenaLocation<'static>, TectonicError> {
+    pub fn get(&self, index: usize) -> Result<ArenaLocation<'static, D>, TectonicError> {
         if index >= self.capacity {
             return Err(TectonicError::RepoError { message: 
                 "Index out of bounds (Repository Shard)"
