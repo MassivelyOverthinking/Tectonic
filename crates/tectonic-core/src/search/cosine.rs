@@ -14,6 +14,8 @@ pub struct Cosine;
 impl<const D: usize> SearchMethod<D> for Cosine {
     #[inline(always)]
     fn distance_f32(&self, x: &DimVector<D>, y: &DimVector<D>) -> f32 {
+        assert!(x.len() == y.len());
+        
         let mut dot_acc = 0.0f32;
         let mut norm_x = 0.0f32;
         let mut norm_y = 0.0f32;
@@ -34,6 +36,8 @@ impl<const D: usize> SearchMethod<D> for Cosine {
 
     #[inline(always)]
     fn distance_i8(&self, x: &SearchVector<D>, y: &SearchVector<D>) -> i8 {
+        assert!(x.len() == y.len());
+
         let mut dot_acc = 0i8;
         let mut norm_x = 0i8;
         let mut norm_y = 0i8;

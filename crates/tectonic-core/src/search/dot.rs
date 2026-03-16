@@ -16,6 +16,8 @@ pub struct DotProduct;
 impl<const D: usize> SearchMethod<D> for DotProduct {
     #[inline(always)]
     fn distance_f32(&self, x: &DimVector<D>, y: &DimVector<D>) -> f32 {
+        assert!(x.len() == y.len());
+
         let mut acc = 0.0f32;
         for (&a, &b) in x.iter().zip(y.iter()) {
             acc += a * b;
@@ -24,6 +26,8 @@ impl<const D: usize> SearchMethod<D> for DotProduct {
     }
 
     fn distance_i8(&self, x: &SearchVector<D>, y: &SearchVector<D>) -> i8 {
+        assert!(x.len() == y.len());
+
         let mut acc = 0i8;
         for (&a, &b) in x.iter().zip(y.iter()) {
             acc += a * b;

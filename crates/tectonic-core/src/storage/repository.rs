@@ -93,7 +93,7 @@ impl<const D: usize> CacheRepo<D> {
 
         for (position, partition) in self.vector_repo.iter().enumerate() {
             if let Some(par_centroid) = partition.centroid.as_ref() {
-                let centroid_distance = distance.distance(vector, &par_centroid);
+                let centroid_distance = distance.distance_f32(vector, &par_centroid);
                 if centroid_distance <= shortest_distance {
                     shortest_distance = centroid_distance;
                     result = position
