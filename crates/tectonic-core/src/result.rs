@@ -4,6 +4,8 @@
 
 use crate::{metrics::vector_metric::VectorMetrics, utility::utils::UniqueID};
 use crate::utility::typings::DimVector;
+use std::cmp::Ordering;
+use std::usize;
 
 // ============================================================
 // CUSTOM RESULT STRUCTURES
@@ -41,6 +43,42 @@ impl<const D: usize> VectorResult<D> {
         Self { 
             size: num_vectors,
             vectors: result_vectors, 
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct SearchResult {
+   pub index: usize,
+   pub distance: i8,
+}
+
+impl PartialEq for SearchResult {
+    fn eq(&self, other: &Self) -> bool {
+        self.distance == other.distance
+    }
+}
+
+impl Eq for SearchResult {}
+
+impl PartialOrd for SearchResult {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for SearchResult {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.distance.cmp(&other.distance)
+    }
+}
+
+impl SearchResult {
+    pub fn new(index: &usize, distance: &i8) -> Self {
+        SearchResult { 
+            index: *index, 
+            distance: *distance,
         }
     }
 }

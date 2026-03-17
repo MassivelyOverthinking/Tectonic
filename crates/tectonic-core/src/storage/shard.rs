@@ -4,7 +4,7 @@
 
 use std::{collections::{BinaryHeap, VecDeque}, ptr::null};
 
-use crate::{error::TectonicError, search::{self, distance::{SearchMethod, SearchMethodDyn}}, storage::location::ArenaLocation, utility::typings::{HeapResult, SearchVector, usize_to_f32}};
+use crate::{error::TectonicError, result::SearchResult, search::{self, distance::{SearchMethod, SearchMethodDyn}}, storage::location::ArenaLocation, utility::typings::{HeapResult, SearchVector, usize_to_f32}};
 
 // ============================================================
 // INTERNAL SHARDS (MULTITHREADING)
@@ -78,26 +78,30 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn search(&self, vector: &SearchVector<D>, search_method: &dyn SearchMethodDyn<D>) -> Result<HeapResult<D>, TectonicError> {
+    pub fn search(&self, vector: &SearchVector<D>, search_method: &dyn SearchMethodDyn<D>, k: usize) -> Result<HeapResult, TectonicError> {
         if self.is_empty() {
             return Ok(None);
         }
 
-        let mut binary_heap: BinaryHeap<SearchVector<D>> = BinaryHeap::new();
+        let mut binary_heap: BinaryHeap<SearchResult> = BinaryHeap::new();
 
         for loc_opt in self.location_storage.iter() {
             match loc_opt {
                 Some(location) => {
-                    let loc_vector = location.get_vector();
-                    let distance_value = search_method.distance_i8(vector, loc_vector);
+                    let location_vector = location.get_vector();
+                    let location_index = location.get_index();
 
-                    binary_heap.append(distance_value);
+                    let distance_value = search_method.distance_i8(vector, location_vector);
+
+                    let result = SearchResult::new(location_index, &distance_value);
+
+                    binary_heap.push(result);
                 },
                 None => continue
             }
         }
 
-        Ok(binary_heap)
+        Ok(Some(binary_heap))
     }
 
     fn increment_and_update_factor(&mut self) {

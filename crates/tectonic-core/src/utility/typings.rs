@@ -4,6 +4,8 @@
 
 use std::collections::BinaryHeap;
 
+use crate::result::SearchResult;
+
 // ============================================================
 // CUSTOM DTYPES ANNOTATIONS
 // ============================================================
@@ -11,7 +13,7 @@ use std::collections::BinaryHeap;
 pub type DimVector<const D: usize> = [f32; D]; 
 pub type SearchVector<const D: usize> = [i8; D];
 
-pub type HeapResult<const D: usize> = Option<BinaryHeap<SearchVector<D>>>;
+pub type HeapResult = Option<BinaryHeap<SearchResult>>;
 
 // ============================================================
 // CUSTOM TYPE TRANSFORMATION
