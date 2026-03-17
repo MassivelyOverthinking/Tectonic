@@ -3,6 +3,7 @@
 // ============================================================
 
 use std::collections::BinaryHeap;
+use rayon::prelude::*;
 
 use crate::error::TectonicError;
 use crate::result::{MergeResult, SearchResult};
@@ -48,16 +49,33 @@ impl<const D: usize> CachePartition<D> {
         !todo!()
     }
 
-    fn search(&self, vector: &SearchVector<D>, search_method: &dyn SearchMethodDyn<D>, k: usize) -> Result<(), TectonicError> {
-        todo!()
+    pub fn search(
+        &self,
+        vector: &SearchVector<D>,
+        search_method: &dyn SearchMethodDyn<D>,
+        k: usize
+    ) -> Result<Vec<SearchResult>, TectonicError> {
+        if k == 0 || self.shards.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let shard_results: Result<Vec<Vec<SearchResult>>, TectonicError> = self
+            .shards
+            .par_iter()
+            .map(| shard | shard.search(vector, search_method, k))
+            .collect();
+
+        let shard_results = shard_results?;
+        let results = Self::merge_search_results(shard_results, k);
+        Ok(results)
     }
 
     fn merge_search_results(results: Vec<Vec<SearchResult>>, k: usize) -> Vec<SearchResult> {
-        if k <= 0 {
+        if k == 0 {
             return Vec::new();
         }
 
-        let mut heap: BinaryHeap<MergeResult> = BinaryHeap::with_capacity(k);
+        let mut heap: BinaryHeap<MergeResult> = BinaryHeap::with_capacity(results.len());
 
         for (index, result) in results.iter().enumerate() {
             if let Some(first) = result.first() {

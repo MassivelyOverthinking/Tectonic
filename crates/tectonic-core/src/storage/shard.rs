@@ -2,9 +2,9 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::{collections::{BinaryHeap, VecDeque}, ptr::null};
+use std::{collections::{BinaryHeap, VecDeque}};
 
-use crate::{error::TectonicError, result::SearchResult, search::{self, distance::{SearchMethod, SearchMethodDyn}}, storage::location::ArenaLocation, utility::typings::{HeapResult, SearchVector, usize_to_f32}};
+use crate::{error::TectonicError, result::SearchResult, search::{distance::{SearchMethodDyn}}, storage::location::ArenaLocation, utility::typings::{HeapResult, SearchVector, usize_to_f32}};
 
 // ============================================================
 // INTERNAL SHARDS (MULTITHREADING)
@@ -78,14 +78,14 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    fn search(
+    pub fn search(
         &self, 
         vector: &SearchVector<D>, 
         search_method: &dyn SearchMethodDyn<D>, 
         k: usize
     ) -> Result<HeapResult, TectonicError> {
         if self.is_empty() || k == 0 {
-            return Ok(None);
+            return Ok(Vec::new());
         }
 
         let mut binary_heap: BinaryHeap<SearchResult> = BinaryHeap::with_capacity(k);
@@ -113,7 +113,7 @@ impl<const D: usize> CacheShard<D> {
         }
 
         let ordered_array = binary_heap.into_sorted_vec();
-        Ok(Some(ordered_array))
+        Ok(ordered_array)
     }
 
     fn increment_and_update_factor(&mut self) {
