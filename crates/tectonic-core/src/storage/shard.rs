@@ -78,30 +78,42 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn search(&self, vector: &SearchVector<D>, search_method: &dyn SearchMethodDyn<D>, k: usize) -> Result<HeapResult, TectonicError> {
-        if self.is_empty() {
+    fn search(
+        &self, 
+        vector: &SearchVector<D>, 
+        search_method: &dyn SearchMethodDyn<D>, 
+        k: usize
+    ) -> Result<HeapResult, TectonicError> {
+        if self.is_empty() || k == 0 {
             return Ok(None);
         }
 
-        let mut binary_heap: BinaryHeap<SearchResult> = BinaryHeap::new();
+        let mut binary_heap: BinaryHeap<SearchResult> = BinaryHeap::with_capacity(k);
 
         for loc_opt in self.location_storage.iter() {
-            match loc_opt {
-                Some(location) => {
-                    let location_vector = location.get_vector();
-                    let location_index = location.get_index();
+            let location = match loc_opt {
+                Some(location) => location,
+                None => continue,
+            };
 
-                    let distance_value = search_method.distance_i8(vector, location_vector);
+            let location_vector = location.get_vector();
+            let location_index = location.get_index();
+            let distance_value = search_method.distance_i8(vector, location_vector);
 
-                    let result = SearchResult::new(location_index, &distance_value);
+            let result = SearchResult::new(location_index, &distance_value);
 
+            if binary_heap.len() < k {
+                binary_heap.push(result);
+            } else if let Some(worst_case) = binary_heap.peek() {
+                if result.distance < worst_case.distance {
+                    binary_heap.pop();
                     binary_heap.push(result);
-                },
-                None => continue
+                }
             }
         }
 
-        Ok(Some(binary_heap))
+        let ordered_array = binary_heap.into_sorted_vec();
+        Ok(Some(ordered_array))
     }
 
     fn increment_and_update_factor(&mut self) {

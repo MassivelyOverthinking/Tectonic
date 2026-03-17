@@ -8,6 +8,7 @@ use std::iter::repeat_with;
 use std::usize;
 
 use crate::error::TectonicError;
+use crate::result::SearchResult;
 use crate::utility::typings::DimVector;
 use crate::search::distance::{SearchMethod};
 use crate::storage::location::{RepoLocation};
@@ -68,6 +69,18 @@ impl<const D: usize> CacheRepo<D> {
         } else {
             Ok(true)
         }
+    }
+
+    fn search(&self, vector: &SearchVector<D>, search_method: &dyn SearchMethodDyn<D>, k: usize) -> Result<(), TectonicError> {
+        todo!()
+    }
+
+    fn merge_search_results(results: Vec<Vec<SearchResult>>, k: usize) -> Vec<SearchResult> {
+        if k <= 0 {
+            return Vec::new();
+        }
+
+        
     }
 
     pub fn get_id_by_location(&self, location: &RepoLocation) -> Result<usize, TectonicError> {

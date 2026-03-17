@@ -71,6 +71,7 @@ impl PartialOrd for SearchResult {
 impl Ord for SearchResult {
     fn cmp(&self, other: &Self) -> Ordering {
         self.distance.cmp(&other.distance)
+        .then_with(|| self.index.cmp(&other.index))
     }
 }
 
@@ -79,6 +80,44 @@ impl SearchResult {
         SearchResult { 
             index: *index, 
             distance: *distance,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct MergeResult {
+   pub result: SearchResult,
+   pub shard_index: usize,
+   pub result_index: usize,
+}
+
+impl PartialEq for MergeResult {
+    fn eq(&self, other: &Self) -> bool {
+        self.result.distance == other.result.distance
+    }
+}
+
+impl Eq for MergeResult {}
+
+impl PartialOrd for MergeResult {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for MergeResult {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.result.distance.cmp(&self.result.distance)
+    }
+}
+
+impl MergeResult {
+    pub fn new(result: SearchResult, shard_idx: usize) -> Self {
+        Self { 
+            result, 
+            shard_index: shard_idx,
+            result_index: 0
         }
     }
 }
