@@ -81,7 +81,7 @@ impl<const D: usize> CachePartition<D> {
             if let Some(first) = result.first() {
                 heap.push(
                     MergeResult {
-                        result: first.clone(),
+                        result: *first,
                         shard_index: index,
                         result_index: 0,
                     }
@@ -97,13 +97,13 @@ impl<const D: usize> CachePartition<D> {
                 None => break,
             };
 
-            output.push(item.result.clone());
+            output.push(item.result);
 
             let next_index = item.result_index + 1;
             if let Some(next_result) = results[item.shard_index].get(next_index) {
                 heap.push(
                     MergeResult { 
-                        result: next_result.clone(),
+                        result: *next_result,
                         shard_index: item.shard_index,
                         result_index: next_index 
                     }

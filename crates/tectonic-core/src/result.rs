@@ -47,7 +47,7 @@ impl<const D: usize> VectorResult<D> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
 pub struct SearchResult {
    pub index: usize,

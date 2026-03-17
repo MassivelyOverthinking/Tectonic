@@ -8,7 +8,6 @@ use std::iter::repeat_with;
 use std::usize;
 
 use crate::error::TectonicError;
-use crate::result::SearchResult;
 use crate::utility::typings::DimVector;
 use crate::search::distance::{SearchMethod};
 use crate::storage::location::{RepoLocation};
