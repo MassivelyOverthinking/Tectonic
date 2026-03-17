@@ -71,18 +71,6 @@ impl<const D: usize> CacheRepo<D> {
         }
     }
 
-    fn search(&self, vector: &SearchVector<D>, search_method: &dyn SearchMethodDyn<D>, k: usize) -> Result<(), TectonicError> {
-        todo!()
-    }
-
-    fn merge_search_results(results: Vec<Vec<SearchResult>>, k: usize) -> Vec<SearchResult> {
-        if k <= 0 {
-            return Vec::new();
-        }
-
-        
-    }
-
     pub fn get_id_by_location(&self, location: &RepoLocation) -> Result<usize, TectonicError> {
         let arena_loc = self.vector_repo[*location.get_partition_index()]
             .shards[*location.get_shard_index()]

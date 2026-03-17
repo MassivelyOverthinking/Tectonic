@@ -2,8 +2,12 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use std::collections::BinaryHeap;
+
 use crate::error::TectonicError;
-use crate::utility::typings::DimVector;
+use crate::result::{MergeResult, SearchResult};
+use crate::search::distance::SearchMethodDyn;
+use crate::utility::typings::{DimVector, SearchVector};
 use crate::storage::shard::{CacheShard};
 use crate::storage::location::{ArenaLocation};
 use crate::utility::utils::{calculate_sizes, hash_arena_location, secondary_arena_hash};
@@ -42,6 +46,54 @@ impl<const D: usize> CachePartition<D> {
 
     pub fn insert(&self, _location: ArenaLocation<D>) -> Result<bool, TectonicError> {
         !todo!()
+    }
+
+    fn search(&self, vector: &SearchVector<D>, search_method: &dyn SearchMethodDyn<D>, k: usize) -> Result<(), TectonicError> {
+        todo!()
+    }
+
+    fn merge_search_results(results: Vec<Vec<SearchResult>>, k: usize) -> Vec<SearchResult> {
+        if k <= 0 {
+            return Vec::new();
+        }
+
+        let mut heap: BinaryHeap<MergeResult> = BinaryHeap::with_capacity(k);
+
+        for (index, result) in results.iter().enumerate() {
+            if let Some(first) = result.first() {
+                heap.push(
+                    MergeResult {
+                        result: first.clone(),
+                        shard_index: index,
+                        result_index: 0,
+                    }
+                );
+            } 
+        }
+
+        let mut output = Vec::with_capacity(k);
+
+        while output.len() < k {
+            let item = match heap.pop() {
+                Some(item) => item,
+                None => break,
+            };
+
+            output.push(item.result.clone());
+
+            let next_index = item.result_index + 1;
+            if let Some(next_result) = results[item.shard_index].get(next_index) {
+                heap.push(
+                    MergeResult { 
+                        result: next_result.clone(),
+                        shard_index: item.shard_index,
+                        result_index: next_index 
+                    }
+                );
+            }
+        }
+
+        output
     }
 
     #[inline]
