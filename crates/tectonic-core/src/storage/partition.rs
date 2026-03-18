@@ -45,7 +45,7 @@ impl<const D: usize> CachePartition<D> {
         }
     }
 
-    pub fn insert(&self, _location: ArenaLocation<D>) -> Result<bool, TectonicError> {
+    pub fn insert(&self, _location: ArenaLocation) -> Result<bool, TectonicError> {
         !todo!()
     }
 
@@ -145,7 +145,7 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    fn route_to_shard(&mut self, location: ArenaLocation<'static, D>) -> Result<bool, TectonicError> {
+    fn route_to_shard(&mut self, location: ArenaLocation<'static>) -> Result<bool, TectonicError> {
         let hash_value = hash_arena_location(&location);
         let length = self.shards.len();
 

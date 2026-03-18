@@ -2,6 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::utility::typings::DimVector;
 use crate::utility::typings::SearchVector;
 use crate::search::distance::SearchMethod;
@@ -25,11 +26,11 @@ impl<const D: usize> SearchMethod<D> for Euclidean {
         acc.sqrt()
     }
 
-    fn distance_i8(&self, x: &SearchVector<D>, y: &SearchVector<D>) -> i8 {
-        assert!(x.len() == y.len());
+    fn distance_u8(&self, x: &QuantizedEntry, y: &QuantizedEntry) -> u8 {
+        assert!(x.vector.len() == y.vector.len());
 
-        let mut acc = 0i8;
-        for (&a, &b) in x.iter().zip(y.iter()) {
+        let mut acc = 0u8;
+        for (&a, &b) in x.vector.iter().zip(y.vector.iter()) {
             let delta = a - b;
             acc += delta * delta;
         }

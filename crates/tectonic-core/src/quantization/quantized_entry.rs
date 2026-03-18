@@ -6,6 +6,7 @@
 // QUANTIZATION ENTRY
 // ============================================================
 
+#[derive(Debug, Clone)]
 pub struct QuantizedEntry {
     pub vector: Vec<u8>,
 }

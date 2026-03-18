@@ -16,8 +16,8 @@ pub fn quantize(input: &[f32]) -> Result<QuantizedEntry, TectonicError> {
         return Err(TectonicError::QuantizationError { message: "Quantizationn input is empty!" });
     }
 
-    for (i, &x) in input.iter().enumerate() {
-        if !x.is_finite() {
+    for &value in input.iter() {
+        if !value.is_finite() {
             return Err(TectonicError::QuantizationError { message: "One values is non-finite in quantization" });
         }
     }

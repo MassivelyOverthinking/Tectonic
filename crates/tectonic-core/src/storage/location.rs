@@ -6,20 +6,20 @@
 // CACHE LOCATION
 // ============================================================
 
-use crate::utility::typings::SearchVector;
+use crate::{quantization::quantized_entry::QuantizedEntry};
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct ArenaLocation<'a, const D: usize> {
+pub struct ArenaLocation<'a> {
     user_id: Option<&'a str>,
     entry_id: usize,
     entry_index: usize,
-    search_vector: SearchVector<D>,
+    search_vector: QuantizedEntry,
 }
 
 #[allow(dead_code)]
-impl<'a, const D: usize > ArenaLocation<'a, D> {
-    pub fn new(user_id: Option<&'a str>, id: usize, index: usize, vector: SearchVector<D>) -> Self {
+impl<'a> ArenaLocation<'a> {
+    pub fn new(user_id: Option<&'a str>, id: usize, index: usize, vector: QuantizedEntry) -> Self {
         Self { 
             user_id: user_id,
             entry_id: id, 
@@ -40,7 +40,7 @@ impl<'a, const D: usize > ArenaLocation<'a, D> {
         &self.entry_index
     }
 
-    pub fn get_vector(&self) -> &[i8; D] {
+    pub fn get_vector(&self) -> &QuantizedEntry {
         &self.search_vector
     }
 }

@@ -51,7 +51,7 @@ impl<const D: usize> VectorResult<D> {
 #[allow(dead_code)]
 pub struct SearchResult {
    pub index: usize,
-   pub distance: i8,
+   pub distance: u8,
 }
 
 impl PartialEq for SearchResult {
@@ -76,7 +76,7 @@ impl Ord for SearchResult {
 }
 
 impl SearchResult {
-    pub fn new(index: &usize, distance: &i8) -> Self {
+    pub fn new(index: &usize, distance: &u8) -> Self {
         SearchResult { 
             index: *index, 
             distance: *distance,

@@ -4,7 +4,7 @@
 
 use std::{collections::{BinaryHeap, VecDeque}};
 
-use crate::{error::TectonicError, result::SearchResult, search::{distance::{SearchMethodDyn}}, storage::location::ArenaLocation, utility::typings::{HeapResult, SearchVector, usize_to_f32}};
+use crate::{error::TectonicError, quantization::quantized_entry::QuantizedEntry, result::SearchResult, search::distance::SearchMethodDyn, storage::location::ArenaLocation, utility::typings::{HeapResult, SearchVector, usize_to_f32}};
 
 // ============================================================
 // INTERNAL SHARDS (MULTITHREADING)
@@ -17,7 +17,7 @@ pub struct CacheShard<const D: usize> {
     pub size: usize,
     pub load_factor: f32,
     pub free_list: VecDeque<usize>,
-    pub location_storage: Vec<Option<ArenaLocation<'static, D>>>
+    pub location_storage: Vec<Option<ArenaLocation<'static>>>
 }
 
 impl<const D: usize> CacheShard<D> {
@@ -32,7 +32,7 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn insert(&mut self, location: ArenaLocation<'static, D>) -> Result<bool, TectonicError> {
+    pub fn insert(&mut self, location: ArenaLocation<'static>) -> Result<bool, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::RepoError { message: "Internal Shard is currently full!" });
         }
@@ -48,7 +48,7 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn remove(&mut self, index: usize) -> Result<ArenaLocation<'static, D>, TectonicError> {
+    pub fn remove(&mut self, index: usize) -> Result<ArenaLocation<'static>, TectonicError> {
         if index >= self.capacity {
             return Err(TectonicError::RepoError { message: 
                 "Index out of bounds (Repository Shard)"
@@ -64,7 +64,7 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn get(&self, index: usize) -> Result<ArenaLocation<'static, D>, TectonicError> {
+    pub fn get(&self, index: usize) -> Result<ArenaLocation<'static>, TectonicError> {
         if index >= self.capacity {
             return Err(TectonicError::RepoError { message: 
                 "Index out of bounds (Repository Shard)"
@@ -80,7 +80,7 @@ impl<const D: usize> CacheShard<D> {
 
     pub fn search(
         &self, 
-        vector: &SearchVector<D>, 
+        vector: &QuantizedEntry, 
         search_method: &dyn SearchMethodDyn<D>, 
         k: usize
     ) -> Result<HeapResult, TectonicError> {
@@ -98,7 +98,7 @@ impl<const D: usize> CacheShard<D> {
 
             let location_vector = location.get_vector();
             let location_index = location.get_index();
-            let distance_value = search_method.distance_i8(vector, location_vector);
+            let distance_value = search_method.distance_u8(vector, location_vector);
 
             let result = SearchResult::new(location_index, &distance_value);
 
