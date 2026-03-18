@@ -12,7 +12,7 @@ use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::result::VectorResult;
 use crate::utility::typings::DimVector;
 use crate::search::distance::{SearchMethod, SearchMethodDyn};
-use crate::storage::location::{RepoLocation};
+use crate::storage::location::{ArenaLocation, RepoLocation};
 use crate::storage::partition::CachePartition;
 use crate::storage::slot::RepoSlot;
 use crate::utility::utils::{calculate_sizes, hash_dimvector};
@@ -72,6 +72,17 @@ impl<const D: usize> CacheRepo<D> {
         }
     }
 
+    pub fn get_by_vector_id(&self, id: usize) -> Result<ArenaLocation<'static>, TectonicError> {
+        if id < 0 || id >= self.by_internal_id.len() {
+            return Err(TectonicError::RepoError { message: "Provided ID is out of bounds!" });
+        }
+        todo!()
+    }
+
+    pub fn get_by_user_id(&self, id: &str) -> Result<ArenaLocation<'static>, TectonicError> {
+        todo!()
+    }
+
     fn search(
         &self, 
         quanttized_vector: &QuantizedEntry,
@@ -83,15 +94,7 @@ impl<const D: usize> CacheRepo<D> {
         if self.is_empty() {
             return Err(TectonicError::RepoError { message: "Vector repository is currently empty" });
         }
-
-        let candidate_partitions = self.find_nearest_centroids(
-            standard_vecor,
-            search_partitions,
-            search_method
-        )?;
-
-        
-
+        todo!()
 
     }
 

@@ -46,10 +46,6 @@ impl<const D: usize> CachePartition<D> {
         }
     }
 
-    pub fn insert(&self, _location: ArenaLocation) -> Result<bool, TectonicError> {
-        !todo!()
-    }
-
     pub fn search(
         &self,
         vector: &QuantizedEntry,
