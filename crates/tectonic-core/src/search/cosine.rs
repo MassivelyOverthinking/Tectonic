@@ -3,7 +3,7 @@
 // ============================================================
 
 use crate::quantization::quantized_entry::QuantizedEntry;
-use crate::utility::typings::{DimVector, SearchVector};
+use crate::utility::typings::{DimVector};
 use crate::search::distance::SearchMethod;
 // ============================================================
 // COSINE DISTANCE METRICS
@@ -37,13 +37,13 @@ impl<const D: usize> SearchMethod<D> for Cosine {
 
     #[inline(always)]
     fn distance_u8(&self, x: &QuantizedEntry, y: &QuantizedEntry) -> u8 {
-        assert!(x.vector.len() == y.vector.len());
+        assert!(x.get_length() == y.get_length());
 
         let mut dot_acc = 0u8;
         let mut norm_x = 0u8;
         let mut norm_y = 0u8;
 
-        for (&a, &b) in x.vector.iter().zip(y.vector.iter()) {
+        for (&a, &b) in x.get_iter().zip(y.get_iter()) {
             dot_acc += a * b;
             norm_x += a * a;
             norm_y += b * b;

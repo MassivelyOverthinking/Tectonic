@@ -6,9 +6,10 @@ use std::collections::BinaryHeap;
 use rayon::prelude::*;
 
 use crate::error::TectonicError;
+use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::result::{MergeResult, SearchResult};
 use crate::search::distance::SearchMethodDyn;
-use crate::utility::typings::{DimVector, SearchVector};
+use crate::utility::typings::{DimVector};
 use crate::storage::shard::{CacheShard};
 use crate::storage::location::{ArenaLocation};
 use crate::utility::utils::{calculate_sizes, hash_arena_location, secondary_arena_hash};
@@ -51,7 +52,7 @@ impl<const D: usize> CachePartition<D> {
 
     pub fn search(
         &self,
-        vector: &SearchVector<D>,
+        vector: &QuantizedEntry,
         search_method: &dyn SearchMethodDyn<D>,
         k: usize
     ) -> Result<Vec<SearchResult>, TectonicError> {

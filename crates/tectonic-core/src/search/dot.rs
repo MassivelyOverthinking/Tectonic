@@ -4,7 +4,6 @@
 
 use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::utility::typings::DimVector;
-use crate::utility::typings::SearchVector;
 use crate::search::distance::SearchMethod;
 
 // ============================================================
@@ -27,10 +26,10 @@ impl<const D: usize> SearchMethod<D> for DotProduct {
     }
 
     fn distance_u8(&self, x: &QuantizedEntry, y: &QuantizedEntry) -> u8 {
-        assert!(x.vector.len() == y.vector.len());
+        assert!(x.get_length() == y.get_length());
 
         let mut acc = 0u8;
-        for (&a, &b) in x.vector.iter().zip(y.vector.iter()) {
+        for (&a, &b) in x.get_iter().zip(y.get_iter()) {
             acc += a * b;
         }
         acc

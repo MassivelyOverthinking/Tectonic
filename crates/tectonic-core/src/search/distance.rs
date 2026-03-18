@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::{quantization::quantized_entry::QuantizedEntry, utility::typings::{DimVector, SearchVector}};
+use crate::{quantization::quantized_entry::QuantizedEntry, utility::typings::{DimVector}};
 
 // ============================================================
 // DISTANCE & SEARCH METHODS

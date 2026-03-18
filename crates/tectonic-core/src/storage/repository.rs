@@ -8,8 +8,10 @@ use std::iter::repeat_with;
 use std::usize;
 
 use crate::error::TectonicError;
+use crate::quantization::quantized_entry::QuantizedEntry;
+use crate::result::VectorResult;
 use crate::utility::typings::DimVector;
-use crate::search::distance::{SearchMethod};
+use crate::search::distance::{SearchMethod, SearchMethodDyn};
 use crate::storage::location::{RepoLocation};
 use crate::storage::partition::CachePartition;
 use crate::storage::slot::RepoSlot;
@@ -70,6 +72,29 @@ impl<const D: usize> CacheRepo<D> {
         }
     }
 
+    fn search(
+        &self, 
+        quanttized_vector: &QuantizedEntry,
+        standard_vecor: &DimVector<D>,
+        search_method: &dyn SearchMethodDyn<D>, 
+        k: usize,
+        search_partitions: usize,
+    ) -> Result<VectorResult<D>, TectonicError> {
+        if self.is_empty() {
+            return Err(TectonicError::RepoError { message: "Vector repository is currently empty" });
+        }
+
+        let candidate_partitions = self.find_nearest_centroids(
+            standard_vecor,
+            search_partitions,
+            search_method
+        )?;
+
+        
+
+
+    }
+
     pub fn get_id_by_location(&self, location: &RepoLocation) -> Result<usize, TectonicError> {
         let arena_loc = self.vector_repo[*location.get_partition_index()]
             .shards[*location.get_shard_index()]
@@ -81,27 +106,44 @@ impl<const D: usize> CacheRepo<D> {
         Ok(*arena_index)
     }
 
-    pub fn find_nearest_centroid<M>(&self, vector: &DimVector<D>, distance: &M) -> Result<usize, TectonicError> 
+    pub fn find_nearest_centroids<M>(&self, vector: &DimVector<D>, top_n: usize, distance: &M) -> Result<Vec<usize>, TectonicError> 
     where M: SearchMethod<D> {
         
         if self.vector_repo.is_empty() {
             return Err(TectonicError::RepoError { message: "No internal partitions found!" });
         }
 
-        let mut result = 0;
-        let mut shortest_distance = f32::MAX;
+        if top_n == 0 {
+            return Ok(Vec::new());
+        }
+
+        let mut candidates: Vec<(usize, f32)> = Vec::with_capacity(self.vector_repo.len());
 
         for (position, partition) in self.vector_repo.iter().enumerate() {
             if let Some(par_centroid) = partition.centroid.as_ref() {
                 let centroid_distance = distance.distance_f32(vector, &par_centroid);
-                if centroid_distance <= shortest_distance {
-                    shortest_distance = centroid_distance;
-                    result = position
-                }
+                candidates.push((position, centroid_distance));
             } else {
                 continue;
             }
         }
+
+        
+        if candidates.is_empty() {
+            return Err(TectonicError::RepoError { message: "No partitions with centroids found!" });
+        }
+
+        candidates.sort_unstable_by(|x, y| {
+            x.1.partial_cmp(&y.1).unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        let limit = top_n.min(candidates.len());
+
+        let result = candidates
+            .into_iter()
+            .take(limit)
+            .map(|(position, _)| position)
+            .collect();
 
         Ok(result)
     }
@@ -122,5 +164,9 @@ impl<const D: usize> CacheRepo<D> {
 
     pub fn is_full(&self) -> bool {
         self.size >= self.capacity
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.size == 0
     }
 }
