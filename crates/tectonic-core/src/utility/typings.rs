@@ -9,7 +9,7 @@ use crate::result::SearchResult;
 // ============================================================
 
 pub type DimVector<const D: usize> = [f32; D]; 
-pub type SearchVector<const D: usize> = [i8; D];
+pub type SearchVector<const D: usize> = [u8; D];
 
 pub type HeapResult = Vec<SearchResult>;
 

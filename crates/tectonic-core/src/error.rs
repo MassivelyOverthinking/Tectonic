@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::{error::Error, fmt};
+use std::{error::Error, fmt::{self}};
 
 // ============================================================
 // CUSTOM ERROS (TECTONIC-ERROR)
@@ -17,6 +17,7 @@ pub enum TectonicError {          // Simple Error with custom messaging
     ArenaError { message: &'static str },
     RepoError { message: &'static str },
     CentroidError { message: &'static str },
+    QuantizationError { message: &'static str },
 }
 
 
@@ -37,6 +38,8 @@ impl fmt::Display for TectonicError {
                 write!(f, "Repository Storage Error: {}", message),
             TectonicError::CentroidError { message } => 
                 write!(f, "Centroid Error: {}", message),
+            TectonicError::QuantizationError { message } =>
+                write!(f, "Quantization Error: {}", message),
         }
     }
 }
