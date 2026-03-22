@@ -32,7 +32,7 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn insert(&mut self, location: ArenaLocation<'static>) -> Result<bool, TectonicError> {
+    pub fn insert(&mut self, location: ArenaLocation<'static>) -> Result<usize, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::RepoError { message: "Internal Shard is currently full!" });
         }
@@ -40,11 +40,12 @@ impl<const D: usize> CacheShard<D> {
         if let Some(free_index) = self.free_list.pop_back() {
             self.location_storage[free_index] = Some(location);
             self.increment_and_update_factor();
-            Ok(true)
+            Ok(free_index)
         } else {
-            self.location_storage[self.size] = Some(location);
+            let free_index = self.size;
+            self.location_storage[free_index] = Some(location);
             self.increment_and_update_factor();
-            Ok(true)
+            Ok(free_index)
         }
     }
 

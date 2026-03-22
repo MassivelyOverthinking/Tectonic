@@ -66,19 +66,19 @@ impl<const D: usize> CacheRepo<D> {
         }
     }
 
-    pub fn insert_bootstrap_aware<M>(
+    pub fn insert<M>(
         &mut self,
         vector: &DimVector<D>,
+        quanttized_vector: QuantizedEntry,
         internal_id: usize,
         user_id: Option<&str>,
         distance: &M,
     ) -> Result<bool, TectonicError>
-    where
-        M: SearchMethod<D>,
-    {
+    where M: SearchMethod<D> {
         if !self.centroids_initialized {
             let entry = BootstrapEntry {
                 vector: *vector,
+                quantized: quanttized_vector,
                 internal_id,
                 user_id: user_id.map(str::to_string),
                 vector_hash: hash_dimvector(vector),
@@ -93,7 +93,7 @@ impl<const D: usize> CacheRepo<D> {
             return Ok(true);
         }
 
-        self.insert_into_initialized_partitions(vector, internal_id, distance)
+        self.insert_into_initialized_partitions(vector, quanttized_vector, internal_id, user_id, distance)
     }
 
     pub fn get_by_vector_id(&self, id: usize) -> Result<ArenaLocation<'static>, TectonicError> {
@@ -306,12 +306,18 @@ impl<const D: usize> CacheRepo<D> {
         // Route buffered entries into their assigned partitions/shards
         for (buffer_index, entry) in self.centroid_buffer.drain(..).enumerate() {
             let partition_index = assignments[buffer_index];
-            let location = ArenaLocation::new(entry.internal_id);
 
-            self.vector_repo[partition_index].route_to_shard(location)?;
+        let location = ArenaLocation::new(
+            entry.user_id.as_deref(),
+            entry.internal_id,
+            entry.vector_hash as usize,
+            entry.quantized,
+        );
+
+            let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(location)?;
 
             self.by_internal_id[entry.internal_id].location = Some(
-                RepoLocation::new(partition_index, self.vector_repo[partition_index].last_assigned_shard_index()?, 0)
+                RepoLocation::new(partition_index, shard_index, slot_index)
             );
         }
 
@@ -333,20 +339,30 @@ impl<const D: usize> CacheRepo<D> {
     fn insert_into_initialized_partitions<M>(
         &mut self,
         vector: &DimVector<D>,
+        quantized: QuantizedEntry,
         internal_id: usize,
+        user_id: Option<&str>,
         distance: &M,
     ) -> Result<bool, TectonicError>
     where
         M: SearchMethod<D>,
     {
         let partition_index = self.route_partition_for_vector(vector, distance)?;
-        let location = ArenaLocation::new(internal_id);
 
-        let shard_index = self.vector_repo[partition_index].route_to_shard(location)?;
+        let vector_hash = hash_dimvector(vector);
+
+        let location = ArenaLocation::new(
+            user_id,
+            internal_id,
+            vector_hash as usize,
+            quantized,
+        );
+
+        let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(location)?;
         self.vector_repo[partition_index].increase_centroid_average(vector)?;
 
         self.by_internal_id[internal_id].location =
-            Some(RepoLocation::new(partition_index, shard_index, 0));
+            Some(RepoLocation::new(partition_index, shard_index, slot_index));
 
         Ok(true)
     }

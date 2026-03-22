@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::utility::typings::DimVector;
+use crate::{quantization::quantized_entry::QuantizedEntry, utility::typings::DimVector};
 
 // ============================================================
 // CUSTOM DTYPES ANNOTATIONS
@@ -11,6 +11,7 @@ use crate::utility::typings::DimVector;
 #[derive(Debug, Clone)]
 pub struct BootstrapEntry<const D: usize> {
     pub vector: DimVector<D>,
+    pub quantized: QuantizedEntry,
     pub internal_id: usize,
     pub user_id: Option<String>,
     pub vector_hash: u64,
