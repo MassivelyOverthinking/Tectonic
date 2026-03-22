@@ -124,7 +124,7 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    fn increase_centroid_average(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
+    pub fn increase_centroid_average(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
         let centroid = self.centroid.as_mut().ok_or_else(|| {
             TectonicError::CentroidError { message: "No centroid available!" }
         })?;
@@ -142,7 +142,7 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    fn decrease_centroid_average(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
+    pub fn decrease_centroid_average(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
         let centroid = self.centroid.as_mut().ok_or_else(|| {
             TectonicError::CentroidError { message: "No centroid available!" }
         })?;
@@ -164,7 +164,7 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    fn route_to_shard(&mut self, location: ArenaLocation<'static>) -> Result<usize, TectonicError> {
+    pub fn route_to_shard(&mut self, location: ArenaLocation<'static>) -> Result<usize, TectonicError> {
         let hash_value = hash_arena_location(&location);
         let length = self.shards.len();
 
@@ -190,10 +190,10 @@ impl<const D: usize> CachePartition<D> {
     }
 
     pub fn has_no_centroid(&self) -> bool {
-        if let Some(_centroid) = self.centroid {
-            true
-        } else {
-            false
-        }
+        self.centroid.is_none()
+    }
+
+    pub fn has_centroid(&self) -> bool {
+        self.centroid.is_some()
     }
 }

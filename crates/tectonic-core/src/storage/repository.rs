@@ -66,13 +66,34 @@ impl<const D: usize> CacheRepo<D> {
         }
     }
 
-    pub fn insert(&mut self, vector: &DimVector<D>, user_id: Option<&str>, overwrite: bool) -> Result<bool, TectonicError> {
-        if self.is_full() {
-            return Err(TectonicError::RepoError { message: "Vector Repository is currently full!" });
+    pub fn insert_bootstrap_aware<M>(
+        &mut self,
+        vector: &DimVector<D>,
+        internal_id: usize,
+        user_id: Option<&str>,
+        distance: &M,
+    ) -> Result<bool, TectonicError>
+    where
+        M: SearchMethod<D>,
+    {
+        if !self.centroids_initialized {
+            let entry = BootstrapEntry {
+                vector: *vector,
+                internal_id,
+                user_id: user_id.map(str::to_string),
+                vector_hash: hash_dimvector(vector),
+            };
+
+            self.centroid_buffer.push(entry);
+
+            if self.centroid_buffer.len() >= self.centroid_buffer_threshold {
+                self.bootstrap_centroids_from_buffer()?;
+            }
+
+            return Ok(true);
         }
 
-        let vector_hash = hash_dimvector(vector);
-        todo!()
+        self.insert_into_initialized_partitions(vector, internal_id, distance)
     }
 
     pub fn get_by_vector_id(&self, id: usize) -> Result<ArenaLocation<'static>, TectonicError> {
@@ -152,6 +173,182 @@ impl<const D: usize> CacheRepo<D> {
             .collect();
 
         Ok(result)
+    }
+
+    fn choose_bootstrap_seed_indices(&self, partition_count: usize) -> Result<Vec<usize>, TectonicError> {
+        let n = self.centroid_buffer.len();
+
+        if partition_count == 0 {
+            return Err(TectonicError::RepoError { message: "Partition count cannot be 0" });
+        }
+
+        if n < partition_count {
+            return Err(TectonicError::RepoError { message: "Not enough buffered vectors to initialize centroids" });
+        }
+
+        let mut seeds = Vec::with_capacity(partition_count);
+        let mut min_distances = vec![f32::INFINITY; n];
+        let mut chosen = vec![false; n];
+
+        let first_seed = 0usize;
+        seeds.push(first_seed);
+        chosen[first_seed] = true;
+
+        let first_vector = &self.centroid_buffer[first_seed].vector;
+        for i in 0..n {
+            let d = Self::squared_l2(&self.centroid_buffer[i].vector, first_vector);
+            min_distances[i] = d;
+        }
+        min_distances[first_seed] = -1.0;
+
+        while seeds.len() < partition_count {
+            let mut best_index = usize::MAX;
+            let mut best_distance = -1.0_f32;
+
+            for i in 0..n {
+                if !chosen[i] && min_distances[i] > best_distance {
+                    best_distance = min_distances[i];
+                    best_index = i;
+                }
+            }
+
+            if best_index == usize::MAX {
+                return Err(TectonicError::RepoError { message: "Could not determine next bootstrap seed" });
+            }
+
+            seeds.push(best_index);
+            chosen[best_index] = true;
+            min_distances[best_index] = -1.0;
+
+            let seed_vector = &self.centroid_buffer[best_index].vector;
+            for i in 0..n {
+                if chosen[i] {
+                    continue;
+                }
+
+                let d = Self::squared_l2(&self.centroid_buffer[i].vector, seed_vector);
+                if d < min_distances[i] {
+                    min_distances[i] = d;
+                }
+            }
+        }
+        Ok(seeds)
+    }
+
+    fn assign_buffered_vector_to_seed(&self, vector: &DimVector<D>, seed_indices: &[usize]) -> usize {
+        let mut best_partition = 0usize;
+        let mut best_distance = f32::INFINITY;
+
+        for (partition_idx, &seed_buffer_index) in seed_indices.iter().enumerate() {
+            let seed_vector = &self.centroid_buffer[seed_buffer_index].vector;
+            let d = Self::squared_l2(vector, seed_vector);
+
+            if d < best_distance {
+                best_distance = d;
+                best_partition = partition_idx;
+            }
+        }
+
+        best_partition
+    }
+
+    fn bootstrap_centroids_from_buffer(&mut self) -> Result<bool, TectonicError> {
+        if self.centroids_initialized {
+            return Ok(false);
+        }
+
+        let partition_count = self.vector_repo.len();
+        if partition_count == 0 {
+            return Err(TectonicError::RepoError { message: "No partitions available for centroid bootstrap" });
+        }
+
+        if self.centroid_buffer.len() < partition_count {
+            return Err(TectonicError::RepoError { message: "Bootstrap buffer has fewer vectors than partitions" });
+        }
+
+        let seed_indices = self.choose_bootstrap_seed_indices(partition_count)?;
+
+        let mut assignments = vec![0usize; self.centroid_buffer.len()];
+        let mut counts = vec![0usize; partition_count];
+        let mut centroid_sums = vec![[0.0_f32; D]; partition_count];
+
+        // Assignment + accumulation
+        for (buffer_index, entry) in self.centroid_buffer.iter().enumerate() {
+            let partition_index = self.assign_buffered_vector_to_seed(&entry.vector, &seed_indices);
+            assignments[buffer_index] = partition_index;
+            counts[partition_index] += 1;
+
+            for dim in 0..D {
+                centroid_sums[partition_index][dim] += entry.vector[dim];
+            }
+        }
+
+        // Initialize partition centroids
+        for partition_index in 0..partition_count {
+            if counts[partition_index] == 0 {
+                let seed_idx = seed_indices[partition_index];
+                self.vector_repo[partition_index].centroid =
+                    Some(self.centroid_buffer[seed_idx].vector);
+                self.vector_repo[partition_index].size = 0;
+                continue;
+            }
+
+            let inv = 1.0_f32 / counts[partition_index] as f32;
+            let mut centroid = [0.0_f32; D];
+            for dim in 0..D {
+                centroid[dim] = centroid_sums[partition_index][dim] * inv;
+            }
+
+            self.vector_repo[partition_index].centroid = Some(centroid);
+            self.vector_repo[partition_index].size = counts[partition_index] as u64;
+        }
+
+        // Route buffered entries into their assigned partitions/shards
+        for (buffer_index, entry) in self.centroid_buffer.drain(..).enumerate() {
+            let partition_index = assignments[buffer_index];
+            let location = ArenaLocation::new(entry.internal_id);
+
+            self.vector_repo[partition_index].route_to_shard(location)?;
+
+            self.by_internal_id[entry.internal_id].location = Some(
+                RepoLocation::new(partition_index, self.vector_repo[partition_index].last_assigned_shard_index()?, 0)
+            );
+        }
+
+        self.centroids_initialized = true;
+        Ok(true)
+    }
+
+    fn route_partition_for_vector<M>(&self, vector: &DimVector<D>, distance: &M) -> Result<usize, TectonicError>
+    where
+        M: SearchMethod<D>,
+    {
+        let nearest = self.find_nearest_centroids(vector, 1, distance)?;
+        nearest
+            .into_iter()
+            .next()
+            .ok_or_else(|| TectonicError::RepoError { message: "No centroid route found" })
+    }
+
+    fn insert_into_initialized_partitions<M>(
+        &mut self,
+        vector: &DimVector<D>,
+        internal_id: usize,
+        distance: &M,
+    ) -> Result<bool, TectonicError>
+    where
+        M: SearchMethod<D>,
+    {
+        let partition_index = self.route_partition_for_vector(vector, distance)?;
+        let location = ArenaLocation::new(internal_id);
+
+        let shard_index = self.vector_repo[partition_index].route_to_shard(location)?;
+        self.vector_repo[partition_index].increase_centroid_average(vector)?;
+
+        self.by_internal_id[internal_id].location =
+            Some(RepoLocation::new(partition_index, shard_index, 0));
+
+        Ok(true)
     }
 
     #[inline]
