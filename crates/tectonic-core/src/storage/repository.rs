@@ -10,6 +10,7 @@ use std::usize;
 use crate::error::TectonicError;
 use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::result::VectorResult;
+use crate::utility::router::BootstrapEntry;
 use crate::utility::typings::DimVector;
 use crate::search::distance::{SearchMethod, SearchMethodDyn};
 use crate::storage::location::{ArenaLocation, RepoLocation};
@@ -30,6 +31,11 @@ pub struct CacheRepo<const D: usize> {
     pub free_list: VecDeque<usize>,
     pub size: usize,
     pub capacity: usize,
+
+    // Centroid Buffer State
+    pub centroid_buffer: Vec<BootstrapEntry<D>>,
+    pub centroid_buffer_threshold: usize,
+    pub centroids_initialized: bool,
 }
 
 #[allow(dead_code)]
@@ -42,6 +48,8 @@ impl<const D: usize> CacheRepo<D> {
             partitions_vector.push(CachePartition::with_capacity( id as u32, cap as u64, shards as u32));
         }
 
+        let buffer_threshold = (partitions * 16).max(partitions);
+
         Self {
             vector_repo: partitions_vector,
             by_internal_id: repeat_with(|| RepoSlot::default()).take(max_entries).collect(),
@@ -50,6 +58,11 @@ impl<const D: usize> CacheRepo<D> {
             free_list: VecDeque::new(),
             capacity: max_entries,
             size: 0,
+
+            // Buffer State & Initialization
+            centroid_buffer: Vec::with_capacity(buffer_threshold),
+            centroid_buffer_threshold: buffer_threshold,
+            centroids_initialized: false,
         }
     }
 
@@ -58,18 +71,8 @@ impl<const D: usize> CacheRepo<D> {
             return Err(TectonicError::RepoError { message: "Vector Repository is currently full!" });
         }
 
-        let vec_hash = hash_dimvector(vector);
-        if let Some(found_hash) = self.by_vector_hash.get(&vec_hash) {
-            if !overwrite {
-                let found_loc = self.find_arena_by_hash(found_hash)?;
-                let found_vec = self.get_id_by_location(found_loc)?;
-                return Ok(false);
-            } else {
-                return Ok(true);
-            }
-        } else {
-            Ok(true)
-        }
+        let vector_hash = hash_dimvector(vector);
+        todo!()
     }
 
     pub fn get_by_vector_id(&self, id: usize) -> Result<ArenaLocation<'static>, TectonicError> {
