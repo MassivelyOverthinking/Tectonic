@@ -164,7 +164,7 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    fn route_to_shard(&mut self, location: ArenaLocation<'static>) -> Result<bool, TectonicError> {
+    fn route_to_shard(&mut self, location: ArenaLocation<'static>) -> Result<usize, TectonicError> {
         let hash_value = hash_arena_location(&location);
         let length = self.shards.len();
 
@@ -175,19 +175,18 @@ impl<const D: usize> CachePartition<D> {
         let idx1 = (hash_value as usize) % length;
         let idx2 = (secondary_arena_hash(hash_value) as usize) % length;
 
-        if idx1 == idx2 {
-            self.shards[idx1].insert(location);
-            return Ok(true);
-        }
+        
 
-        let tartget_index = if self.shards[idx1].load_factor <= self.shards[idx2].load_factor {
+        let tartget_index = if idx1 == idx2 {
+            idx1
+        } else if self.shards[idx1].load_factor <= self.shards[idx2].load_factor {
             idx1
         } else {
             idx2
         };
 
         self.shards[tartget_index].insert(location);
-        Ok(true)
+        Ok(tartget_index)
     }
 
     pub fn has_no_centroid(&self) -> bool {

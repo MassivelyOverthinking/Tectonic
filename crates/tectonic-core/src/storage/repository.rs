@@ -164,6 +164,16 @@ impl<const D: usize> CacheRepo<D> {
     }
 
     #[inline]
+    fn squared_l2(x: &DimVector<D>, y: &DimVector<D>) -> f32 {
+        let mut result = 0.0_f32;
+        for index in 0..D {
+            let distance = x[index] - y[index];
+            result += distance * distance;
+        }
+        result
+    }
+
+    #[inline]
     pub fn is_vectors_equal(&self, x: &DimVector<D>, y: &DimVector<D>) -> bool {
         x == y
     }
