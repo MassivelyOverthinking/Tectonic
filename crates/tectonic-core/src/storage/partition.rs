@@ -124,7 +124,7 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    fn moving_centroid_average(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
+    fn increase_centroid_average(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
         let centroid = self.centroid.as_mut().ok_or_else(|| {
             TectonicError::CentroidError { message: "No centroid available!" }
         })?;
@@ -135,6 +135,28 @@ impl<const D: usize> CachePartition<D> {
 
         for index in 0..D {
             centroid[index] = (centroid[index] * old_n as f32 + vector[index]) * inv_new_avg;
+        }
+
+        self.size = new_n;
+        Ok(true)
+    }
+
+    #[inline]
+    fn decrease_centroid_average(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
+        let centroid = self.centroid.as_mut().ok_or_else(|| {
+            TectonicError::CentroidError { message: "No centroid available!" }
+        })?;
+
+        let old_n = self.size;
+        let new_n = old_n - 1;
+        let inv_new_avg = 1.0f32 / (new_n as f32);
+
+        if old_n <= 1 {
+            return Err(TectonicError::CentroidError { message: "Cannot Descrease Centroid value below 0" })
+        }
+
+        for index in 0..D {
+            centroid[index] = (centroid[index] * old_n as f32 - vector[index]) * inv_new_avg;
         }
 
         self.size = new_n;
@@ -166,5 +188,13 @@ impl<const D: usize> CachePartition<D> {
 
         self.shards[tartget_index].insert(location);
         Ok(true)
+    }
+
+    pub fn has_no_centroid(&self) -> bool {
+        if let Some(_centroid) = self.centroid {
+            true
+        } else {
+            false
+        }
     }
 }

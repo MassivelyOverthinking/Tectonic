@@ -17,7 +17,6 @@ use crate::error::TectonicError;
 use crate::metrics::cache_metrics::CacheMetrics;
 use crate::storage::arena::VectorArena;
 use crate::storage::repository::CacheRepo;
-use crate::result::{DimVector, VectorEntry};
 
 // ============================================================
 // MAIN CACHE IMPLEMENTATION
