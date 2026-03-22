@@ -24,6 +24,7 @@ use crate::utility::utils::{calculate_sizes, hash_dimvector};
 
 #[allow(dead_code)]
 pub struct CacheRepo<const D: usize> {
+    // Main Partition Logic
     pub vector_repo: Vec<CachePartition<D>>,
     pub by_internal_id: Vec<RepoSlot>,
     pub by_user_id: HashMap<String, usize>,
@@ -94,17 +95,6 @@ impl<const D: usize> CacheRepo<D> {
         }
 
         self.insert_into_initialized_partitions(vector, quanttized_vector, internal_id, user_id, distance)
-    }
-
-    pub fn get_by_vector_id(&self, id: usize) -> Result<ArenaLocation<'static>, TectonicError> {
-        if id < 0 || id >= self.by_internal_id.len() {
-            return Err(TectonicError::RepoError { message: "Provided ID is out of bounds!" });
-        }
-        todo!()
-    }
-
-    pub fn get_by_user_id(&self, id: &str) -> Result<ArenaLocation<'static>, TectonicError> {
-        todo!()
     }
 
     fn search(
