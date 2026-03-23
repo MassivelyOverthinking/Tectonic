@@ -9,10 +9,10 @@ use std::usize;
 
 use crate::error::TectonicError;
 use crate::quantization::quantized_entry::QuantizedEntry;
-use crate::result::VectorResult;
+use crate::result::{SearchResult};
 use crate::utility::router::BootstrapEntry;
 use crate::utility::typings::DimVector;
-use crate::search::distance::{SearchMethod, SearchMethodDyn};
+use crate::search::distance::{SearchMethod};
 use crate::storage::location::{ArenaLocation, RepoLocation};
 use crate::storage::partition::CachePartition;
 use crate::storage::slot::RepoSlot;
@@ -97,19 +97,73 @@ impl<const D: usize> CacheRepo<D> {
         self.insert_into_initialized_partitions(vector, quanttized_vector, internal_id, user_id, distance)
     }
 
-    fn search(
+    fn search<M>(
         &self, 
         quanttized_vector: &QuantizedEntry,
         standard_vecor: &DimVector<D>,
-        search_method: &dyn SearchMethodDyn<D>, 
+        search_method: &M, 
         k: usize,
         search_partitions: usize,
-    ) -> Result<VectorResult<D>, TectonicError> {
+    ) -> Result<Vec<SearchResult>, TectonicError> 
+    where M: SearchMethod<D> + Sync, {
         if self.is_empty() {
             return Err(TectonicError::RepoError { message: "Vector repository is currently empty" });
         }
-        todo!()
 
+        if k == 0 {
+            return Ok(Vec::new());
+        }
+
+        if self.vector_repo.is_empty() {
+            return Err(TectonicError::RepoError { 
+                message: "No internal partitions found!" 
+            });
+        }
+
+        let partition_budget = search_partitions.min(self.vector_repo.len());
+        if partition_budget == 0 {
+            return Ok(Vec::new());
+        }
+
+        let nearest_partitions = self.find_nearest_centroids(
+            standard_vecor,
+            partition_budget,
+            search_method
+        )?;
+
+        let mut merged_results: Vec<SearchResult> = Vec::with_capacity(k);
+
+        for partition_index in nearest_partitions {
+            let partition_results = 
+            self.vector_repo[partition_index].search(
+                quanttized_vector,
+                search_method,
+                k
+            )?;
+
+            if partition_results.is_empty() {
+                continue;
+            }
+            merged_results.extend(partition_results);
+            Self::retain_top_k(&mut merged_results, k);
+
+            if merged_results.len() > k {
+                return Ok(merged_results);
+            }
+        }
+        Ok(merged_results)
+    }
+
+    fn retain_top_k(results: &mut Vec<SearchResult>, k: usize) {
+        if results.len() < k {
+            return;
+        }
+
+        results.sort_unstable();
+
+        if results.len() > k {
+            results.truncate(k);
+        }
     }
 
     pub fn get_id_by_location(&self, location: &RepoLocation) -> Result<usize, TectonicError> {

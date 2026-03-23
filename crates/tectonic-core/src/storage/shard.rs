@@ -4,7 +4,7 @@
 
 use std::{collections::{BinaryHeap, VecDeque}};
 
-use crate::{error::TectonicError, quantization::quantized_entry::QuantizedEntry, result::SearchResult, search::distance::SearchMethodDyn, storage::location::ArenaLocation, utility::typings::{HeapResult, usize_to_f32}};
+use crate::{error::TectonicError, quantization::quantized_entry::QuantizedEntry, result::SearchResult, search::distance::{SearchMethod, SearchMethodDyn}, storage::location::ArenaLocation, utility::typings::{HeapResult, usize_to_f32}};
 
 // ============================================================
 // INTERNAL SHARDS (MULTITHREADING)
@@ -79,12 +79,13 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn search(
+    pub fn search<M>(
         &self, 
         vector: &QuantizedEntry, 
-        search_method: &dyn SearchMethodDyn<D>, 
+        search_method: &M, 
         k: usize
-    ) -> Result<HeapResult, TectonicError> {
+    ) -> Result<HeapResult, TectonicError>
+    where M: SearchMethod<D> {
         if self.is_empty() || k == 0 {
             return Ok(Vec::new());
         }

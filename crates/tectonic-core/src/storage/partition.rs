@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use crate::error::TectonicError;
 use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::result::{MergeResult, SearchResult};
-use crate::search::distance::SearchMethodDyn;
+use crate::search::distance::{SearchMethod, SearchMethodDyn};
 use crate::utility::typings::{DimVector};
 use crate::storage::shard::{CacheShard};
 use crate::storage::location::{ArenaLocation};
@@ -46,12 +46,13 @@ impl<const D: usize> CachePartition<D> {
         }
     }
 
-    pub fn search(
+    pub fn search<M>(
         &self,
         vector: &QuantizedEntry,
-        search_method: &dyn SearchMethodDyn<D>,
+        search_method: &M,
         k: usize
-    ) -> Result<Vec<SearchResult>, TectonicError> {
+    ) -> Result<Vec<SearchResult>, TectonicError>
+    where M: SearchMethod<D> + Sync {
         if k == 0 || self.shards.is_empty() {
             return Ok(Vec::new());
         }
@@ -109,18 +110,6 @@ impl<const D: usize> CachePartition<D> {
         }
 
         output
-    }
-
-    #[inline]
-    fn add_centroid_vector(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
-        if self.centroid.is_some() {
-            return Err(TectonicError::CentroidError { message: "Centroid is already initialized!" });
-        }
-
-        self.centroid = Some(*vector);
-        self.size += 1;
-
-        Ok(true)
     }
 
     #[inline]
