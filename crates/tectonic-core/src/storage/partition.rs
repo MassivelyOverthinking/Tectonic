@@ -164,7 +164,7 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    pub fn route_to_shard(&mut self, location: ArenaLocation<'static>) -> Result<(usize, usize), TectonicError> {
+    pub fn route_to_shard(&mut self, location: ArenaLocation) -> Result<(usize, usize), TectonicError> {
         let hash_value = hash_arena_location(&location);
         let length = self.shards.len();
 

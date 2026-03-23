@@ -10,16 +10,16 @@ use crate::{quantization::quantized_entry::QuantizedEntry};
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct ArenaLocation<'a> {
-    user_id: Option<&'a str>,
+pub struct ArenaLocation {
+    user_id: Option<String>,
     entry_id: usize,
     entry_index: usize,
     search_vector: QuantizedEntry,
 }
 
 #[allow(dead_code)]
-impl<'a> ArenaLocation<'a> {
-    pub fn new(user_id: Option<&'a str>, id: usize, index: usize, vector: QuantizedEntry) -> Self {
+impl ArenaLocation {
+    pub fn new(user_id: Option<String>, id: usize, index: usize, vector: QuantizedEntry) -> Self {
         Self { 
             user_id: user_id,
             entry_id: id, 
@@ -28,8 +28,8 @@ impl<'a> ArenaLocation<'a> {
         }
     }
 
-    pub fn get_user_id(&self) -> Option<&'a str> {
-        self.user_id
+    pub fn get_user_id(&self) -> Option<&str> {
+        self.user_id.as_deref()
     }
 
     pub fn get_entry_id(&self) -> &usize {

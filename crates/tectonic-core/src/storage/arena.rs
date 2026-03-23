@@ -14,16 +14,16 @@ use crate::utility::typings::DimVector;
 // ============================================================
 
 #[derive(Debug, Clone)]
-pub struct VectorArena<const D: usize> {
+pub struct VectorArena<'a, const D: usize> {
     capacity: usize,
     size: usize,
     free_list: VecDeque<usize>,
-    arena: Vec<ArenaSlot<D>>
+    arena: Vec<ArenaSlot<'a, D>>
 }
 
 #[allow(dead_code)]
-impl<const D: usize> VectorArena<D> {
-    pub fn insert(&mut self, value: DimVector<D>, user_id: Option<String>, metrics_enabled: bool) -> Result<usize, TectonicError> {
+impl<'a, const D: usize> VectorArena<'a, D> {
+    pub fn insert(&mut self, value: DimVector<D>, user_id: Option<&'a str>, metrics_enabled: bool) -> Result<usize, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::CacheLimitError { size: self.size, limit: self.capacity })
         };

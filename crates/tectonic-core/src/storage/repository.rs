@@ -298,7 +298,7 @@ impl<const D: usize> CacheRepo<D> {
             let partition_index = assignments[buffer_index];
 
         let location = ArenaLocation::new(
-            entry.user_id.as_deref(),
+            entry.user_id,
             entry.internal_id,
             entry.vector_hash as usize,
             entry.quantized,
@@ -342,7 +342,7 @@ impl<const D: usize> CacheRepo<D> {
         let vector_hash = hash_dimvector(vector);
 
         let location = ArenaLocation::new(
-            user_id,
+            user_id.map(str::to_string),
             internal_id,
             vector_hash as usize,
             quantized,

@@ -25,14 +25,14 @@ use crate::utility::typings::{DimVector, usize_to_f32};
 // ============================================================
 
 #[allow(dead_code)]
-pub struct VectorCache<const D: usize> {
+pub struct VectorCache<'a, const D: usize> {
     config: CacheConfig,
-    arena: VectorArena<D>,
+    arena: VectorArena<'a, D>,
     repository: CacheRepo<D>,
     metrics: CacheMetrics,
 }
 
-impl<const D: usize> VectorCache<D> {
+impl<'a, const D: usize> VectorCache<'a, D> {
     pub fn new(config: CacheConfig) -> Result<Self, TectonicError> {
         config.validate()?;
         let max_entries = config.max_entries;

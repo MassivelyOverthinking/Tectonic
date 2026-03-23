@@ -13,15 +13,15 @@ use std::usize;
 
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
-pub struct VectorEntry<const D: usize> {
+pub struct VectorEntry<'a, const D: usize> {
     pub vector_id: UniqueID,
-    pub user_id: Option<String>,
+    pub user_id: Option<&'a str>,
     pub vector: DimVector<D>,
     pub metrics: Option<VectorMetrics<D>>
 }
 
-impl<const D: usize> VectorEntry<D> {
-    pub fn new(id: usize, generation: u32, user_id: Option<String>, vector: DimVector<D>, metrics_enabled: bool) -> Self {
+impl<'a, const D: usize> VectorEntry<'a, D> {
+    pub fn new(id: usize, generation: u32, user_id: Option<&'a str>, vector: DimVector<D>, metrics_enabled: bool) -> Self {
         Self { 
             vector_id: UniqueID::new(id, generation),
             user_id: user_id,

@@ -9,12 +9,12 @@ use crate::{result::VectorEntry, storage::location::{RepoLocation}};
 // ============================================================
 
 #[derive(Debug, Clone, Copy)]
-pub struct ArenaSlot<const D: usize> {
+pub struct ArenaSlot<'a, const D: usize> {
     pub generation: u32,
-    pub vector: Option<VectorEntry<D>>
+    pub vector: Option<VectorEntry<'a, D>>
 }
 
-impl<const D: usize> ArenaSlot<D> {
+impl<'a, const D: usize> ArenaSlot<'a, D> {
     pub fn default() -> Self {
         Self { 
             generation: 1,

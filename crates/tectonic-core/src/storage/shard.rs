@@ -17,7 +17,7 @@ pub struct CacheShard<const D: usize> {
     pub size: usize,
     pub load_factor: f32,
     pub free_list: VecDeque<usize>,
-    pub location_storage: Vec<Option<ArenaLocation<'static>>>
+    pub location_storage: Vec<Option<ArenaLocation>>
 }
 
 impl<const D: usize> CacheShard<D> {
@@ -32,7 +32,7 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn insert(&mut self, location: ArenaLocation<'static>) -> Result<usize, TectonicError> {
+    pub fn insert(&mut self, location: ArenaLocation) -> Result<usize, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::RepoError { message: "Internal Shard is currently full!" });
         }
@@ -49,7 +49,7 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn remove(&mut self, index: usize) -> Result<ArenaLocation<'static>, TectonicError> {
+    pub fn remove(&mut self, index: usize) -> Result<ArenaLocation, TectonicError> {
         if index >= self.capacity {
             return Err(TectonicError::RepoError { message: 
                 "Index out of bounds (Repository Shard)"
@@ -65,7 +65,7 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn get(&self, index: usize) -> Result<ArenaLocation<'static>, TectonicError> {
+    pub fn get(&self, index: usize) -> Result<ArenaLocation, TectonicError> {
         if index >= self.capacity {
             return Err(TectonicError::RepoError { message: 
                 "Index out of bounds (Repository Shard)"
