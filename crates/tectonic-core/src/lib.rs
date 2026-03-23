@@ -15,7 +15,9 @@ mod result;
 use crate::config::CacheConfig;
 use crate::error::TectonicError;
 use crate::metrics::cache_metrics::CacheMetrics;
+use crate::quantization::scalar_qunatization::{self, quantize};
 use crate::result::VectorResult;
+use crate::search::distance::SearchMethod;
 use crate::storage::arena::VectorArena;
 use crate::storage::repository::CacheRepo;
 use crate::utility::typings::{DimVector, usize_to_f32};
@@ -58,13 +60,31 @@ impl<'a, const D: usize> VectorCache<'a, D> {
         todo!()
     }
 
-    pub fn get(
+    pub fn get<M>(
         &self,
         _vector: DimVector<D>,
+        _search_method: &M,
         _k: usize,
         _partitions: usize
-    ) -> Result<VectorResult<D>, TectonicError> {
-        todo!()
+    ) -> Result<VectorResult<D>, TectonicError> 
+    where M: SearchMethod<D>{
+        if self.metrics.is_empty() {
+            return Err(TectonicError::RepoError { 
+                message: "No vectors currently stored in Repository"
+            });
+        }
+
+        let quantized_vector = quantize(_vector)?;
+
+        let search_results = self.repository.search(
+            &quantized_vector,
+            _vector,
+            _search_method,
+            _k,
+            _partitions
+        )?;
+
+        
     }
 
     pub fn remove(

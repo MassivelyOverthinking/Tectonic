@@ -97,7 +97,7 @@ impl<const D: usize> CacheRepo<D> {
         self.insert_into_initialized_partitions(vector, quanttized_vector, internal_id, user_id, distance)
     }
 
-    fn search<M>(
+    pub fn search<M>(
         &self, 
         quanttized_vector: &QuantizedEntry,
         standard_vecor: &DimVector<D>,

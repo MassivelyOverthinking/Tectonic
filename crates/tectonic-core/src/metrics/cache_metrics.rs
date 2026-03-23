@@ -29,6 +29,10 @@ impl CacheMetrics {
         }
     }
 
+    pub fn get_size(&self) -> usize {
+        self.size
+    }
+
     pub fn increment_size(&mut self) {
         self.size += 1;
         self.load_factor = self.size as f32 / self.capacity as f32;
@@ -36,6 +40,10 @@ impl CacheMetrics {
 
     pub fn is_full(&self) -> bool {
         self.size >= self.capacity
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.size == 0
     }
 }
 
