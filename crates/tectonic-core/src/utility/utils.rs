@@ -52,7 +52,7 @@ pub fn hash_dimvector<const D: usize>(vector: &DimVector<D>) -> u64 {
 }
 
 #[allow(dead_code)]
-pub fn hash_arena_location(location: &ArenaLocation<'static>) -> u64 {
+pub fn hash_arena_location(location: &ArenaLocation) -> u64 {
     let mut loc_hash = DefaultHasher::new();
 
     location.get_entry_id().hash(&mut loc_hash);

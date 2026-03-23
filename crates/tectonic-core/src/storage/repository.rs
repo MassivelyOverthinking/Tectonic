@@ -294,21 +294,30 @@ impl<const D: usize> CacheRepo<D> {
         }
 
         // Route buffered entries into their assigned partitions/shards
-        for (buffer_index, entry) in self.centroid_buffer.drain(..).enumerate() {
+        let drained_entries = std::mem::take(&mut self.centroid_buffer);
+
+        for (buffer_index, entry) in drained_entries.into_iter().enumerate() {
             let partition_index = assignments[buffer_index];
 
-        let location = ArenaLocation::new(
-            entry.user_id,
-            entry.internal_id,
-            entry.vector_hash as usize,
-            entry.quantized,
-        );
+            let internal_id = entry.internal_id;
+            let vector_hash = entry.vector_hash;
+            let user_id = entry.user_id;
+
+            let location = ArenaLocation::new(
+                user_id.clone(),
+                internal_id,
+                vector_hash as usize,
+                entry.quantized,
+            );
 
             let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(location)?;
 
-            self.by_internal_id[entry.internal_id].location = Some(
+            self.insert_metadata(
+                internal_id, 
+                user_id.as_deref(), 
+                vector_hash, 
                 RepoLocation::new(partition_index, shard_index, slot_index)
-            );
+            )?;
         }
 
         self.centroids_initialized = true;
@@ -351,10 +360,37 @@ impl<const D: usize> CacheRepo<D> {
         let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(location)?;
         self.vector_repo[partition_index].increase_centroid_average(vector)?;
 
-        self.by_internal_id[internal_id].location =
-            Some(RepoLocation::new(partition_index, shard_index, slot_index));
+        self.insert_metadata(
+            internal_id,
+            user_id,
+            vector_hash,
+            RepoLocation::new(partition_index, shard_index, slot_index)
+        )?;
 
         Ok(true)
+    }
+
+    fn insert_metadata(
+        &mut self,
+        internal_id: usize,
+        user_id: Option<&str>,
+        vector_hash: u64,
+        location: RepoLocation
+    ) -> Result<(), TectonicError> {
+        let slot = self.by_internal_id.get_mut(internal_id).ok_or_else(|| {
+            TectonicError::RepoError { message: "Internal ID is out of bounds!" }
+        })?;
+
+        slot.location = Some(location);
+
+        if let Some(uid) = user_id {
+            self.by_user_id.insert(uid.to_owned(), internal_id);
+        }
+
+        self.by_vector_hash.insert(vector_hash, internal_id);
+        self.size += 1;
+
+        Ok(())
     }
 
     #[inline]
