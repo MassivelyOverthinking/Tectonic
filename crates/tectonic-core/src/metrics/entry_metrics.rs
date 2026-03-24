@@ -142,5 +142,4 @@ impl EntryMetrics {
     pub fn is_cold_since_insert(&self, current_tick: u64) -> bool {
         self.hit_count == 0 && current_tick > self.insert_tick
     }
-
 }

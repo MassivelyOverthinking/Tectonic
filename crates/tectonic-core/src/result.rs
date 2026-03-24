@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::{metrics::entry_metrics::VectorMetrics, utility::utils::UniqueID};
+use crate::{metrics::entry_metrics::EntryMetrics, utility::utils::UniqueID};
 use crate::utility::typings::DimVector;
 use std::cmp::Ordering;
 use std::usize;
@@ -17,7 +17,7 @@ pub struct VectorEntry<'a, const D: usize> {
     pub vector_id: UniqueID,
     pub user_id: Option<&'a str>,
     pub vector: DimVector<D>,
-    pub metrics: Option<VectorMetrics<D>>
+    pub metrics: Option<EntryMetrics>
 }
 
 impl<'a, const D: usize> VectorEntry<'a, D> {
@@ -26,7 +26,7 @@ impl<'a, const D: usize> VectorEntry<'a, D> {
             vector_id: UniqueID::new(id, generation),
             user_id: user_id,
             vector,
-            metrics: if metrics_enabled { Some(VectorMetrics::default()) } else { None },
+            metrics: if metrics_enabled { Some(EntryMetrics::default()) } else { None },
         }
     }
 }
