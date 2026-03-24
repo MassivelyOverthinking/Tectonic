@@ -62,10 +62,10 @@ impl<'a, const D: usize> VectorCache<'a, D> {
 
     pub fn get<M>(
         &self,
-        _vector: DimVector<D>,
-        _search_method: &M,
-        _k: usize,
-        _partitions: usize
+        vector: DimVector<D>,
+        search_method: &M,
+        k: usize,
+        partitions: usize
     ) -> Result<VectorResult<D>, TectonicError> 
     where M: SearchMethod<D>{
         if self.metrics.is_empty() {
@@ -74,14 +74,14 @@ impl<'a, const D: usize> VectorCache<'a, D> {
             });
         }
 
-        let quantized_vector = quantize(_vector)?;
+        let quantized_vector = quantize(&vector)?;
 
         let search_results = self.repository.search(
             &quantized_vector,
-            _vector,
-            _search_method,
-            _k,
-            _partitions
+            &vector,
+            search_method,
+            k,
+            partitions
         )?;
 
         

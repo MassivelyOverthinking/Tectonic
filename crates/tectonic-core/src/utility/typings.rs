@@ -17,7 +17,7 @@ pub type HeapResult = Vec<SearchResult>;
 // CUSTOM TYPE TRANSFORMATION
 // ============================================================
 
-pub fn f32_to_usize(value: u32) -> usize {
+pub fn f32_to_usize(value: f32) -> usize {
     value as usize
 }
 
