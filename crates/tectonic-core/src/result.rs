@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::{metrics::vector_metric::VectorMetrics, utility::utils::UniqueID};
+use crate::{metrics::entry_metrics::VectorMetrics, utility::utils::UniqueID};
 use crate::utility::typings::DimVector;
 use std::cmp::Ordering;
 use std::usize;
