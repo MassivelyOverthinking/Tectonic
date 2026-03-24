@@ -15,7 +15,7 @@ mod result;
 use crate::config::CacheConfig;
 use crate::error::TectonicError;
 use crate::metrics::cache_metrics::CacheMetrics;
-use crate::quantization::scalar_qunatization::{self, quantize};
+use crate::quantization::scalar_qunatization::{quantize};
 use crate::result::VectorResult;
 use crate::search::distance::SearchMethod;
 use crate::storage::arena::VectorArena;

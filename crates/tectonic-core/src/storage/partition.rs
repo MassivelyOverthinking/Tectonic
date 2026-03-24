@@ -6,9 +6,10 @@ use std::collections::BinaryHeap;
 use rayon::prelude::*;
 
 use crate::error::TectonicError;
+use crate::metrics::cluster_metrics::ClusterMetrics;
 use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::result::{MergeResult, SearchResult};
-use crate::search::distance::{SearchMethod, SearchMethodDyn};
+use crate::search::distance::{SearchMethod};
 use crate::utility::typings::{DimVector};
 use crate::storage::shard::{CacheShard};
 use crate::storage::location::{ArenaLocation};
@@ -25,6 +26,9 @@ pub struct CachePartition<const D: usize> {
     pub size: u64,
     pub capacity: u64,
     pub shards: Vec<CacheShard<D>>,
+
+    // Internal Partition-metrics.
+    pub metrics: ClusterMetrics
 }
 
 #[allow(dead_code)]
@@ -43,6 +47,7 @@ impl<const D: usize> CachePartition<D> {
             size: 0, 
             capacity, 
             shards: shard_vectors,
+            metrics: ClusterMetrics::default(),
         }
     }
 

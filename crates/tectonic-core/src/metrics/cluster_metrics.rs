@@ -2,15 +2,15 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::time::Instant;
+use std::{fmt::Debug};
 
-use crate::utility::typings::{f32_to_usize, usize_to_f32};
+use crate::utility::typings::{usize_to_f32};
 
 // ============================================================
 // INTERNAL PARTITION METRICS
 // ============================================================
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 #[allow(dead_code)]
 pub struct ClusterMetrics {
     count: usize,
@@ -18,84 +18,159 @@ pub struct ClusterMetrics {
     hits: usize,
     inserts: usize,
     evictions: usize,
-    last_access: Instant,
-    average_distance: f32,
+    last_access_tick: u64,
+    distance_sum: f32,
 }
 
-impl ClusterMetrics  {
-    pub fn default() -> Self {
+impl Debug for ClusterMetrics {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ClusterMetric")
+            .field("count", &self.count)
+            .field("bytes", &self.bytes)
+            .field("entry_hits", &self.hits)
+            .field("inserts", &self.inserts)
+            .field("evictions", &self.evictions)
+            .field("last_access_tick", &self.last_access_tick)
+            .field("distance_sum", &self.distance_sum)
+            .finish()
+    }
+}
+
+impl Default for ClusterMetrics {
+    fn default() -> Self {
         Self {
             count: 0,
             bytes: 0,
             hits: 0,
             inserts: 0,
             evictions: 0,
-            last_access: Instant::now(),
-            average_distance: 0.0,
+            last_access_tick: 0,
+            distance_sum: 0.0 
         }
     }
+}
 
-    pub fn increment_metric_count(&mut self) {
-        self.count += 1;
-    }
+// ============================================================
+// CLUSTER METRICS UPDATES
+// ============================================================
 
-    pub fn decrement_metric_count(&mut self) {
-        self.count -= 1;
-    }
-
-    pub fn add_metric_bytes(&mut self, bytes: usize) {
-        self.bytes + bytes;
-    }
-
-    pub fn remove_metric_bytes(&mut self, bytes: usize) {
-        self.bytes - bytes;
-    }
-
-    pub fn increment_metric_hits(&mut self) {
+impl ClusterMetrics {
+    
+    #[inline]
+    pub fn on_hit(&mut self, tick: u64) {
         self.hits += 1;
+        self.last_access_tick = tick;
     }
 
-    pub fn decrement_metric_hits(&mut self) {
-        self.hits -= 1;
-    }
-
-    pub fn increment_metric_inserts(&mut self) {
+    #[inline]
+    pub fn on_insert(&mut self, bytes: usize, distance: f32, tick: u64)  {
+        self.count += 1;
+        self.bytes += bytes;
         self.inserts += 1;
+        self.last_access_tick = tick;
+        self.distance_sum += distance;
     }
 
-    pub fn decrement_metric_inserts(&mut self) {
+    #[inline]
+    pub fn on_evict(&mut self, bytes: usize, distance: f32, tick: u64)  {
+        debug_assert!(self.count > 0);
+        debug_assert!(self.bytes >= bytes);
+        debug_assert!(self.distance_sum >= distance || self.count == 1);
+
+        self.count -= 1;
+        self.bytes -= bytes;
         self.inserts -= 1;
-    }
+        self.last_access_tick = tick;
 
-    pub fn increment_metric_evictions(&mut self) {
-        self.evictions += 1;
-    }
-
-    pub fn decrement_metric_evictions(&mut self) {
-        self.evictions -= 1;
-    }
-
-    pub fn update_metric_access(&mut self) {
-        self.last_access = Instant::now();
-    }
-
-    pub fn add_metric_distance(&mut self, distance: f32) {
-        let current_count = usize_to_f32(self.count);
-        let new_average = self.average_distance * (current_count - 1.0) + distance / current_count;
-        self.average_distance = new_average;
-    }
-
-    pub fn remove_metric_distance(&mut self, distance: f32) {
         if self.count == 0 {
-            self.average_distance = 0.0;
-            return;
+            self.distance_sum = 0.0
+        } else {
+            self.distance_sum -= distance;
         }
+    }
 
-        let new_count = usize_to_f32(self.count);
-        let old_count = new_count + 1.0;
+// ============================================================
+// CLUSTER ACCESS METHODS
+// ============================================================
 
-        let new_average = (self.average_distance * old_count - distance) / new_count;
-        self.average_distance = new_average;
+    #[inline]
+    pub fn count(&self) -> usize {
+        self.count
+    }
+
+    #[inline]
+    pub fn bytes(&self) -> usize {
+        self.bytes
+    }
+
+    #[inline]
+    pub fn entry_hits(&self) -> usize {
+        self.hits
+    }
+
+    #[inline]
+    pub fn inserts(&self) -> usize {
+        self.inserts
+    }
+
+    #[inline]
+    pub fn evictions(&self) -> usize {
+        self.evictions
+    }
+
+    #[inline]
+    pub fn last_access_tick(&self) -> u64 {
+        self.last_access_tick
+    }
+
+    #[inline]
+    pub fn distance_sum(&self) -> f32 {
+        self.distance_sum
+    }
+
+// ============================================================
+// CLUSTER METRICS METHODS
+// ============================================================
+
+    #[inline]
+    pub fn mean_distance_to_centroid(&self) -> f32 {
+        if self.count == 0 {
+            0.0
+        } else {
+            self.distance_sum / usize_to_f32(self.count)
+        }
+    }
+
+    #[inline]
+    pub fn churn_rate(&self) -> f32 {
+        if self.count == 0 {
+            0.0
+        } else {
+            usize_to_f32(self.inserts + self.evictions) / usize_to_f32(self.count)
+        }
+    }
+
+    #[inline]
+    pub fn hits_pr_byte(&self) -> f32 {
+        if self.bytes == 0 {
+            0.0
+        } else {
+            usize_to_f32(self.hits) / usize_to_f32(self.bytes)
+        }
+    }
+
+    #[inline]
+    pub fn occupancy_pressure(&self, target: usize) -> f32 {
+        if target == 0 {
+            0.0
+        } else {
+            usize_to_f32(self.bytes) / usize_to_f32(target)
+        }
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
     }
 
 }
