@@ -33,17 +33,56 @@ impl<'a, const D: usize> VectorEntry<'a, D> {
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct VectorResult<const D: usize> {
-   pub size: usize,
-   pub vectors: Vec<DimVector<D>>,
+pub struct CacheEntry<const D: usize> {
+   pub index: usize,
+   pub vector: DimVector<D>,
+   pub distance: f32,
 }
 
-impl<const D: usize> VectorResult<D> {
-    pub fn new(num_vectors: usize, result_vectors: Vec<DimVector<D>>) -> Self {
-        Self { 
-            size: num_vectors,
-            vectors: result_vectors, 
+impl<const D: usize> CacheEntry<D> {
+    pub fn new(index: usize, vector: DimVector<D>, distance: f32) -> Self {
+        Self {
+            index,
+            vector,
+            distance
         }
+    }
+    
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct CacheResult<const D: usize> {
+   pub k: usize,
+   pub partitions: usize,
+   pub candidates: usize,
+   pub entries: Vec<CacheEntry<D>>
+}
+
+impl<const D: usize> CacheResult<D> {
+    pub fn new(k: usize, partitions: usize, candidates: usize, entries: Vec<CacheEntry<D>>) -> Self {
+        Self { 
+            k,
+            partitions,
+            candidates,
+            entries,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    pub fn best_distance(&self) -> Option<f32> {
+        self.entries.first().map(|e| e.distance)
+    }
+
+    pub fn worst_distance(&self) -> Option<f32> {
+        self.entries.last().map(|e| e.distance)
     }
 }
 

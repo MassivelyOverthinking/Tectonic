@@ -16,9 +16,9 @@ use crate::config::CacheConfig;
 use crate::error::TectonicError;
 use crate::metrics::cache_metrics::CacheMetrics;
 use crate::quantization::scalar_qunatization::{quantize};
-use crate::result::VectorResult;
+use crate::result::{CacheEntry, CacheResult};
 use crate::search::distance::SearchMethod;
-use crate::storage::arena::{self, VectorArena};
+use crate::storage::arena::{VectorArena};
 use crate::storage::repository::CacheRepo;
 use crate::utility::typings::{DimVector, usize_to_f32};
 
@@ -66,7 +66,7 @@ impl<'a, const D: usize> VectorCache<'a, D> {
         search_method: &M,
         k: usize,
         partitions: usize
-    ) -> Result<VectorResult<D>, TectonicError> 
+    ) -> Result<CacheResult<D>, TectonicError> 
     where M: SearchMethod<D>{
         if self.metrics.is_empty() {
             return Err(TectonicError::RepoError { 
@@ -76,7 +76,7 @@ impl<'a, const D: usize> VectorCache<'a, D> {
 
         let quantized_vector = quantize(&vector)?;
 
-        let mut search_results = self.repository.search(
+        let search_results = self.repository.search(
             &quantized_vector,
             &vector,
             search_method,
@@ -84,25 +84,22 @@ impl<'a, const D: usize> VectorCache<'a, D> {
             partitions
         )?;
 
-        search_results.sort_unstable_by(|x, y| {
-            let x_vector = self
-                .arena
-                .get_vector_at_posistion(x.index)
-                .expect("Invalid Arena index found in search result");
+        let candidate_count = search_results.len();
 
-            let y_vector = self
-                .arena
-                .get_vector_at_posistion(y.index)
-                .expect("Invalid Arena index found in search result");
+        let mut entries = search_results
+            .into_iter()
+            .map(|result| {
+                let candidate = self.arena.get_vector_at_posistion(result.index)?;
+                let distance = search_method.distance_f32(&vector, candidate);
+                
+                Ok(CacheEntry::new(result.index, candidate.clone(), distance))
+            })
+            .collect::<Result<Vec<_>, TectonicError>>()?;
 
-            let x_distance = search_method.distance_f32(&vector, x_vector);
-            let y_distance = search_method.distance_f32(&vector, y_vector);
+        entries.sort_unstable_by(|a, b| a.distance.total_cmp(&b.distance));
 
-            x_distance.total_cmp(&y_distance)
-        });
+        Ok(CacheResult::new(k, partitions, candidate_count, entries))
 
-        Ok(())
-        
     }
 
     pub fn remove(
@@ -144,5 +141,10 @@ impl<'a, const D: usize> VectorCache<'a, D> {
     pub fn load_factor(&self) -> f32 {
         usize_to_f32(self.repository.size) / usize_to_f32(self.repository.capacity)
     }
+
+// ============================================================
+// HELPER METHODS
+// ============================================================
+
 }
 
