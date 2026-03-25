@@ -18,7 +18,7 @@ pub struct VectorArena<'a, const D: usize> {
     capacity: usize,
     size: usize,
     free_list: VecDeque<usize>,
-    arena: Vec<ArenaSlot<'a, D>>
+    pub arena: Vec<ArenaSlot<'a, D>>
 }
 
 #[allow(dead_code)]
@@ -70,6 +70,20 @@ impl<'a, const D: usize> VectorArena<'a, D> {
         }
 
         Err(TectonicError::ArenaError { message: "No Vector entry located at specified index" })
+    }
+
+    pub fn get_vector_at_posistion(&self, index: usize) -> Result<&DimVector<D>, TectonicError> {
+        let arena_entry = self.arena.get(index)
+            .ok_or(TectonicError::ArenaError {
+                message: "Index out of bounds" 
+            })?;
+
+        let entry = arena_entry.vector.as_ref()
+            .ok_or(TectonicError::ArenaError { 
+                message: "Could not locate Vector inside Entry" 
+            })?;
+
+        Ok(&entry.vector)
     }
 
     pub fn load_factor(&self) -> f32 {

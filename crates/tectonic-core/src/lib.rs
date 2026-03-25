@@ -18,7 +18,7 @@ use crate::metrics::cache_metrics::CacheMetrics;
 use crate::quantization::scalar_qunatization::{quantize};
 use crate::result::VectorResult;
 use crate::search::distance::SearchMethod;
-use crate::storage::arena::VectorArena;
+use crate::storage::arena::{self, VectorArena};
 use crate::storage::repository::CacheRepo;
 use crate::utility::typings::{DimVector, usize_to_f32};
 
@@ -76,7 +76,7 @@ impl<'a, const D: usize> VectorCache<'a, D> {
 
         let quantized_vector = quantize(&vector)?;
 
-        let search_results = self.repository.search(
+        let mut search_results = self.repository.search(
             &quantized_vector,
             &vector,
             search_method,
@@ -84,6 +84,24 @@ impl<'a, const D: usize> VectorCache<'a, D> {
             partitions
         )?;
 
+        search_results.sort_unstable_by(|x, y| {
+            let x_vector = self
+                .arena
+                .get_vector_at_posistion(x.index)
+                .expect("Invalid Arena index found in search result");
+
+            let y_vector = self
+                .arena
+                .get_vector_at_posistion(y.index)
+                .expect("Invalid Arena index found in search result");
+
+            let x_distance = search_method.distance_f32(&vector, x_vector);
+            let y_distance = search_method.distance_f32(&vector, y_vector);
+
+            x_distance.total_cmp(&y_distance)
+        });
+
+        Ok(())
         
     }
 
