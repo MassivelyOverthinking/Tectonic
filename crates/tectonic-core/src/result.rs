@@ -4,7 +4,9 @@
 
 use crate::{metrics::entry_metrics::EntryMetrics, utility::utils::UniqueID};
 use crate::utility::typings::DimVector;
+use core::fmt;
 use std::cmp::Ordering;
+use std::ops::Range;
 use std::time::Duration;
 use std::usize;
 
@@ -42,6 +44,18 @@ pub struct CacheEntry<const D: usize> {
    pub index: usize,
    pub vector: DimVector<D>,
    pub distance: f32,
+}
+
+impl<const D: usize> fmt::Display for CacheEntry<D> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "CacheEntry(index: {}, distance: {:.6}, dims: {})",
+            self.index,
+            self.distance,
+            D
+        )
+    }
 }
 
 impl<const D: usize> CacheEntry<D> {
@@ -90,6 +104,44 @@ impl<const D: usize> CacheResult<D> {
 
     pub fn worst_distance(&self) -> Option<f32> {
         self.entries.last().map(|e| e.distance)
+    }
+
+    pub fn get(&self, index: usize) -> Option<&CacheEntry<D>> {
+        self.entries.get(index)
+    }
+
+    pub fn first(&self) -> Option<&CacheEntry<D>> {
+        self.entries.first()
+    }
+
+    pub fn last(&self) -> Option<&CacheEntry<D>> {
+        self.entries.last()
+    }
+
+    pub fn as_slice(&self) -> &[CacheEntry<D>] {
+        &self.entries
+    }
+
+    pub fn slice(&self, range: Range<usize>) -> &[CacheEntry<D>] {
+        &self.entries[range]
+    }
+
+    pub fn top(&self, n: usize) -> &[CacheEntry<D>] {
+        let end = n.min(self.entries.len());
+        &self.entries[..end]
+    }
+
+    pub fn vectors(&self) -> Vec<&DimVector<D>> {
+        self.entries.iter().map(|entry| &entry.vector).collect()
+    }
+
+    pub fn average_distance(&self) -> Option<f32> {
+        if self.entries.is_empty() {
+            return None;
+        }
+
+        let sum: f32 = self.entries.iter().map(|e| e.distance).sum();
+        Some(sum / self.entries.len() as f32)
     }
 }
 
