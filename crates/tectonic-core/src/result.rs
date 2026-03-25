@@ -5,10 +5,11 @@
 use crate::{metrics::entry_metrics::EntryMetrics, utility::utils::UniqueID};
 use crate::utility::typings::DimVector;
 use std::cmp::Ordering;
+use std::time::Duration;
 use std::usize;
 
 // ============================================================
-// CUSTOM RESULT STRUCTURES
+// VECTOR ENTRY STRUCTURE
 // ============================================================
 
 #[derive(Debug, Clone, Copy)]
@@ -30,6 +31,10 @@ impl<'a, const D: usize> VectorEntry<'a, D> {
         }
     }
 }
+
+// ============================================================
+// CACHE RESULTS & ENTRY STRUCTURES
+// ============================================================
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -56,16 +61,18 @@ pub struct CacheResult<const D: usize> {
    pub k: usize,
    pub partitions: usize,
    pub candidates: usize,
-   pub entries: Vec<CacheEntry<D>>
+   pub latency: Duration,
+   pub entries: Vec<CacheEntry<D>>,
 }
 
 impl<const D: usize> CacheResult<D> {
-    pub fn new(k: usize, partitions: usize, candidates: usize, entries: Vec<CacheEntry<D>>) -> Self {
+    pub fn new(k: usize, partitions: usize, candidates: usize, latency: Duration, entries: Vec<CacheEntry<D>>) -> Self {
         Self { 
             k,
             partitions,
             candidates,
-            entries,
+            latency,
+            entries, 
         }
     }
 
@@ -85,6 +92,10 @@ impl<const D: usize> CacheResult<D> {
         self.entries.last().map(|e| e.distance)
     }
 }
+
+// ============================================================
+// SEARCH RESULT STRUCTURE
+// ============================================================
 
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
@@ -122,6 +133,10 @@ impl SearchResult {
         }
     }
 }
+
+// ============================================================
+// MERGE RESULT STRUCTURE
+// ============================================================
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]

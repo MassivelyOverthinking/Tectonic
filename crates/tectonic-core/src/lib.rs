@@ -12,6 +12,8 @@ mod config;
 mod error;
 mod result;
 
+use std::time::Instant;
+
 use crate::config::CacheConfig;
 use crate::error::TectonicError;
 use crate::metrics::cache_metrics::CacheMetrics;
@@ -74,6 +76,8 @@ impl<'a, const D: usize> VectorCache<'a, D> {
             });
         }
 
+        let time_before_method = Instant::now();
+
         let quantized_vector = quantize(&vector)?;
 
         let search_results = self.repository.search(
@@ -98,7 +102,9 @@ impl<'a, const D: usize> VectorCache<'a, D> {
 
         entries.sort_unstable_by(|a, b| a.distance.total_cmp(&b.distance));
 
-        Ok(CacheResult::new(k, partitions, candidate_count, entries))
+        let method_latency = time_before_method.elapsed();
+
+        Ok(CacheResult::new(k, partitions, candidate_count, method_latency, entries))
 
     }
 
