@@ -13,6 +13,5 @@ pub struct BootstrapEntry<const D: usize> {
     pub vector: DimVector<D>,
     pub quantized: QuantizedEntry,
     pub internal_id: usize,
-    pub user_id: Option<String>,
     pub vector_hash: u64,
 }

@@ -70,7 +70,6 @@ impl<const D: usize> CacheRepo<D> {
         vector: &DimVector<D>,
         quanttized_vector: QuantizedEntry,
         internal_id: usize,
-        user_id: Option<&str>,
         distance: &M,
     ) -> Result<bool, TectonicError>
     where M: SearchMethod<D> {
@@ -79,7 +78,6 @@ impl<const D: usize> CacheRepo<D> {
                 vector: *vector,
                 quantized: quanttized_vector,
                 internal_id,
-                user_id: user_id.map(str::to_string),
                 vector_hash: hash_dimvector(vector),
             };
 
@@ -92,7 +90,7 @@ impl<const D: usize> CacheRepo<D> {
             return Ok(true);
         }
 
-        self.insert_into_initialized_partitions(vector, quanttized_vector, internal_id, user_id, distance)
+        self.insert_into_initialized_partitions(vector, quanttized_vector, internal_id, distance)
     }
 
     pub fn search<M>(
@@ -353,10 +351,8 @@ impl<const D: usize> CacheRepo<D> {
 
             let internal_id = entry.internal_id;
             let vector_hash = entry.vector_hash;
-            let user_id = entry.user_id;
 
             let location = ArenaLocation::new(
-                user_id.clone(),
                 internal_id,
                 vector_hash as usize,
                 entry.quantized,
@@ -391,7 +387,6 @@ impl<const D: usize> CacheRepo<D> {
         vector: &DimVector<D>,
         quantized: QuantizedEntry,
         internal_id: usize,
-        user_id: Option<&str>,
         distance: &M,
     ) -> Result<bool, TectonicError>
     where
@@ -402,7 +397,6 @@ impl<const D: usize> CacheRepo<D> {
         let vector_hash = hash_dimvector(vector);
 
         let location = ArenaLocation::new(
-            user_id.map(str::to_string),
             internal_id,
             vector_hash as usize,
             quantized,

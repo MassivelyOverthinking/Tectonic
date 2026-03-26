@@ -4,7 +4,7 @@
 
 use std::{collections::{BinaryHeap, VecDeque}};
 
-use crate::{error::TectonicError, quantization::quantized_entry::QuantizedEntry, result::SearchResult, search::distance::{SearchMethod, SearchMethodDyn}, storage::location::ArenaLocation, utility::typings::{HeapResult, usize_to_f32}};
+use crate::{error::TectonicError, quantization::quantized_entry::QuantizedEntry, result::SearchResult, search::distance::{SearchMethod}, storage::location::ArenaLocation, utility::typings::{HeapResult, usize_to_f32}};
 
 // ============================================================
 // INTERNAL SHARDS (MULTITHREADING)
@@ -60,20 +60,6 @@ impl<const D: usize> CacheShard<D> {
             self.free_list.push_front(index);
             self.decrement_and_update_factor();
             Ok(slot)
-        } else {
-            return Err(TectonicError::RepoError { message: "Could not locate Location inside Repo" });
-        }
-    }
-
-    pub fn get(&self, index: usize) -> Result<ArenaLocation, TectonicError> {
-        if index >= self.capacity {
-            return Err(TectonicError::RepoError { message: 
-                "Index out of bounds (Repository Shard)"
-            });
-        }
-
-        if let Some(slot) = &self.location_storage[index] {
-            Ok(slot.clone())
         } else {
             return Err(TectonicError::RepoError { message: "Could not locate Location inside Repo" });
         }

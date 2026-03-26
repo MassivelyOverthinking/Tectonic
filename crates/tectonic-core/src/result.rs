@@ -22,7 +22,7 @@ pub struct VectorEntry<const D: usize> {
     pub metrics: Option<EntryMetrics>
 }
 
-impl<'a, const D: usize> VectorEntry<D> {
+impl<const D: usize> VectorEntry<D> {
     pub fn new(id: usize, generation: u32, vector: DimVector<D>, metrics_enabled: bool) -> Self {
         Self { 
             vector_id: UniqueID::new(id, generation),

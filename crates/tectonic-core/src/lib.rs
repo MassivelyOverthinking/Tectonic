@@ -36,7 +36,7 @@ pub struct VectorCache<const D: usize> {
     metrics: CacheMetrics,
 }
 
-impl<'a, const D: usize> VectorCache<D> {
+impl<const D: usize> VectorCache<D> {
     pub fn new(config: CacheConfig) -> Result<Self, TectonicError> {
         config.validate()?;
         let max_entries = config.max_entries;

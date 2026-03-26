@@ -2,6 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use std::fmt::Display;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use crate::storage::location::ArenaLocation;
@@ -16,6 +17,12 @@ use crate::utility::typings::DimVector;
 pub struct UniqueID {
     pub slot_id: usize,
     pub gen_id: u32,
+}
+
+impl Display for UniqueID  {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}-{})", self.gen_id, self.slot_id)
+    }
 }
 
 #[allow(dead_code)]
@@ -56,7 +63,6 @@ pub fn hash_arena_location(location: &ArenaLocation) -> u64 {
     let mut loc_hash = DefaultHasher::new();
 
     location.get_entry_id().hash(&mut loc_hash);
-    location.get_user_id().hash(&mut loc_hash);
     location.get_index().hash(&mut loc_hash);
 
     loc_hash.finish()
