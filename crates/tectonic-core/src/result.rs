@@ -145,6 +145,40 @@ impl<const D: usize> CacheResult<D> {
     }
 }
 
+impl<const D: usize> fmt::Display for CacheResult<D> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Cache Result<{}>", D)?;
+        writeln!(f, "   K: {}", self.k)?;
+        writeln!(f, "   Partitions: {}", self.partitions)?;
+        writeln!(f, "   Candidates: {}", self.candidates)?;
+        writeln!(f, "   Total Entries: {}", self.entries.len())?;
+        writeln!(f, "   Latency: {:?}", self.latency)?;
+
+        match self.best_distance() {
+            Some(value) => writeln!(f, "   Best Distance: {:.6}", value)?,
+            None => writeln!(f, "   Best Distance: None")?,
+        }
+
+        match self.worst_distance() {
+            Some(value) => writeln!(f, "   Worst Distance: {:.6}", value)?,
+            None => writeln!(f, "   Worst Distance: None")?,
+        }
+
+        match self.average_distance() {
+            Some(value) => writeln!(f, "   Average Distance: {:.6}", value)?,
+            None => writeln!(f, "   Average Distance: None")?,
+        }
+
+        writeln!(f, "   Entries:")?;
+
+        for (rank, entry) in self.entries.iter().enumerate() {
+            write!(f, "   [{}] index={}, distance={:.6}, dims={}", rank, entry.index, entry.distance, D)?;
+        };
+
+        Ok(())
+    }
+}
+
 // ============================================================
 // SEARCH RESULT STRUCTURE
 // ============================================================
@@ -218,6 +252,7 @@ impl Ord for MergeResult {
     }
 }
 
+#[allow(dead_code)]
 impl MergeResult {
     pub fn new(result: SearchResult, shard_idx: usize) -> Self {
         Self { 
