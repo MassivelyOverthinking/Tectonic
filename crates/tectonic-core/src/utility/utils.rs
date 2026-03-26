@@ -5,6 +5,7 @@
 use std::fmt::Display;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
+use crate::error::TectonicError;
 use crate::storage::location::ArenaLocation;
 use crate::utility::typings::DimVector;
 
@@ -71,4 +72,16 @@ pub fn hash_arena_location(location: &ArenaLocation) -> u64 {
 #[allow(dead_code)]
 pub fn secondary_arena_hash(hash: u64) -> u64 {
     hash.rotate_left(32) ^ 0x9e3779b97f4a7c15
+}
+
+pub fn validate_vector<const D: usize>(vector: &DimVector<D>) -> Result<(), TectonicError> {
+    for index in 0..D {
+        let value = vector[index];
+        if !value.is_finite() {
+            return Err(TectonicError::InvalidVectorError { 
+                index: index 
+            })
+        }
+    }
+    Ok(())
 }
