@@ -14,16 +14,16 @@ use crate::utility::typings::DimVector;
 // ============================================================
 
 #[derive(Debug, Clone)]
-pub struct VectorArena<'a, const D: usize> {
+pub struct VectorArena<const D: usize> {
     capacity: usize,
     size: usize,
     free_list: VecDeque<usize>,
-    pub arena: Vec<ArenaSlot<'a, D>>
+    pub arena: Vec<ArenaSlot<D>>
 }
 
 #[allow(dead_code)]
-impl<'a, const D: usize> VectorArena<'a, D> {
-    pub fn insert(&mut self, value: DimVector<D>, user_id: Option<&'a str>, metrics_enabled: bool) -> Result<usize, TectonicError> {
+impl<const D: usize> VectorArena<D> {
+    pub fn insert(&mut self, value: DimVector<D>, metrics_enabled: bool) -> Result<usize, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::CacheLimitError { size: self.size, limit: self.capacity })
         };
@@ -32,7 +32,6 @@ impl<'a, const D: usize> VectorArena<'a, D> {
             let new_vector = VectorEntry::new(
                 available_index,
                 self.arena[available_index].get_and_increment(),
-                user_id,
                 value,
                 metrics_enabled,
             );
@@ -44,7 +43,6 @@ impl<'a, const D: usize> VectorArena<'a, D> {
             let new_vector = VectorEntry::new(
                 next_index,
                 self.arena[next_index].get_and_increment(),
-                user_id,
                 value,
                 metrics_enabled,
             );

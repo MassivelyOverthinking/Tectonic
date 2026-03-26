@@ -27,7 +27,6 @@ pub struct CacheRepo<const D: usize> {
     // Main Partition Logic
     pub vector_repo: Vec<CachePartition<D>>,
     pub by_internal_id: Vec<RepoSlot>,
-    pub by_user_id: HashMap<String, usize>,
     pub by_vector_hash: HashMap<u64, usize>,
     pub free_list: VecDeque<usize>,
     pub size: usize,
@@ -54,7 +53,6 @@ impl<const D: usize> CacheRepo<D> {
         Self {
             vector_repo: partitions_vector,
             by_internal_id: repeat_with(|| RepoSlot::default()).take(max_entries).collect(),
-            by_user_id: HashMap::new(),
             by_vector_hash: HashMap::new(),
             free_list: VecDeque::new(),
             capacity: max_entries,
@@ -368,7 +366,6 @@ impl<const D: usize> CacheRepo<D> {
 
             self.insert_metadata(
                 internal_id, 
-                user_id.as_deref(), 
                 vector_hash, 
                 RepoLocation::new(partition_index, shard_index, slot_index)
             )?;
@@ -416,7 +413,6 @@ impl<const D: usize> CacheRepo<D> {
 
         self.insert_metadata(
             internal_id,
-            user_id,
             vector_hash,
             RepoLocation::new(partition_index, shard_index, slot_index)
         )?;
@@ -427,7 +423,6 @@ impl<const D: usize> CacheRepo<D> {
     fn insert_metadata(
         &mut self,
         internal_id: usize,
-        user_id: Option<&str>,
         vector_hash: u64,
         location: RepoLocation
     ) -> Result<(), TectonicError> {
@@ -436,10 +431,6 @@ impl<const D: usize> CacheRepo<D> {
         })?;
 
         slot.location = Some(location);
-
-        if let Some(uid) = user_id {
-            self.by_user_id.insert(uid.to_owned(), internal_id);
-        }
 
         self.by_vector_hash.insert(vector_hash, internal_id);
         self.size += 1;
