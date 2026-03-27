@@ -433,12 +433,15 @@ impl<const D: usize> CacheRepo<D> {
     }
 
     #[inline]
-    pub fn find_arena_by_hash(&self, value: &usize) -> Result<&RepoLocation, TectonicError> {
-        if let Some(found_location) = self.by_internal_id[*value].location.as_ref() {
-            Ok(found_location)
-        } else {
-            Err(TectonicError::RepoError { message: "Could not find RepoLocation!" })
-        }
+    pub fn find_arena_by_hash(&self, value: &u64) -> Option<RepoLocation> {
+        let index = self.by_vector_hash.get(value)?;
+        let slot = &self.by_internal_id[*index];
+        slot.location
+    }
+
+    #[inline]
+    pub fn find_vector_by_location(&self, location: &RepoLocation) -> Result<usize, TectonicError> {
+        
     }
 
     #[inline]
@@ -454,6 +457,10 @@ impl<const D: usize> CacheRepo<D> {
     #[inline]
     pub fn is_vectors_equal(&self, x: &DimVector<D>, y: &DimVector<D>) -> bool {
         x == y
+    }
+
+    pub fn size(&self) -> usize {
+        self.size
     }
 
     pub fn is_full(&self) -> bool {

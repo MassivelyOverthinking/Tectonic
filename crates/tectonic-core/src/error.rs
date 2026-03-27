@@ -19,6 +19,7 @@ pub enum TectonicError {          // Simple Error with custom messaging
     CentroidError { message: &'static str },
     QuantizationError { message: &'static str },
     InvalidVectorError { index: usize },
+    InconsistenStateError { message: &'static str },
 }
 
 
@@ -42,7 +43,9 @@ impl fmt::Display for TectonicError {
             TectonicError::QuantizationError { message } =>
                 write!(f, "Quantization Error: {}", message),
             TectonicError::InvalidVectorError { index } =>
-                write!(f, "Invalid Vector Error: Value at index {} is invalid", index)
+                write!(f, "Invalid Vector Error: Value at index {} is invalid", index),
+            TectonicError::InconsistenStateError { message } =>
+                write!(f, "Inconsistent State: {}", message)
         }
     }
 }

@@ -23,7 +23,7 @@ use crate::search::distance::SearchMethod;
 use crate::storage::arena::{VectorArena};
 use crate::storage::repository::CacheRepo;
 use crate::utility::typings::{DimVector, DuplicatePolicy, InsertOutcome, ValidationMode, usize_to_f32};
-use crate::utility::utils::validate_vector;
+use crate::utility::utils::{hash_dimvector, validate_vector};
 
 // ============================================================
 // MAIN CACHE IMPLEMENTATION
@@ -67,6 +67,8 @@ impl<const D: usize> VectorCache<D> {
         }
 
         // 2. step => Duplicate values handling
+        let hashed_value = hash_dimvector(&_vector);
+
         if let Some(existing_id) = self.repository.by_vector_hash {
             todo!()
         }
@@ -156,8 +158,8 @@ impl<const D: usize> VectorCache<D> {
     }
 
     pub fn size(&self) -> Result<usize, TectonicError> {
-        let repo_size = self.repository.size;
-        let arena_size = self.arena.size;
+        let repo_size = self.repository.size();
+        let arena_size = self.arena.size();
         if repo_size == arena_size {
             return Ok(repo_size);
         } else {
