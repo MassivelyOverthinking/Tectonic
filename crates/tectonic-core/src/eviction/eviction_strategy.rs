@@ -10,6 +10,7 @@ pub enum Eviction {
     LIRS
 }
 
+#[allow(dead_code)]
 pub trait EvictionStrategy {
     fn on_get(&mut self);
 

@@ -32,6 +32,7 @@ impl Debug for CacheMetrics {
     }
 }
 
+#[allow(dead_code)]
 impl CacheMetrics {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
@@ -203,6 +204,7 @@ impl Default for ActionMetrics {
 // INTERNAL ACTION METHODS
 // ============================================================
 
+#[allow(dead_code)]
 impl ActionMetrics {
     #[inline]
     pub fn record_insert(&mut self, latency: Duration) {

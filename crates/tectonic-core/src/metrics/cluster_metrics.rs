@@ -54,6 +54,7 @@ impl Default for ClusterMetrics {
 // CLUSTER METRICS UPDATES
 // ============================================================
 
+#[allow(dead_code)]
 impl ClusterMetrics {
     
     #[inline]

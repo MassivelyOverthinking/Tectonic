@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::result::SearchResult;
+use crate::{result::SearchResult, utility::utils::UniqueID};
 
 // ============================================================
 // CUSTOM DTYPES ANNOTATIONS
@@ -29,18 +29,34 @@ pub fn usize_to_f32(value: usize) -> f32 {
 // HELPER ENUMS
 // ============================================================
 
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InsertOutcome {
+    Inserted { id: UniqueID },
+    InsertedWithEviction { id: UniqueID, evicted: UniqueID },
+    DuplicateKept { existing: UniqueID },
+    DuplicateReplaced { old: UniqueID, new: UniqueID },
+    Rejected
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VectorTier {
     Standard,
     Protected,
     Pinned,
 }
 
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ValidationMode {
-    Lenient,
+    None,
     Strict
 }
 
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DuplicatePolicy {
-    Standard,
-    Overwrite,
+    KeepExisting,
+    ReplaceExisting,
 }

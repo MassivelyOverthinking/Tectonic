@@ -22,7 +22,7 @@ use crate::result::{CacheEntry, CacheResult};
 use crate::search::distance::SearchMethod;
 use crate::storage::arena::{VectorArena};
 use crate::storage::repository::CacheRepo;
-use crate::utility::typings::{DimVector, usize_to_f32};
+use crate::utility::typings::{DimVector, DuplicatePolicy, InsertOutcome, ValidationMode, usize_to_f32};
 
 // ============================================================
 // MAIN CACHE IMPLEMENTATION
@@ -56,8 +56,9 @@ impl<const D: usize> VectorCache<D> {
     pub fn insert(
         &mut self, 
         _vector: DimVector<D>,
-        _overwrite: bool
-    ) -> Result<bool, TectonicError> {
+        _duplicate: DuplicatePolicy,
+        _validation_mode: ValidationMode
+    ) -> Result<InsertOutcome, TectonicError> {
         todo!()
     }
 
@@ -109,7 +110,6 @@ impl<const D: usize> VectorCache<D> {
 
     pub fn remove(
         &mut self,
-        _user_id: Option<String>,
         _internal_id: usize,
     ) -> Result<DimVector<D>, TectonicError> {
         todo!()

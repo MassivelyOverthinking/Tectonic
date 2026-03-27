@@ -44,6 +44,7 @@ impl Default for EntryMetrics {
     }
 }
 
+#[allow(dead_code)]
 impl EntryMetrics {
 
 // ============================================================
