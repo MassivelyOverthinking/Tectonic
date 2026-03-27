@@ -16,7 +16,7 @@ use crate::utility::typings::DimVector;
 #[derive(Debug, Clone)]
 pub struct VectorArena<const D: usize> {
     capacity: usize,
-    size: usize,
+    pub size: usize,
     free_list: VecDeque<usize>,
     pub arena: Vec<ArenaSlot<D>>
 }

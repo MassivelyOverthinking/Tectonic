@@ -23,6 +23,7 @@ use crate::search::distance::SearchMethod;
 use crate::storage::arena::{VectorArena};
 use crate::storage::repository::CacheRepo;
 use crate::utility::typings::{DimVector, DuplicatePolicy, InsertOutcome, ValidationMode, usize_to_f32};
+use crate::utility::utils::validate_vector;
 
 // ============================================================
 // MAIN CACHE IMPLEMENTATION
@@ -59,6 +60,21 @@ impl<const D: usize> VectorCache<D> {
         _duplicate: DuplicatePolicy,
         _validation_mode: ValidationMode
     ) -> Result<InsertOutcome, TectonicError> {
+
+        // 1. step => Vector validation
+        if matches!(_validation_mode, ValidationMode::Strict) {
+            validate_vector(&_vector)?;
+        }
+
+        // 2. step => Duplicate values handling
+        if let Some(existing_id) = self.repository.by_vector_hash {
+            todo!()
+        }
+
+        // 3. step => Eviction & Insertion
+        if !self.is_full()? {
+            todo!()
+        }
         todo!()
     }
 
@@ -135,12 +151,20 @@ impl<const D: usize> VectorCache<D> {
         todo!()
     }
 
-    pub fn is_full(&self) -> bool {
-        self.repository.is_full()
+    pub fn is_full(&self) -> Result<bool, TectonicError> {
+        Ok(self.size()? >= self.metrics.capacity())
     }
 
-    pub fn size(&self) -> usize {
-        self.repository.size
+    pub fn size(&self) -> Result<usize, TectonicError> {
+        let repo_size = self.repository.size;
+        let arena_size = self.arena.size;
+        if repo_size == arena_size {
+            return Ok(repo_size);
+        } else {
+            return Err(TectonicError::ArenaError {
+                message: "Inconsistent size count between Arena and Repository"
+            });
+        }
     }
 
     pub fn load_factor(&self) -> f32 {

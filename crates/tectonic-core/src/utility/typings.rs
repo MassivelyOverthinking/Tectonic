@@ -50,7 +50,7 @@ pub enum VectorTier {
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ValidationMode {
-    None,
+    Lenient,
     Strict
 }
 
