@@ -24,3 +24,23 @@ pub fn f32_to_usize(value: f32) -> usize {
 pub fn usize_to_f32(value: usize) -> f32 {
     value as f32
 }
+
+// ============================================================
+// HELPER ENUMS
+// ============================================================
+
+pub enum VectorTier {
+    Standard,
+    Protected,
+    Pinned,
+}
+
+pub enum ValidationMode {
+    Lenient,
+    Strict
+}
+
+pub enum DuplicatePolicy {
+    Standard,
+    Overwrite,
+}

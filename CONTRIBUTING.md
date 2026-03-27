@@ -6,6 +6,8 @@ Whether you're fixing a bug, improving performance, adding features, or refining
 
 This project primmarily aims to construct a **high-performance vector search & caching framework** configured in Rust and exported to Python, and contributions of all sizes and levels of expertise are welcome and deeply appreciated. I'm currently somewhat "new" to high-performance Rust code implementation so any assistance here from venerated Rust developers, be it merely alternate code suggestions or optimization ideas, would be hugely appreciated 🙏
 
+For further information regarding overall project design considerations and systems architecture, please refer to the ARCHITECTURE.md, EXAMPLES.md files or feel free to reach out to me with any additional questions or inquiries!
+
 ---
 
 ## 🌟 Ways to Contribute
@@ -209,7 +211,7 @@ If you submit optimizations please inlcude the necessary information:
 Good documentation is just as valuable as any high-performance code.
 * Keep it clear and concise - No vagueness
 * Add examples where helpful
-* Please ensure to update docs alongside code changes
+* Please ensure to update relevant docs alongside code changes
 
 ---
 
