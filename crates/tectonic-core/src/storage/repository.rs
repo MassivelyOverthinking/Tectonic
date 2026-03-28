@@ -440,8 +440,30 @@ impl<const D: usize> CacheRepo<D> {
     }
 
     #[inline]
-    pub fn find_vector_by_location(&self, location: &RepoLocation) -> Result<usize, TectonicError> {
-        
+    pub fn find_vector_by_location(&self, location: &RepoLocation) -> Result<&ArenaLocation, TectonicError> {
+        let partition = self
+            .vector_repo.get(location.partition_idx)
+            .ok_or(TectonicError::InconsistenStateError {
+                message: "Unable to find correct Partition"
+            })?;
+
+        let shard = partition
+            .shards.get(location.shard_idx)
+            .ok_or(TectonicError::InconsistenStateError { 
+                message: "Unable to find correct Shard" 
+            })?;
+
+        let arena_location = shard
+            .location_storage.get(location.slot_idx)
+            .ok_or(TectonicError::InconsistenStateError {
+                message: "Unable to find correct location slot"
+            })?
+            .as_ref()
+            .ok_or(TectonicError::InconsistenStateError { 
+                message: "Unable to find correct Arena Location"
+            })?;
+
+            Ok(arena_location)
     }
 
     #[inline]
