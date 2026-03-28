@@ -21,7 +21,6 @@ use crate::quantization::scalar_qunatization::{quantize};
 use crate::result::{CacheEntry, CacheResult};
 use crate::search::distance::SearchMethod;
 use crate::storage::arena::{VectorArena};
-use crate::storage::location::ArenaLocation;
 use crate::storage::repository::CacheRepo;
 use crate::utility::typings::{DimVector, DuplicatePolicy, InsertOutcome, ValidationMode, usize_to_f32};
 use crate::utility::utils::{hash_dimvector, validate_vector};
