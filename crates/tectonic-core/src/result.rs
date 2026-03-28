@@ -30,6 +30,11 @@ impl<const D: usize> VectorEntry<D> {
             metrics: if metrics_enabled { Some(EntryMetrics::default()) } else { None },
         }
     }
+
+    pub fn replace_internal_vector(&mut self, new_vector: DimVector<D>) -> UniqueID {
+        self.vector = new_vector;
+        self.vector_id
+    }
 }
 
 // ============================================================

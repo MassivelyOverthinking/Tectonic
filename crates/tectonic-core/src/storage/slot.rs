@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::{result::VectorEntry, storage::location::{RepoLocation}};
+use crate::{result::VectorEntry, storage::location::RepoLocation};
 
 // ============================================================
 // INTERNAL SLOTS
@@ -14,7 +14,7 @@ pub struct ArenaSlot<const D: usize> {
     pub vector: Option<VectorEntry<D>>
 }
 
-impl<'a, const D: usize> ArenaSlot<D> {
+impl<const D: usize> ArenaSlot<D> {
     pub fn default() -> Self {
         Self { 
             generation: 1,

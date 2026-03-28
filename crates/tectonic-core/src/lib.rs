@@ -21,6 +21,7 @@ use crate::quantization::scalar_qunatization::{quantize};
 use crate::result::{CacheEntry, CacheResult};
 use crate::search::distance::SearchMethod;
 use crate::storage::arena::{VectorArena};
+use crate::storage::location::ArenaLocation;
 use crate::storage::repository::CacheRepo;
 use crate::utility::typings::{DimVector, DuplicatePolicy, InsertOutcome, ValidationMode, usize_to_f32};
 use crate::utility::utils::{hash_dimvector, validate_vector};
@@ -73,9 +74,17 @@ impl<const D: usize> VectorCache<D> {
             let repo_location = self.repository.find_repo_location_by_hash(&existing_id)?;
             let arena_location = self.repository.find_arena_slot_by_location(&repo_location)?;
 
-            let found_vector = self.arena.get_vector_by_location(arena_location)?;
+            let (found_vector, found_id) = self.arena.get_vector_by_location(arena_location)?;
             if self.compare_vectors(*found_vector, _vector) {
-
+                match _duplicate {
+                    DuplicatePolicy::ReplaceExisting => {
+                        let vector_id = self.arena.replace_vector(_vector, arena_location)?;
+                        return Ok(InsertOutcome::DuplicateReplaced { id: vector_id });
+                    },
+                    DuplicatePolicy::KeepExisting => {
+                        return Ok(InsertOutcome::DuplicateKept { existing: *found_id });
+                    },
+                }
             }
         }
 

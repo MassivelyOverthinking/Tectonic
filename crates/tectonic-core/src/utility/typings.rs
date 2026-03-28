@@ -35,7 +35,7 @@ pub enum InsertOutcome {
     Inserted { id: UniqueID },
     InsertedWithEviction { id: UniqueID, evicted: UniqueID },
     DuplicateKept { existing: UniqueID },
-    DuplicateReplaced { old: UniqueID, new: UniqueID },
+    DuplicateReplaced { id: UniqueID },
     Rejected
 }
 

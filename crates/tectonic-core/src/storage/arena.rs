@@ -2,7 +2,6 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use core::fmt;
 use std::collections::VecDeque;
 use std::iter::repeat_with;
 use crate::storage::location::ArenaLocation;
@@ -10,6 +9,7 @@ use crate::storage::slot::ArenaSlot;
 use crate::result::{VectorEntry};
 use crate::error::TectonicError;
 use crate::utility::typings::DimVector;
+use crate::utility::utils::UniqueID;
 
 // ============================================================
 // VECTOR STORAGE (ARENA)
@@ -72,7 +72,7 @@ impl<const D: usize> VectorArena<D> {
         Err(TectonicError::ArenaError { message: "No Vector entry located at specified index" })
     }
 
-    pub fn get_vector_by_location(&self, location: &ArenaLocation) -> Result<&DimVector<D>, TectonicError> {
+    pub fn get_vector_by_location(&self, location: &ArenaLocation) -> Result<(&DimVector<D>, &UniqueID), TectonicError> {
         let arena_entry = self.arena.get(*location.get_index())
             .ok_or(TectonicError::ArenaError {
                 message: "Index out of bounds" 
@@ -84,7 +84,7 @@ impl<const D: usize> VectorArena<D> {
             })?;
 
         if entry.vector_id.slot_id == *location.get_entry_id() {
-            Ok(&entry.vector)
+            Ok((&entry.vector, &entry.vector_id))
         } else {
             return Err(TectonicError::InconsistenStateError {
                 message: "Arena entry ID doesn't match found ID" 
@@ -104,6 +104,21 @@ impl<const D: usize> VectorArena<D> {
             })?;
 
         Ok(&entry.vector)
+    }
+
+    pub fn replace_vector(&mut self, new_vector: DimVector<D>, location: &ArenaLocation) ->Result<UniqueID, TectonicError> {
+        let arena_entry = self.arena.get_mut(*location.get_index())
+            .ok_or(TectonicError::ArenaError {
+                message: "Index out of bounds" 
+            })?;
+
+        let entry = arena_entry.vector.as_mut()
+            .ok_or(TectonicError::ArenaError { 
+                message: "Could not locate Vector inside Entry" 
+            })?;
+
+        let vector_id = entry.replace_internal_vector(new_vector);
+        Ok(vector_id)
     }
 
     pub fn load_factor(&self) -> f32 {
