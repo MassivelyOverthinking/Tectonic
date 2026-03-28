@@ -69,8 +69,9 @@ impl<const D: usize> VectorCache<D> {
         // 2. step => Duplicate values handling
         let hashed_value = hash_dimvector(&_vector);
 
-        if let Some(existing_id) = self.repository.by_vector_hash {
-            todo!()
+        if let Some(existing_id) = self.repository.by_vector_hash.get(&hashed_value) {
+            let repo_location = self.repository.find_arena_by_hash(&existing_id)?;
+            let arena_location = self.repository.find_vector_by_location(&repo_location)?;
         }
 
         // 3. step => Eviction & Insertion

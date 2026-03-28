@@ -433,10 +433,19 @@ impl<const D: usize> CacheRepo<D> {
     }
 
     #[inline]
-    pub fn find_arena_by_hash(&self, value: &u64) -> Option<RepoLocation> {
-        let index = self.by_vector_hash.get(value)?;
-        let slot = &self.by_internal_id[*index];
-        slot.location
+    pub fn find_arena_by_hash(&self, index: &usize) -> Result<RepoLocation, TectonicError> {
+        let slot = self
+        .by_internal_id
+        .get(*index)
+        .ok_or(TectonicError::InconsistenStateError {
+            message: "Invalid internal index for vector hash",
+        })?;
+
+        let location = slot.location.ok_or(TectonicError::InconsistenStateError {
+            message: "Slot exists but has no RepoLocation",
+        })?;
+
+        Ok(location)
     }
 
     #[inline]
