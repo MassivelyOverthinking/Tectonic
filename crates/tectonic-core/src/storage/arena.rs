@@ -2,8 +2,10 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use core::fmt;
 use std::collections::VecDeque;
 use std::iter::repeat_with;
+use crate::storage::location::ArenaLocation;
 use crate::storage::slot::ArenaSlot;
 use crate::result::{VectorEntry};
 use crate::error::TectonicError;
@@ -70,7 +72,27 @@ impl<const D: usize> VectorArena<D> {
         Err(TectonicError::ArenaError { message: "No Vector entry located at specified index" })
     }
 
-    pub fn get_vector_at_posistion(&self, index: usize) -> Result<&DimVector<D>, TectonicError> {
+    pub fn get_vector_by_location(&self, location: &ArenaLocation) -> Result<&DimVector<D>, TectonicError> {
+        let arena_entry = self.arena.get(*location.get_index())
+            .ok_or(TectonicError::ArenaError {
+                message: "Index out of bounds" 
+            })?;
+
+        let entry = arena_entry.vector.as_ref()
+            .ok_or(TectonicError::ArenaError { 
+                message: "Could not locate Vector inside Entry" 
+            })?;
+
+        if entry.vector_id.slot_id == *location.get_entry_id() {
+            Ok(&entry.vector)
+        } else {
+            return Err(TectonicError::InconsistenStateError {
+                message: "Arena entry ID doesn't match found ID" 
+            });
+        }
+    }
+
+    pub fn get_vector_at_position(&self, index: usize) -> Result<&DimVector<D>, TectonicError> {
         let arena_entry = self.arena.get(index)
             .ok_or(TectonicError::ArenaError {
                 message: "Index out of bounds" 

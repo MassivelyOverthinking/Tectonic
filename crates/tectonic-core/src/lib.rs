@@ -70,8 +70,13 @@ impl<const D: usize> VectorCache<D> {
         let hashed_value = hash_dimvector(&_vector);
 
         if let Some(existing_id) = self.repository.by_vector_hash.get(&hashed_value) {
-            let repo_location = self.repository.find_arena_by_hash(&existing_id)?;
-            let arena_location = self.repository.find_vector_by_location(&repo_location)?;
+            let repo_location = self.repository.find_repo_location_by_hash(&existing_id)?;
+            let arena_location = self.repository.find_arena_slot_by_location(&repo_location)?;
+
+            let found_vector = self.arena.get_vector_by_location(arena_location)?;
+            if self.compare_vectors(*found_vector, _vector) {
+
+            }
         }
 
         // 3. step => Eviction & Insertion
@@ -112,7 +117,7 @@ impl<const D: usize> VectorCache<D> {
         let mut entries = search_results
             .into_iter()
             .map(|result| {
-                let candidate = self.arena.get_vector_at_posistion(result.index)?;
+                let candidate = self.arena.get_vector_at_position(result.index)?;
                 let distance = search_method.distance_f32(&vector, candidate);
                 
                 Ok(CacheEntry::new(result.index, candidate.clone(), distance))
@@ -174,9 +179,12 @@ impl<const D: usize> VectorCache<D> {
         usize_to_f32(self.repository.size) / usize_to_f32(self.repository.capacity)
     }
 
+    fn compare_vectors(&self, found_vector: DimVector<D>, new_vector: DimVector<D>) -> bool {
+        found_vector == new_vector
+    }
+
 // ============================================================
 // HELPER METHODS
 // ============================================================
-
 }
 

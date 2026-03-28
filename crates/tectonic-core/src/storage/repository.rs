@@ -433,7 +433,7 @@ impl<const D: usize> CacheRepo<D> {
     }
 
     #[inline]
-    pub fn find_arena_by_hash(&self, index: &usize) -> Result<RepoLocation, TectonicError> {
+    pub fn find_repo_location_by_hash(&self, index: &usize) -> Result<RepoLocation, TectonicError> {
         let slot = self
         .by_internal_id
         .get(*index)
@@ -449,7 +449,7 @@ impl<const D: usize> CacheRepo<D> {
     }
 
     #[inline]
-    pub fn find_vector_by_location(&self, location: &RepoLocation) -> Result<&ArenaLocation, TectonicError> {
+    pub fn find_arena_slot_by_location(&self, location: &RepoLocation) -> Result<&ArenaLocation, TectonicError> {
         let partition = self
             .vector_repo.get(location.partition_idx)
             .ok_or(TectonicError::InconsistenStateError {
