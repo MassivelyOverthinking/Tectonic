@@ -56,28 +56,28 @@ impl<const D: usize> VectorCache<D> {
 
     pub fn insert(
         &mut self, 
-        _vector: DimVector<D>,
-        _duplicate: DuplicatePolicy,
-        _validation_mode: ValidationMode
+        vector: DimVector<D>,
+        duplicate: DuplicatePolicy,
+        validation_mode: ValidationMode
     ) -> Result<InsertOutcome, TectonicError> {
 
         // 1. step => Vector validation
-        if matches!(_validation_mode, ValidationMode::Strict) {
-            validate_vector(&_vector)?;
+        if matches!(validation_mode, ValidationMode::Strict) {
+            validate_vector(&vector)?;
         }
 
         // 2. step => Duplicate values handling
-        let hashed_value = hash_dimvector(&_vector);
+        let hashed_value = hash_dimvector(&vector);
 
         if let Some(existing_id) = self.repository.by_vector_hash.get(&hashed_value) {
             let repo_location = self.repository.find_repo_location_by_hash(&existing_id)?;
             let arena_location = self.repository.find_arena_slot_by_location(&repo_location)?;
 
             let (found_vector, found_id) = self.arena.get_vector_by_location(arena_location)?;
-            if self.compare_vectors(*found_vector, _vector) {
-                match _duplicate {
+            if self.compare_vectors(*found_vector, vector) {
+                match duplicate {
                     DuplicatePolicy::ReplaceExisting => {
-                        let vector_id = self.arena.replace_vector(_vector, arena_location)?;
+                        let vector_id = self.arena.replace_vector(vector, arena_location)?;
                         return Ok(InsertOutcome::DuplicateReplaced { id: vector_id });
                     },
                     DuplicatePolicy::KeepExisting => {
@@ -102,16 +102,20 @@ impl<const D: usize> VectorCache<D> {
         partitions: usize
     ) -> Result<CacheResult<D>, TectonicError> 
     where M: SearchMethod<D>{
+        // 1. Step -> Check if main cahce is currently empty.
         if self.metrics.is_empty() {
             return Err(TectonicError::RepoError { 
                 message: "No vectors currently stored in Repository"
             });
         }
 
+        // 2. Step -> Start lantency timer for search-method execution.
         let time_before_method = Instant::now();
 
+        // 3. Step -> Quantize incomming Vector for faster search.
         let quantized_vector = quantize(&vector)?;
 
+        // 4. Step -> Executre internal search for Top K candidate vectors.
         let search_results = self.repository.search(
             &quantized_vector,
             &vector,
@@ -120,6 +124,7 @@ impl<const D: usize> VectorCache<D> {
             partitions
         )?;
 
+        // 5. Step -> Convert the search results into CacheResult with necessary metadata.
         let candidate_count = search_results.len();
 
         let mut entries = search_results
@@ -134,10 +139,11 @@ impl<const D: usize> VectorCache<D> {
 
         entries.sort_unstable_by(|a, b| a.distance.total_cmp(&b.distance));
 
+        // 6. Step -> Stop latency timer & calculate total execution time.
         let method_latency = time_before_method.elapsed();
 
+        // 7. Step -> Return the final CacheResult instance. 
         Ok(CacheResult::new(k, partitions, candidate_count, method_latency, entries))
-
     }
 
     pub fn remove(
