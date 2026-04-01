@@ -147,7 +147,7 @@ impl CacheConfigBuilder {
         const DEFAULT_SHARDS: usize = 1;
         const DEFAULT_DISTANCE_METRIC: DistanceMetric = DistanceMetric::Euclidean;
         const DEFAULT_SIM_THRESHOLD: f32 = 0.0;
-        const DEFAULT_EVICTION: Eviction = Eviction::FIFO;
+        const DEFAULT_EVICTION: Eviction = Eviction::PartitionedLRU;
         const DEFAULT_SEARCH_PARTITIONS: usize = 3;
         const DEFAULT_COOPOERATIVE: bool = true;
         const DEFAULT_HYSTERESIS: f32 = 0.2;
