@@ -4,7 +4,7 @@
 
 use crate::error::TectonicError;
 use crate::search::distance::DistanceMetric;
-use crate::eviction::eviction_strategy::{Eviction};
+use crate::strategy::eviction_strategy::{Eviction};
 
 // ============================================================
 // INTERNAL CONFIGURATION OBJECTS
