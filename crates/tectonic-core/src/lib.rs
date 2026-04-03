@@ -2,7 +2,8 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-mod strategy;
+mod admission;
+mod eviction;
 mod metrics;
 mod quantization;
 mod search;
