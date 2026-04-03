@@ -26,10 +26,12 @@ pub struct VectorArena<const D: usize> {
 #[allow(dead_code)]
 impl<const D: usize> VectorArena<D> {
     pub fn insert(&mut self, value: DimVector<D>, metrics_enabled: bool) -> Result<usize, TectonicError> {
+        // Check if the internal Slab/Arena structure is currently full.
         if self.is_full() {
             return Err(TectonicError::CacheLimitError { size: self.size, limit: self.capacity })
         };
 
+        // Check if Free-list contains an available value for insertion.
         if let Some(available_index) = self.free_list.pop_back() {
             let new_vector = VectorEntry::new(
                 available_index,
@@ -39,8 +41,9 @@ impl<const D: usize> VectorArena<D> {
             );
             self.arena[available_index].vector = Some(new_vector);
             self.size += 1;
-            return Ok(available_index);
+            return Ok(available_index);         // Return the index where at the value was inserted.
         } else {
+            // If no free slots found in Free-list => Insert entry using next available index.
             let next_index = self.size;
             let new_vector = VectorEntry::new(
                 next_index,
@@ -50,7 +53,7 @@ impl<const D: usize> VectorArena<D> {
             );
             self.arena[next_index].vector = Some(new_vector);
             self.size += 1;
-            return Ok(next_index);
+            return Ok(next_index);          // Return the index where at the value was inserted.
         }
     }
 
@@ -93,43 +96,63 @@ impl<const D: usize> VectorArena<D> {
     }
 
     pub fn get_vector_at_position(&self, index: usize) -> Result<&DimVector<D>, TectonicError> {
+        // Helper-method
+        // Retrieves reference-pointer to the interanl VectorEntry located in parameter: Index.
+        // Used for Duplicate-handling & Vector retrieval.
+
+        // Retrieve Mutable instance of the internal Slot (ArenaSlot).
+        // Default => Throw new TectonicError::ArenaError
         let arena_entry = self.arena.get(index)
             .ok_or(TectonicError::ArenaError {
                 message: "Index out of bounds" 
             })?;
 
+        // Retrieve Mutable instance of the actual VectorEntry-instance found inside Slot.
+        // Default => Throw new TectonicError::ArenaError
         let entry = arena_entry.vector.as_ref()
             .ok_or(TectonicError::ArenaError { 
                 message: "Could not locate Vector inside Entry" 
             })?;
 
-        Ok(&entry.vector)
+        Ok(&entry.vector)   // Return Borrowed-instance of the internal VectorEntry.
     }
 
     pub fn replace_vector(&mut self, new_vector: DimVector<D>, location: &ArenaLocation) ->Result<UniqueID, TectonicError> {
+        // Helper-method
+        // Replaces the internal VectorEntry-instance with new value found by ArenaLocation.
+        // Used for Duplicate-handling.
+
+        // Retrieve Mutable instance of the internal Slot (ArenaSlot).
+        // Default => Throw new TectonicError::ArenaError
         let arena_entry = self.arena.get_mut(*location.get_index())
             .ok_or(TectonicError::ArenaError {
                 message: "Index out of bounds" 
             })?;
 
+        // Retrieve Mutable instance of the actual VectorEntry-instance found inside Slot.
+        // Default => Throw new TectonicError::ArenaError
         let entry = arena_entry.vector.as_mut()
             .ok_or(TectonicError::ArenaError { 
                 message: "Could not locate Vector inside Entry" 
             })?;
 
+        // Use internal Helper-method to replace the internal VectorEntry.
         let vector_id = entry.replace_internal_vector(new_vector);
-        Ok(vector_id)
+        Ok(vector_id)       // Returns Vector-ID for clarity & debugging.
     }
 
     pub fn load_factor(&self) -> f32 {
+        // Helper-method for checking the current availability of the Arena/Slab.
         (self.size as f32 / self.capacity as f32) * 100.0
     }
 
     pub fn size(&self) -> usize {
+        // Helper-method for determining the current number of entries in the Arena/Slab.
         self.size
     }
 
     pub fn is_full(&self) -> bool {
+        // Helper-method for determining if the Arena/Slab is currently full.
         self.size > self.capacity
     }
 
