@@ -3,10 +3,38 @@
 // ============================================================
 
 use crate::utility::utils::UniqueID;
+use crate::utility::typings::VectorTier;
 
 // ============================================================
 // EVICTION ENTRY
 // ============================================================
+
+#[derive(Debug, Clone)]
+pub struct EvictionEntry {
+    entry_id: UniqueID,
+    partition_id: usize,
+    location: EvictionLocation,
+    tier: VectorTier,
+    created_at: u64,
+    data: EvictionData,
+    scores: EvictionScores,
+    victim_score: f64,
+}
+
+impl EvictionEntry {
+    pub fn new(entry_id: UniqueID, partition_id: usize, location: EvictionLocation, tier: VectorTier) -> Self {
+        Self {
+            entry_id,
+            partition_id,
+            location,
+            tier,
+            created_at: instant::now().elapsed().as_secs(),
+            data: EvictionData::default(),
+            scores: EvictionScores::default(),
+            victim_score: 0.0,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 struct EvictionLocation {
@@ -54,11 +82,60 @@ impl Default for EvictionData {
     }
 }
 
+impl EvictionData {
+    pub fn update_on_access(&mut self, distance: f64, timestamp: u64, is_hit: bool) {
+        self.access_count += 1;
+        if is_hit {
+            self.hit_count += 1;
+        } else {
+            self.miss_count += 1;
+        }
+        self.last_accessed = timestamp;
+        self.average_distance = self.update_average_distance(distance);
+        self.score = self.calculate_score();
+    }
+
+    fn update_average_distance(&mut self, distance: f64) -> f64 {
+        ((self.average_distance * (self.access_count as f64 - 1.0)) + distance) / (self.access_count as f64)
+    }
+
+    fn calculate_score(&self) -> f64 {
+        // Placeholder for a more complex scoring algorithm
+        self.average_distance * (self.miss_count as f64 / self.access_count as f64)
+    }
+
+    pub fn get_score(&self) -> f64 {
+        self.score
+    }
+}
+
 #[derive(Debug, Clone)]
-pub struct EvictionEntry {
-    entry_id: UniqueID,
-    partition_id: usize,
-    location: EvictionLocation,
-    created_at: u64,
-    data: EvictionData,
+struct EvictionScores {
+    affinity_score: f64,
+    contribution_score: f64,
+    redundancy_score: f64,
+}
+
+impl Default for EvictionScores {
+    fn default() -> Self {
+        Self {
+            affinity_score: 0.0,
+            contribution_score: 0.0,
+            redundancy_score: 0.0,
+        }
+    }
+}
+
+impl EvictionScores {
+    pub fn get_affinity_score(&self) -> f64 {
+        self.affinity_score
+    }
+
+    pub fn get_contribution_score(&self) -> f64 {
+        self.contribution_score
+    }
+
+    pub fn get_redundancy_score(&self) -> f64 {
+        self.redundancy_score
+    }
 }
