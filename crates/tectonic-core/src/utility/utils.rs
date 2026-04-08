@@ -13,7 +13,7 @@ use crate::utility::typings::DimVector;
 // GENERAL UTILITY METHODS & STRUCTS
 // ============================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Eq, Hash)]
 #[allow(dead_code)]
 pub struct UniqueID {
     pub slot_id: usize,
@@ -23,6 +23,12 @@ pub struct UniqueID {
 impl Display for UniqueID  {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({}-{})", self.gen_id, self.slot_id)
+    }
+}
+
+impl PartialEq for UniqueID {
+    fn eq(&self, other: &Self) -> bool {
+        self.slot_id == other.slot_id && self.gen_id == other.gen_id
     }
 }
 
