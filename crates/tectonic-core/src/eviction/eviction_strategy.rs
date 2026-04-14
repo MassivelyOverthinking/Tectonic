@@ -29,4 +29,8 @@ pub trait EvictionStrategy {
     fn get_victim(&mut self);
 
     fn evict_victim(&mut self);
+
+    fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool;
 }

@@ -11,6 +11,7 @@ use crate::eviction::{eviction_entry::EvictionEntry, eviction_strategy::Eviction
 #[derive(Debug, Clone)]
 struct PartitionedLIFO {
     stack: Vec<EvictionEntry>,
+    size: usize,
 }
 
 impl EvictionStrategy for PartitionedLIFO {
@@ -32,5 +33,13 @@ impl EvictionStrategy for PartitionedLIFO {
 
     fn evict_victim(&mut self) {
         todo!()
+    }
+
+    fn len(&self) -> usize {
+        
+    }
+
+    fn is_empty(&self) -> bool {
+        
     }
 }

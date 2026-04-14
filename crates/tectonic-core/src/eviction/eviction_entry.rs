@@ -2,6 +2,8 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use std::time::Instant;
+
 use crate::utility::utils::UniqueID;
 use crate::utility::typings::VectorTier;
 
@@ -15,7 +17,7 @@ pub struct EvictionEntry {
     partition_id: usize,
     location: EvictionLocation,
     tier: VectorTier,
-    created_at: u64,
+    created_at: Instant,
     data: EvictionData,
     scores: EvictionScores,
     victim_score: f64,
@@ -28,11 +30,39 @@ impl EvictionEntry {
             partition_id,
             location,
             tier,
-            created_at: instant::now().elapsed().as_secs(),
+            created_at: Instant::now(),
             data: EvictionData::default(),
             scores: EvictionScores::default(),
             victim_score: 0.0,
         }
+    }
+
+    pub fn entry_id(&self) -> &UniqueID {
+        &self.entry_id
+    }
+
+    pub fn partition_id(&self) -> &usize {
+        &self.partition_id
+    }
+
+    pub fn location(&self) -> &EvictionLocation {
+        &self.location
+    }
+
+    pub fn created_at(&self) -> &Instant {
+        &self.created_at
+    }
+
+    pub fn tier(&self) -> &VectorTier {
+        &self.tier
+    }
+
+    pub fn data(&self) -> &EvictionData {
+        &self.data
+    }
+
+    pub fn data_mut(&mut self) -> &mut EvictionData {
+        &mut self.data
     }
 }
 
@@ -40,13 +70,15 @@ impl EvictionEntry {
 struct EvictionLocation {
     shard_idx: usize,
     slot_idx: usize,
+    arena_idx: usize
 }
 
 impl EvictionLocation {
-    pub fn new(shard_idx: usize, slot_idx: usize) -> Self {
+    pub fn new(shard_idx: usize, slot_idx: usize, arena_idx: usize) -> Self {
         Self {
             shard_idx,
-            slot_idx 
+            slot_idx,
+            arena_idx
         }
     }
 
