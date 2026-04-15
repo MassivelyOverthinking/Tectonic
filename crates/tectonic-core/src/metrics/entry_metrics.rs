@@ -4,7 +4,7 @@
 
 use std::fmt::Debug;
 
-use crate::utility::typings::usize_to_f32;
+use crate::utility::typings::{VectorTier, usize_to_f32};
 
 // ============================================================
 // INTERNAL VECTOR METRICS
@@ -147,6 +147,7 @@ impl EntryMetrics {
 
 #[derive(Debug, Clone, Copy)]
 pub struct EvictionMetadata {
+    tier: VectorTier,
     average_distance: f64,
     access_count: usize,
     hit_count: usize,
@@ -158,6 +159,7 @@ pub struct EvictionMetadata {
 impl Default for EvictionMetadata {
     fn default() -> Self {
         Self {
+            tier: VectorTier::Standard,
             average_distance: 0.0,
             access_count: 0,
             hit_count: 0,

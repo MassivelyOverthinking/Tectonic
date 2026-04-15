@@ -95,7 +95,7 @@ impl<const D: usize> VectorArena<D> {
         }
     }
 
-    pub fn get_vector_at_position(&self, index: usize) -> Result<&DimVector<D>, TectonicError> {
+    pub fn get_vector_at_position(&self, index: usize) -> Result<(&DimVector<D>, &UniqueID), TectonicError> {
         // Helper-method
         // Retrieves reference-pointer to the interanl VectorEntry located in parameter: Index.
         // Used for Duplicate-handling & Vector retrieval.
@@ -114,7 +114,7 @@ impl<const D: usize> VectorArena<D> {
                 message: "Could not locate Vector inside Entry" 
             })?;
 
-        Ok(&entry.vector)   // Return Borrowed-instance of the internal VectorEntry.
+        Ok((&entry.vector, &entry.vector_id))   // Return Borrowed-instance of the internal VectorEntry.
     }
 
     pub fn replace_vector(&mut self, new_vector: DimVector<D>, location: &ArenaLocation) ->Result<UniqueID, TectonicError> {
@@ -125,6 +125,30 @@ impl<const D: usize> VectorArena<D> {
         // Retrieve Mutable instance of the internal Slot (ArenaSlot).
         // Default => Throw new TectonicError::ArenaError
         let arena_entry = self.arena.get_mut(*location.get_index())
+            .ok_or(TectonicError::ArenaError {
+                message: "Index out of bounds" 
+            })?;
+
+        // Retrieve Mutable instance of the actual VectorEntry-instance found inside Slot.
+        // Default => Throw new TectonicError::ArenaError
+        let entry = arena_entry.vector.as_mut()
+            .ok_or(TectonicError::ArenaError { 
+                message: "Could not locate Vector inside Entry" 
+            })?;
+
+        // Use internal Helper-method to replace the internal VectorEntry.
+        let vector_id = entry.replace_internal_vector(new_vector);
+        Ok(vector_id)       // Returns Vector-ID for clarity & debugging.
+    }
+
+    pub fn update_vector(&mut self, new_vector: DimVector<D>, index: &usize) -> Result<UniqueID, TectonicError> {
+        // Helper-method
+        // Replaces the internal VectorEntry-instance with new value found by ArenaLocation.
+        // Used for Duplicate-handling.
+
+        // Retrieve Mutable instance of the internal Slot (ArenaSlot).
+        // Default => Throw new TectonicError::ArenaError
+        let arena_entry = self.arena.get_mut(*index)
             .ok_or(TectonicError::ArenaError {
                 message: "Index out of bounds" 
             })?;

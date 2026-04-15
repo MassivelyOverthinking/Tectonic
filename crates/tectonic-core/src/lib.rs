@@ -26,6 +26,7 @@ use crate::storage::arena::{VectorArena};
 use crate::storage::repository::CacheRepo;
 use crate::utility::typings::{DimVector, DuplicatePolicy, InsertOutcome, ValidationMode, usize_to_f32};
 use crate::utility::utils::{hash_dimvector, validate_vector};
+use crate::location::location_slab::LocationSlab;
 
 // ============================================================
 // MAIN CACHE IMPLEMENTATION
@@ -36,6 +37,7 @@ pub struct VectorCache<const D: usize> {
     config: CacheConfig,
     arena: VectorArena<D>,
     repository: CacheRepo<D>,
+    locations: LocationSlab,
     metrics: CacheMetrics,
 }
 
@@ -51,6 +53,7 @@ impl<const D: usize> VectorCache<D> {
                 config: config, 
                 arena: VectorArena::with_capacity(max_entries),
                 repository: CacheRepo::with_capacity(max_entries, num_partitions, num_shards),
+                locations: LocationSlab::default(),
                 metrics: CacheMetrics::with_capacity(max_entries), 
             }
         )
@@ -70,6 +73,24 @@ impl<const D: usize> VectorCache<D> {
 
         // 2. step => Duplicate values handling
         let hashed_value = hash_dimvector(&vector);
+
+        // Check for Duplicate using Global Location-Slab
+        if let Some(location_entry) = self.locations.get_by_hash(hashed_value) {
+            let arena_index = location_entry.get_arena();
+            let (found_vector, found_id) = self.arena.get_vector_at_position(*arena_index)?;
+
+            if self.compare_vectors(*found_vector, vector) {
+                match duplicate {
+                    DuplicatePolicy::ReplaceExisting => {
+                        let vector_id = self.arena.update_vector(vector, arena_index)?;
+                        return Ok(InsertOutcome::DuplicateReplaced { id: vector_id });
+                    },
+                    DuplicatePolicy::KeepExisting => {
+                        return Ok(InsertOutcome::DuplicateKept { existing: *found_id });
+                    },
+                }
+            }
+        }
 
         if let Some(existing_id) = self.repository.by_vector_hash.get(&hashed_value) {
             let repo_location = self.repository.find_repo_location_by_hash(&existing_id)?;
@@ -132,7 +153,7 @@ impl<const D: usize> VectorCache<D> {
         let mut entries = search_results
             .into_iter()
             .map(|result| {
-                let candidate = self.arena.get_vector_at_position(result.index)?;
+                let (candidate, _found_id) = self.arena.get_vector_at_position(result.index)?;
                 let distance = search_method.distance_f32(&vector, candidate);
                 
                 Ok(CacheEntry::new(result.index, candidate.clone(), distance))
