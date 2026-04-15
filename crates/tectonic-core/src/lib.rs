@@ -92,24 +92,6 @@ impl<const D: usize> VectorCache<D> {
             }
         }
 
-        if let Some(existing_id) = self.repository.by_vector_hash.get(&hashed_value) {
-            let repo_location = self.repository.find_repo_location_by_hash(&existing_id)?;
-            let arena_location = self.repository.find_arena_slot_by_location(&repo_location)?;
-
-            let (found_vector, found_id) = self.arena.get_vector_by_location(arena_location)?;
-            if self.compare_vectors(*found_vector, vector) {
-                match duplicate {
-                    DuplicatePolicy::ReplaceExisting => {
-                        let vector_id = self.arena.replace_vector(vector, arena_location)?;
-                        return Ok(InsertOutcome::DuplicateReplaced { id: vector_id });
-                    },
-                    DuplicatePolicy::KeepExisting => {
-                        return Ok(InsertOutcome::DuplicateKept { existing: *found_id });
-                    },
-                }
-            }
-        }
-
         // 3. step => Eviction & Insertion
         if !self.is_full()? {
             todo!()

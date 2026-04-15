@@ -3,7 +3,7 @@
 // ============================================================
 
 use core::f32;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap};
 use std::iter::repeat_with;
 use std::usize;
 
@@ -28,7 +28,6 @@ pub struct CacheRepo<const D: usize> {
     pub vector_repo: Vec<CachePartition<D>>,
     pub by_internal_id: Vec<RepoSlot>,
     pub by_vector_hash: HashMap<u64, usize>,
-    pub free_list: VecDeque<usize>,
     pub size: usize,
     pub capacity: usize,
 
@@ -54,7 +53,6 @@ impl<const D: usize> CacheRepo<D> {
             vector_repo: partitions_vector,
             by_internal_id: repeat_with(|| RepoSlot::default()).take(max_entries).collect(),
             by_vector_hash: HashMap::new(),
-            free_list: VecDeque::new(),
             capacity: max_entries,
             size: 0,
 

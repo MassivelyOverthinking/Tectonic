@@ -2,7 +2,8 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::{eviction::{eviction_entry::EvictionEntry, eviction_strategy::EvictionStrategy}, utility::utils::UniqueID};
+use crate::eviction::eviction_strategy::EvictionStrategy;
+use crate::utility::utils::UniqueID;
 
 // ============================================================
 // EVICTION STRATEGY: PARTITIONED LIFO
@@ -10,7 +11,7 @@ use crate::{eviction::{eviction_entry::EvictionEntry, eviction_strategy::Evictio
 
 #[derive(Debug, Clone)]
 struct PartitionedLIFO {
-    stack: Vec<EvictionEntry>,
+    stack: Vec<UniqueID>,
 }
 
 impl Default for PartitionedLIFO {
@@ -24,7 +25,7 @@ impl EvictionStrategy for PartitionedLIFO {
         // Method is redundant for LIFO functionality.
     }
 
-    fn on_remove(&mut self, entry_id: &UniqueID) -> Option<EvictionEntry> {
+    fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
         let position = self
             .stack
             .iter()
@@ -33,15 +34,15 @@ impl EvictionStrategy for PartitionedLIFO {
         Some(self.stack.swap_remove(position))
     }
 
-    fn on_insert(&mut self, entry: EvictionEntry) {
+    fn on_insert(&mut self, entry: UniqueID) {
         self.stack.push(entry);
     }
 
-    fn get_victim(&mut self) -> Option<&EvictionEntry>{
+    fn get_victim(&mut self) -> Option<&UniqueID>{
         self.stack.last()
     }
 
-    fn evict_victim(&mut self) -> Option<EvictionEntry> {
+    fn evict_victim(&mut self) -> Option<UniqueID> {
         self.stack.pop()
     }
 

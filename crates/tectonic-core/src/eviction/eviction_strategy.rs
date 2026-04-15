@@ -7,7 +7,7 @@
 // EVICTION STRATEGIES
 // ============================================================
 
-use crate::{eviction::eviction_entry::EvictionEntry, utility::utils::UniqueID};
+use crate::{utility::utils::UniqueID};
 
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
@@ -24,13 +24,13 @@ pub enum Eviction {
 pub trait EvictionStrategy {
     fn on_get(&mut self, entry_id: &UniqueID);
 
-    fn on_remove(&mut self, entry_id: &UniqueID) -> Option<EvictionEntry>;
+    fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID>;
 
-    fn on_insert(&mut self, entry: EvictionEntry);
+    fn on_insert(&mut self, entry: UniqueID);
 
-    fn get_victim(&mut self) -> Option<&EvictionEntry>;
+    fn get_victim(&mut self) -> Option<&UniqueID>;
 
-    fn evict_victim(&mut self) -> Option<EvictionEntry>;
+    fn evict_victim(&mut self) -> Option<UniqueID>;
 
     fn len(&self) -> usize;
 
