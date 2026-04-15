@@ -144,3 +144,84 @@ impl EntryMetrics {
         self.hit_count == 0 && current_tick > self.insert_tick
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct EvictionMetadata {
+    average_distance: f64,
+    access_count: usize,
+    hit_count: usize,
+    miss_count: usize,
+    last_accessed: u64,
+    score: f64,
+}
+
+impl Default for EvictionMetadata {
+    fn default() -> Self {
+        Self {
+            average_distance: 0.0,
+            access_count: 0,
+            hit_count: 0,
+            miss_count: 0,
+            last_accessed: 0,
+            score: 0.0,
+        }
+    }
+}
+
+impl EvictionMetadata {
+    pub fn update_on_access(&mut self, distance: f64, timestamp: u64, is_hit: bool) {
+        self.access_count += 1;
+        if is_hit {
+            self.hit_count += 1;
+        } else {
+            self.miss_count += 1;
+        }
+        self.last_accessed = timestamp;
+        self.average_distance = self.update_average_distance(distance);
+        self.score = self.calculate_score();
+    }
+
+    fn update_average_distance(&mut self, distance: f64) -> f64 {
+        ((self.average_distance * (self.access_count as f64 - 1.0)) + distance) / (self.access_count as f64)
+    }
+
+    fn calculate_score(&self) -> f64 {
+        // Placeholder for a more complex scoring algorithm
+        self.average_distance * (self.miss_count as f64 / self.access_count as f64)
+    }
+
+    pub fn get_score(&self) -> f64 {
+        self.score
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct EvictionScores {
+    affinity_score: f64,
+    contribution_score: f64,
+    redundancy_score: f64,
+}
+
+impl Default for EvictionScores {
+    fn default() -> Self {
+        Self {
+            affinity_score: 0.0,
+            contribution_score: 0.0,
+            redundancy_score: 0.0,
+        }
+    }
+}
+
+impl EvictionScores {
+    pub fn get_affinity_score(&self) -> &f64 {
+        &self.affinity_score
+    }
+
+    pub fn get_contribution_score(&self) -> &f64 {
+        &self.contribution_score
+    }
+
+    pub fn get_redundancy_score(&self) -> &f64 {
+        &self.redundancy_score
+    }
+}

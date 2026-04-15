@@ -3,6 +3,7 @@
 // ============================================================
 
 use crate::{metrics::entry_metrics::EntryMetrics, utility::utils::UniqueID};
+use crate::metrics::entry_metrics::{EvictionMetadata, EvictionScores};
 use crate::utility::typings::DimVector;
 use core::fmt;
 use std::cmp::Ordering;
@@ -19,7 +20,9 @@ use std::usize;
 pub struct VectorEntry<const D: usize> {
     pub vector_id: UniqueID,
     pub vector: DimVector<D>,
-    pub metrics: Option<EntryMetrics>
+    pub metrics: Option<EntryMetrics>,
+    pub eviction_data: EvictionMetadata,
+    pub eviction_scores: EvictionScores,
 }
 
 impl<const D: usize> VectorEntry<D> {
@@ -28,6 +31,8 @@ impl<const D: usize> VectorEntry<D> {
             vector_id: UniqueID::new(id, generation),
             vector,
             metrics: if metrics_enabled { Some(EntryMetrics::default()) } else { None },
+            eviction_data: EvictionMetadata::default(),
+            eviction_scores: EvictionScores::default(),
         }
     }
 
