@@ -4,6 +4,7 @@
 
 mod admission;
 mod eviction;
+mod location;
 mod metrics;
 mod quantization;
 mod search;

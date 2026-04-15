@@ -13,8 +13,8 @@ struct PartitionedLIFO {
     stack: Vec<EvictionEntry>,
 }
 
-impl PartitionedLIFO {
-    pub fn new() -> Self {
+impl Default for PartitionedLIFO {
+    fn default() -> Self {
         Self { stack: Vec::new() }
     }
 }
