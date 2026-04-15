@@ -26,12 +26,7 @@ impl EvictionStrategy for PartitionedLIFO {
     }
 
     fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
-        let position = self
-            .stack
-            .iter()
-            .position(|entry| entry.entry_id() == entry_id)?;
-
-        Some(self.stack.swap_remove(position))
+        todo!()
     }
 
     fn on_insert(&mut self, entry: UniqueID) {

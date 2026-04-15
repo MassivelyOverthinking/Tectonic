@@ -10,6 +10,7 @@ use crate::{eviction::{eviction_strategy::EvictionStrategy}, utility::utils::Uni
 
 #[derive(Debug, Clone)]
 struct PartitionedFIFO {
+    // Possibly user "OrderedHashmap" or "IndexMap" for O(1) lookup.
     stack: Vec<UniqueID>,
 }
 
