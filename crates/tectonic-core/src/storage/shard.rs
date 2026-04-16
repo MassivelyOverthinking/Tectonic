@@ -20,6 +20,7 @@ pub struct CacheShard<const D: usize> {
     pub location_storage: Vec<Option<ArenaLocation>>
 }
 
+#[allow(dead_code)]
 impl<const D: usize> CacheShard<D> {
     pub fn with_capacity(id: u32, capacity: usize) -> Self {
         Self { 

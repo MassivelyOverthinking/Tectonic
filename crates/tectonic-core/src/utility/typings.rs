@@ -9,7 +9,6 @@ use crate::{result::SearchResult, utility::utils::UniqueID};
 // ============================================================
 
 pub type DimVector<const D: usize> = [f32; D]; 
-pub type SearchVector<const D: usize> = [u8; D];
 
 pub type HeapResult = Vec<SearchResult>;
 
@@ -17,6 +16,7 @@ pub type HeapResult = Vec<SearchResult>;
 // CUSTOM TYPE TRANSFORMATION
 // ============================================================
 
+#[allow(dead_code)]
 pub fn f32_to_usize(value: f32) -> usize {
     value as usize
 }

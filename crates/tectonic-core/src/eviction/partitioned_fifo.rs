@@ -8,6 +8,7 @@ use crate::{eviction::{eviction_strategy::EvictionStrategy}, utility::utils::Uni
 // EVICTION STRATEGY: PARTITIONED LIFO
 // ============================================================
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct PartitionedFIFO {
     // Possibly user "OrderedHashmap" or "IndexMap" for O(1) lookup.
@@ -20,16 +21,17 @@ impl Default for PartitionedFIFO {
     }
 }
 
+#[allow(dead_code)]
 impl EvictionStrategy for PartitionedFIFO {
     fn on_get(&mut self, _entry_id: &UniqueID) {
         // Method is redundant for FIFO functionality.
     }
 
-    fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
+    fn on_remove(&mut self, _entry_id: &UniqueID) -> Option<UniqueID> {
         todo!()
     }
 
-    fn on_insert(&mut self, entry: UniqueID) {
+    fn on_insert(&mut self, _entry: UniqueID) {
         todo!()
     }
 

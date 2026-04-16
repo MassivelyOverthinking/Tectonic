@@ -9,6 +9,7 @@ use crate::utility::utils::UniqueID;
 // EVICTION STRATEGY: PARTITIONED LIFO
 // ============================================================
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct PartitionedLIFO {
     stack: Vec<UniqueID>,
@@ -20,12 +21,13 @@ impl Default for PartitionedLIFO {
     }
 }
 
+#[allow(dead_code)]
 impl EvictionStrategy for PartitionedLIFO {
     fn on_get(&mut self, _entry_id: &UniqueID) {
         // Method is redundant for LIFO functionality.
     }
 
-    fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
+    fn on_remove(&mut self, _entry_id: &UniqueID) -> Option<UniqueID> {
         todo!()
     }
 
