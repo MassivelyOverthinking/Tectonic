@@ -194,7 +194,7 @@ impl<const D: usize> fmt::Display for CacheResult<D> {
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
 pub struct SearchResult {
-   pub index: usize,
+   pub id: UniqueID,
    pub distance: u8,
 }
 
@@ -215,14 +215,14 @@ impl PartialOrd for SearchResult {
 impl Ord for SearchResult {
     fn cmp(&self, other: &Self) -> Ordering {
         self.distance.cmp(&other.distance)
-        .then_with(|| self.index.cmp(&other.index))
+        .then_with(|| self.id.cmp(&other.id))
     }
 }
 
 impl SearchResult {
-    pub fn new(index: &usize, distance: &u8) -> Self {
+    pub fn new(id: &UniqueID, distance: &u8) -> Self {
         SearchResult { 
-            index: *index, 
+            id: *id, 
             distance: *distance,
         }
     }

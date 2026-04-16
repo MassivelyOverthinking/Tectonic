@@ -12,8 +12,8 @@ use crate::result::{MergeResult, SearchResult};
 use crate::search::distance::{SearchMethod};
 use crate::utility::typings::{DimVector};
 use crate::storage::shard::{CacheShard};
-use crate::storage::location::{ArenaLocation};
-use crate::utility::utils::{calculate_sizes, hash_arena_location, secondary_arena_hash};
+use crate::storage::location::{ShardEntry};
+use crate::utility::utils::{calculate_sizes, hash_shard_entry, secondary_arena_hash};
 
 // ============================================================
 // INTERNAL PARTITIONS (SEARCH SPACE)
@@ -158,8 +158,8 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    pub fn route_to_shard(&mut self, location: ArenaLocation) -> Result<(usize, usize), TectonicError> {
-        let hash_value = hash_arena_location(&location);
+    pub fn route_to_shard(&mut self, entry: ShardEntry) -> Result<(usize, usize), TectonicError> {
+        let hash_value = hash_shard_entry(&entry);
         let length = self.shards.len();
 
         if length == 0 {
@@ -178,7 +178,7 @@ impl<const D: usize> CachePartition<D> {
             idx2
         };
 
-        let slot_index = self.shards[target_index].insert(location)?;
+        let slot_index = self.shards[target_index].insert(entry)?;
         Ok((target_index, slot_index))
     }
 

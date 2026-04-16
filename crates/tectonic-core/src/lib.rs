@@ -135,10 +135,11 @@ impl<const D: usize> VectorCache<D> {
         let mut entries = search_results
             .into_iter()
             .map(|result| {
-                let (candidate, _found_id) = self.arena.get_vector_at_position(result.index)?;
+                let arena_position = self.locations.get_location(&result.id).expect("Found nothing!");
+                let (candidate, _found_id) = self.arena.get_vector_at_position(*arena_position.get_arena())?;
                 let distance = search_method.distance_f32(&vector, candidate);
                 
-                Ok(CacheEntry::new(result.index, candidate.clone(), distance))
+                Ok(CacheEntry::new(*arena_position.get_arena(), candidate.clone(), distance))
             })
             .collect::<Result<Vec<_>, TectonicError>>()?;
 

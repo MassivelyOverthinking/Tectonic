@@ -13,10 +13,10 @@ use crate::result::{SearchResult};
 use crate::utility::router::BootstrapEntry;
 use crate::utility::typings::DimVector;
 use crate::search::distance::{SearchMethod};
-use crate::storage::location::{ArenaLocation, RepoLocation};
+use crate::storage::location::{RepoLocation, ShardEntry};
 use crate::storage::partition::CachePartition;
 use crate::storage::slot::RepoSlot;
-use crate::utility::utils::{calculate_sizes, hash_dimvector};
+use crate::utility::utils::{UniqueID, calculate_sizes, hash_dimvector};
 
 // ============================================================
 // INTERNAL STORE (PARTITIONS + SHARDS)
@@ -67,7 +67,7 @@ impl<const D: usize> CacheRepo<D> {
         &mut self,
         vector: &DimVector<D>,
         quanttized_vector: QuantizedEntry,
-        internal_id: usize,
+        internal_id: UniqueID,
         distance: &M,
     ) -> Result<bool, TectonicError>
     where M: SearchMethod<D> {
@@ -158,17 +158,6 @@ impl<const D: usize> CacheRepo<D> {
         if results.len() > k {
             results.truncate(k);
         }
-    }
-
-    pub fn get_id_by_location(&self, location: &RepoLocation) -> Result<usize, TectonicError> {
-        let arena_loc = self.vector_repo[*location.get_partition_index()]
-            .shards[*location.get_shard_index()]
-            .location_storage[*location.get_slot_index()]
-            .as_ref()
-            .ok_or_else(|| TectonicError::RepoError { message: "No Location located!" })?;
-
-        let arena_index = arena_loc.get_index();
-        Ok(*arena_index)
     }
 
     pub fn find_nearest_centroids<M>(&self, vector: &DimVector<D>, top_n: usize, distance: &M) -> Result<Vec<usize>, TectonicError> 
@@ -348,21 +337,10 @@ impl<const D: usize> CacheRepo<D> {
             let partition_index = assignments[buffer_index];
 
             let internal_id = entry.internal_id;
-            let vector_hash = entry.vector_hash;
 
-            let location = ArenaLocation::new(
-                internal_id,
-                vector_hash as usize,
-                entry.quantized,
-            );
+            let shard_entry = ShardEntry::new(internal_id, entry.quantized);
 
-            let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(location)?;
-
-            self.insert_metadata(
-                internal_id, 
-                vector_hash, 
-                RepoLocation::new(partition_index, shard_index, slot_index)
-            )?;
+            let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(shard_entry)?;
         }
 
         self.centroids_initialized = true;
@@ -384,7 +362,7 @@ impl<const D: usize> CacheRepo<D> {
         &mut self,
         vector: &DimVector<D>,
         quantized: QuantizedEntry,
-        internal_id: usize,
+        id: UniqueID,
         distance: &M,
     ) -> Result<bool, TectonicError>
     where
@@ -394,20 +372,10 @@ impl<const D: usize> CacheRepo<D> {
 
         let vector_hash = hash_dimvector(vector);
 
-        let location = ArenaLocation::new(
-            internal_id,
-            vector_hash as usize,
-            quantized,
-        );
+        let shard_entry = ShardEntry::new(id, quantized);
 
-        let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(location)?;
+        let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(shard_entry)?;
         self.vector_repo[partition_index].increase_centroid_average(vector)?;
-
-        self.insert_metadata(
-            internal_id,
-            vector_hash,
-            RepoLocation::new(partition_index, shard_index, slot_index)
-        )?;
 
         Ok(true)
     }
@@ -444,33 +412,6 @@ impl<const D: usize> CacheRepo<D> {
         })?;
 
         Ok(location)
-    }
-
-    #[inline]
-    pub fn find_arena_slot_by_location(&self, location: &RepoLocation) -> Result<&ArenaLocation, TectonicError> {
-        let partition = self
-            .vector_repo.get(location.partition_idx)
-            .ok_or(TectonicError::InconsistenStateError {
-                message: "Unable to find correct Partition"
-            })?;
-
-        let shard = partition
-            .shards.get(location.shard_idx)
-            .ok_or(TectonicError::InconsistenStateError { 
-                message: "Unable to find correct Shard" 
-            })?;
-
-        let arena_location = shard
-            .location_storage.get(location.slot_idx)
-            .ok_or(TectonicError::InconsistenStateError {
-                message: "Unable to find correct location slot"
-            })?
-            .as_ref()
-            .ok_or(TectonicError::InconsistenStateError { 
-                message: "Unable to find correct Arena Location"
-            })?;
-
-            Ok(arena_location)
     }
 
     #[inline]

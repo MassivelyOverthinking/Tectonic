@@ -4,7 +4,7 @@
 
 use std::{collections::{BinaryHeap, VecDeque}};
 
-use crate::{error::TectonicError, quantization::quantized_entry::QuantizedEntry, result::SearchResult, search::distance::{SearchMethod}, storage::location::ArenaLocation, utility::typings::{HeapResult, usize_to_f32}};
+use crate::{error::TectonicError, quantization::quantized_entry::QuantizedEntry, result::SearchResult, search::distance::SearchMethod, storage::location::{ShardEntry}, utility::{typings::{HeapResult, usize_to_f32}, utils::UniqueID}};
 
 // ============================================================
 // INTERNAL SHARDS (MULTITHREADING)
@@ -17,7 +17,7 @@ pub struct CacheShard<const D: usize> {
     pub size: usize,
     pub load_factor: f32,
     pub free_list: VecDeque<usize>,
-    pub location_storage: Vec<Option<ArenaLocation>>
+    pub location_storage: Vec<Option<ShardEntry>>
 }
 
 #[allow(dead_code)]
@@ -33,34 +33,34 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn insert(&mut self, location: ArenaLocation) -> Result<usize, TectonicError> {
+    pub fn insert(&mut self, entry: ShardEntry) -> Result<usize, TectonicError> {
         if self.is_full() {
             return Err(TectonicError::RepoError { message: "Internal Shard is currently full!" });
         }
 
         if let Some(free_index) = self.free_list.pop_back() {
-            self.location_storage[free_index] = Some(location);
+            self.location_storage[free_index] = Some(entry);
             self.increment_and_update_factor();
             Ok(free_index)
         } else {
             let free_index = self.size;
-            self.location_storage[free_index] = Some(location);
+            self.location_storage[free_index] = Some(entry);
             self.increment_and_update_factor();
             Ok(free_index)
         }
     }
 
-    pub fn remove(&mut self, index: usize) -> Result<ArenaLocation, TectonicError> {
+    pub fn remove(&mut self, index: usize) -> Result<UniqueID, TectonicError> {
         if index >= self.capacity {
             return Err(TectonicError::RepoError { message: 
                 "Index out of bounds (Repository Shard)"
             });
         }
 
-        if let Some(slot) = self.location_storage[index].take() {
+        if let Some(entry) = self.location_storage[index].take() {
             self.free_list.push_front(index);
             self.decrement_and_update_factor();
-            Ok(slot)
+            Ok(entry.get_id().clone())
         } else {
             return Err(TectonicError::RepoError { message: "Could not locate Location inside Repo" });
         }
@@ -79,17 +79,17 @@ impl<const D: usize> CacheShard<D> {
 
         let mut binary_heap: BinaryHeap<SearchResult> = BinaryHeap::with_capacity(k);
 
-        for loc_opt in self.location_storage.iter() {
-            let location = match loc_opt {
-                Some(location) => location,
+        for shard_entry in self.location_storage.iter() {
+            let entry = match shard_entry {
+                Some(entry) => entry,
                 None => continue,
             };
 
-            let location_vector = location.get_vector();
-            let location_index = location.get_index();
-            let distance_value = search_method.distance_u8(vector, location_vector);
+            let search_vector = entry.get_vector();
+            let entry_id = entry.get_id();
+            let distance_value = search_method.distance_u8(vector, search_vector);
 
-            let result = SearchResult::new(location_index, &distance_value);
+            let result = SearchResult::new(entry_id, &distance_value);
 
             if binary_heap.len() < k {
                 binary_heap.push(result);

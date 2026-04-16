@@ -2,11 +2,12 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use std::cmp::Ordering;
 use std::fmt::Display;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use crate::error::TectonicError;
-use crate::storage::location::ArenaLocation;
+use crate::storage::location::{ArenaLocation, ShardEntry};
 use crate::utility::typings::DimVector;
 
 // ============================================================
@@ -29,6 +30,21 @@ impl Display for UniqueID  {
 impl PartialEq for UniqueID {
     fn eq(&self, other: &Self) -> bool {
         self.slot_id == other.slot_id && self.gen_id == other.gen_id
+    }
+}
+
+impl Ord for UniqueID {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.slot_id.cmp(&other.slot_id) {
+            Ordering::Equal => self.gen_id.cmp(&other.gen_id),
+            other => other,
+        }
+    }
+}
+
+impl PartialOrd for UniqueID {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -75,6 +91,14 @@ pub fn hash_arena_location(location: &ArenaLocation) -> u64 {
     loc_hash.finish()
 }
 
+pub fn hash_shard_entry(entry: &ShardEntry) -> u64 {
+    let mut hash_value = DefaultHasher::new();
+
+    entry.get_id().hash(&mut hash_value);
+
+    hash_value.finish()
+}
+ 
 #[allow(dead_code)]
 pub fn secondary_arena_hash(hash: u64) -> u64 {
     hash.rotate_left(32) ^ 0x9e3779b97f4a7c15
