@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use crate::{result::VectorEntry, storage::location::RepoLocation};
+use crate::{result::VectorEntry};
 
 // ============================================================
 // INTERNAL SLOTS

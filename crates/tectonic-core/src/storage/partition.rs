@@ -12,7 +12,7 @@ use crate::result::{MergeResult, SearchResult};
 use crate::search::distance::{SearchMethod};
 use crate::utility::typings::{DimVector};
 use crate::storage::shard::{CacheShard};
-use crate::storage::location::{ShardEntry};
+use crate::location::location_entry::{ShardEntry};
 use crate::utility::utils::{calculate_sizes, hash_shard_entry, secondary_arena_hash};
 
 // ============================================================

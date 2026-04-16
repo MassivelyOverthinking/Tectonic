@@ -7,7 +7,7 @@ use std::fmt::Display;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use crate::error::TectonicError;
-use crate::storage::location::{ArenaLocation, ShardEntry};
+use crate::location::location_entry::{ShardEntry};
 use crate::utility::typings::DimVector;
 
 // ============================================================
@@ -79,16 +79,6 @@ pub fn hash_dimvector<const D: usize>(vector: &DimVector<D>) -> u64 {
     }
 
     vec_hash.finish()
-}
-
-#[allow(dead_code)]
-pub fn hash_arena_location(location: &ArenaLocation) -> u64 {
-    let mut loc_hash = DefaultHasher::new();
-
-    location.get_entry_id().hash(&mut loc_hash);
-    location.get_index().hash(&mut loc_hash);
-
-    loc_hash.finish()
 }
 
 pub fn hash_shard_entry(entry: &ShardEntry) -> u64 {

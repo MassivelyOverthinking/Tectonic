@@ -11,7 +11,7 @@ use crate::result::{SearchResult};
 use crate::utility::router::BootstrapEntry;
 use crate::utility::typings::DimVector;
 use crate::search::distance::{SearchMethod};
-use crate::storage::location::{ShardEntry};
+use crate::location::location_entry::{ShardEntry};
 use crate::storage::partition::CachePartition;
 use crate::utility::utils::{UniqueID, calculate_sizes, hash_dimvector};
 

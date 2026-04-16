@@ -4,7 +4,7 @@
 
 use std::collections::VecDeque;
 use std::iter::repeat_with;
-use crate::storage::location::ArenaLocation;
+use crate::location::location_slab::LocationEntry;
 use crate::storage::slot::ArenaSlot;
 use crate::result::{VectorEntry};
 use crate::error::TectonicError;
@@ -75,8 +75,8 @@ impl<const D: usize> VectorArena<D> {
         Err(TectonicError::ArenaError { message: "No Vector entry located at specified index" })
     }
 
-    pub fn get_vector_by_location(&self, location: &ArenaLocation) -> Result<(&DimVector<D>, &UniqueID), TectonicError> {
-        let arena_entry = self.arena.get(*location.get_index())
+    pub fn get_vector_by_location(&self, location: &LocationEntry, id: UniqueID) -> Result<(&DimVector<D>, &UniqueID), TectonicError> {
+        let arena_entry = self.arena.get(*location.get_arena())
             .ok_or(TectonicError::ArenaError {
                 message: "Index out of bounds" 
             })?;
@@ -86,7 +86,7 @@ impl<const D: usize> VectorArena<D> {
                 message: "Could not locate Vector inside Entry" 
             })?;
 
-        if entry.vector_id.slot_id == *location.get_entry_id() {
+        if entry.vector_id == id {
             Ok((&entry.vector, &entry.vector_id))
         } else {
             return Err(TectonicError::InconsistenStateError {
@@ -117,14 +117,14 @@ impl<const D: usize> VectorArena<D> {
         Ok((&entry.vector, &entry.vector_id))   // Return Borrowed-instance of the internal VectorEntry.
     }
 
-    pub fn replace_vector(&mut self, new_vector: DimVector<D>, location: &ArenaLocation) ->Result<UniqueID, TectonicError> {
+    pub fn replace_vector(&mut self, new_vector: DimVector<D>, location: &LocationEntry) ->Result<UniqueID, TectonicError> {
         // Helper-method
         // Replaces the internal VectorEntry-instance with new value found by ArenaLocation.
         // Used for Duplicate-handling.
 
         // Retrieve Mutable instance of the internal Slot (ArenaSlot).
         // Default => Throw new TectonicError::ArenaError
-        let arena_entry = self.arena.get_mut(*location.get_index())
+        let arena_entry = self.arena.get_mut(*location.get_arena())
             .ok_or(TectonicError::ArenaError {
                 message: "Index out of bounds" 
             })?;

@@ -4,7 +4,7 @@
 
 use std::{collections::{BinaryHeap, VecDeque}};
 
-use crate::{error::TectonicError, quantization::quantized_entry::QuantizedEntry, result::SearchResult, search::distance::SearchMethod, storage::location::{ShardEntry}, utility::{typings::{HeapResult, usize_to_f32}, utils::UniqueID}};
+use crate::{error::TectonicError, quantization::quantized_entry::QuantizedEntry, result::SearchResult, search::distance::SearchMethod, location::location_entry::{ShardEntry}, utility::{typings::{HeapResult, usize_to_f32}, utils::UniqueID}};
 
 // ============================================================
 // INTERNAL SHARDS (MULTITHREADING)
