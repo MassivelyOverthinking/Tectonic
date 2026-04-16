@@ -145,6 +145,7 @@ impl EntryMetrics {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub struct EvictionMetadata {
     tier: VectorTier,
@@ -170,6 +171,7 @@ impl Default for EvictionMetadata {
     }
 }
 
+#[allow(dead_code)]
 impl EvictionMetadata {
     pub fn update_on_access(&mut self, distance: f64, timestamp: u64, is_hit: bool) {
         self.access_count += 1;
@@ -197,6 +199,7 @@ impl EvictionMetadata {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub struct EvictionScores {
     affinity_score: f64,
@@ -214,6 +217,7 @@ impl Default for EvictionScores {
     }
 }
 
+#[allow(dead_code)]
 impl EvictionScores {
     pub fn get_affinity_score(&self) -> &f64 {
         &self.affinity_score

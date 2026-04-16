@@ -24,6 +24,7 @@ impl Default for LocationSlab {
     }
 }
 
+#[allow(dead_code)]
 impl LocationSlab {
     pub fn add_location(&mut self, id: &UniqueID, hash: u64, entry: LocationEntry) {
         self.storage.insert(*id, entry);
@@ -47,6 +48,7 @@ impl LocationSlab {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct LocationEntry {
     partition_index: usize,
@@ -55,6 +57,7 @@ pub struct LocationEntry {
     arena_index: usize
 }
 
+#[allow(dead_code)]
 impl LocationEntry {
     fn new(partition: usize, shard: usize, slot: usize, arena: usize) -> Self {
         Self {

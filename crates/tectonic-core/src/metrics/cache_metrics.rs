@@ -159,7 +159,7 @@ impl CacheMetrics {
 
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
-struct ActionMetrics {
+pub struct ActionMetrics {
     total_actions: usize,
 
     insert_actions: usize,
