@@ -3,8 +3,6 @@
 // ============================================================
 
 use core::f32;
-use std::collections::{HashMap};
-use std::iter::repeat_with;
 use std::usize;
 
 use crate::error::TectonicError;
@@ -13,9 +11,8 @@ use crate::result::{SearchResult};
 use crate::utility::router::BootstrapEntry;
 use crate::utility::typings::DimVector;
 use crate::search::distance::{SearchMethod};
-use crate::storage::location::{RepoLocation, ShardEntry};
+use crate::storage::location::{ShardEntry};
 use crate::storage::partition::CachePartition;
-use crate::storage::slot::RepoSlot;
 use crate::utility::utils::{UniqueID, calculate_sizes, hash_dimvector};
 
 // ============================================================
@@ -26,8 +23,6 @@ use crate::utility::utils::{UniqueID, calculate_sizes, hash_dimvector};
 pub struct CacheRepo<const D: usize> {
     // Main Partition Logic
     pub vector_repo: Vec<CachePartition<D>>,
-    pub by_internal_id: Vec<RepoSlot>,
-    pub by_vector_hash: HashMap<u64, usize>,
     pub size: usize,
     pub capacity: usize,
 
@@ -51,8 +46,6 @@ impl<const D: usize> CacheRepo<D> {
 
         Self {
             vector_repo: partitions_vector,
-            by_internal_id: repeat_with(|| RepoSlot::default()).take(max_entries).collect(),
-            by_vector_hash: HashMap::new(),
             capacity: max_entries,
             size: 0,
 
@@ -340,7 +333,7 @@ impl<const D: usize> CacheRepo<D> {
 
             let shard_entry = ShardEntry::new(internal_id, entry.quantized);
 
-            let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(shard_entry)?;
+            let _ = self.vector_repo[partition_index].route_to_shard(shard_entry)?;
         }
 
         self.centroids_initialized = true;
@@ -370,48 +363,12 @@ impl<const D: usize> CacheRepo<D> {
     {
         let partition_index = self.route_partition_for_vector(vector, distance)?;
 
-        let vector_hash = hash_dimvector(vector);
-
         let shard_entry = ShardEntry::new(id, quantized);
 
-        let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(shard_entry)?;
+        let _ = self.vector_repo[partition_index].route_to_shard(shard_entry)?;
         self.vector_repo[partition_index].increase_centroid_average(vector)?;
 
         Ok(true)
-    }
-
-    fn insert_metadata(
-        &mut self,
-        internal_id: usize,
-        vector_hash: u64,
-        location: RepoLocation
-    ) -> Result<(), TectonicError> {
-        let slot = self.by_internal_id.get_mut(internal_id).ok_or_else(|| {
-            TectonicError::RepoError { message: "Internal ID is out of bounds!" }
-        })?;
-
-        slot.location = Some(location);
-
-        self.by_vector_hash.insert(vector_hash, internal_id);
-        self.size += 1;
-
-        Ok(())
-    }
-
-    #[inline]
-    pub fn find_repo_location_by_hash(&self, index: &usize) -> Result<RepoLocation, TectonicError> {
-        let slot = self
-        .by_internal_id
-        .get(*index)
-        .ok_or(TectonicError::InconsistenStateError {
-            message: "Invalid internal index for vector hash",
-        })?;
-
-        let location = slot.location.ok_or(TectonicError::InconsistenStateError {
-            message: "Slot exists but has no RepoLocation",
-        })?;
-
-        Ok(location)
     }
 
     #[inline]

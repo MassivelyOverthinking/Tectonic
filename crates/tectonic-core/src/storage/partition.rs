@@ -31,7 +31,6 @@ pub struct CachePartition<const D: usize> {
     pub metrics: ClusterMetrics
 }
 
-#[allow(dead_code)]
 impl<const D: usize> CachePartition<D> {
     pub fn with_capacity(partition_id: u32, capacity: u64, num_shards: u32) -> Self {
         let shard_sizes = calculate_sizes(capacity as usize, num_shards as usize);
@@ -158,7 +157,7 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    pub fn route_to_shard(&mut self, entry: ShardEntry) -> Result<(usize, usize), TectonicError> {
+    pub fn route_to_shard(&mut self, entry: ShardEntry) -> Result<bool, TectonicError> {
         let hash_value = hash_shard_entry(&entry);
         let length = self.shards.len();
 
@@ -178,8 +177,8 @@ impl<const D: usize> CachePartition<D> {
             idx2
         };
 
-        let slot_index = self.shards[target_index].insert(entry)?;
-        Ok((target_index, slot_index))
+        let _slot_index = self.shards[target_index].insert(entry)?;
+        Ok(true)
     }
 
     pub fn has_no_centroid(&self) -> bool {
