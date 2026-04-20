@@ -236,7 +236,7 @@ impl TectonicDoublyLinkedList {
     }
 
     #[inline]
-    fn unlink(&mut self, value: NodeValue) -> Option<UniqueID> {
+    pub fn unlink(&mut self, value: NodeValue) -> Option<UniqueID> {
         let (previous, next) = {
             let node = self.get_node(value)?;
             (node.previous, node.next)
@@ -377,10 +377,4 @@ impl TectonicDoublyLinkedList {
         self.tail = None;
         self.size = 0;
     }
-
-    // ============================================================
-    // DEBUG ASSERTIONS
-    // ============================================================
-
-    
 }

@@ -2,9 +2,9 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::collections::VecDeque;
+use std::collections::{HashMap};
 
-use crate::{eviction::{eviction_strategy::EvictionStrategy}, utility::utils::UniqueID};
+use crate::{eviction::eviction_strategy::EvictionStrategy, utility::{structures::TectonicDoublyLinkedList, typings::NodeValue, utils::UniqueID}};
 
 // ============================================================
 // EVICTION STRATEGY: PARTITIONED FIFO
@@ -14,29 +14,30 @@ use crate::{eviction::{eviction_strategy::EvictionStrategy}, utility::utils::Uni
 #[derive(Debug, Clone)]
 struct PartitionedFIFO {
     // Possibly user "OrderedHashmap" or "IndexMap" for O(1) lookup.
-    stack: VecDeque<UniqueID>,
+    stack: TectonicDoublyLinkedList,
+    index_map: HashMap<UniqueID, NodeValue>,
 }
 
 impl Default for PartitionedFIFO {
     fn default() -> Self {
-        Self { stack: VecDeque::new() }
+        Self { 
+            stack: TectonicDoublyLinkedList::default(),
+            index_map: HashMap::new(),
+        }
     }
 }
 
 impl PartitionedFIFO {
-    pub fn new(&self) -> Self {
+    #[inline]
+    pub fn new() -> Self {
         Self::default()
     }
 
     #[inline]
-    #[cfg(debug_assertions)]
-    fn debug_assertions_invariant(&self) {
-        use std::collections::HashSet;
-
-        let mut elements = HashSet::with_capacity(self.stack.len());
-        for value in &self.stack {
-            let inserted = elements.insert(value);
-            debug_assert!(inserted, "PartitionedFIFO invariant error: Duplicate entry: {:?}", value)
+    pub fn with_capacity(list_capacity: usize, map_capacity: usize) -> Self {
+        Self { 
+            stack: TectonicDoublyLinkedList::with_capacity(list_capacity), 
+            index_map: HashMap::with_capacity(map_capacity), 
         }
     }
 }
@@ -45,41 +46,34 @@ impl PartitionedFIFO {
 impl EvictionStrategy for PartitionedFIFO {
     fn on_get(&mut self, _entry_id: &UniqueID) {
         // Method is redundant for FIFO functionality.
-        self.debug_assertions_invariant();
     }
 
     fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
-        let result = if let Some(position) = self.stack.iter().position(|id| id == entry_id) {
-            Some(
-                self.stack
-                    .remove(position)
-                    .expect("Position found by removal failed"),
-            )
-        } else {
-            None
-        };
+        let value = self.index_map.remove(entry_id)?;
+        let removed = self.stack.unlink(value)?;
 
-        self.debug_assertions_invariant();
-        result
+        Some(removed)
     }
 
     fn on_insert(&mut self, entry: UniqueID) {
-        self.stack.push_back(entry);
+        if self.index_map.contains_key(&entry) {
+            return;
+        }
 
-        self.debug_assertions_invariant();
+        let value = self.stack.push_back(entry);
+        let _ = self.index_map.insert(entry, value);
     }
 
     fn get_victim(&mut self) -> Option<&UniqueID> {
-        let result = self.stack.front();
-
-        result
+        let victim = self.stack.front();
+        victim
     }
 
     fn evict_victim(&mut self) -> Option<UniqueID> {
-        let result = self.stack.pop_front();
+        let victim = self.stack.pop_front()?;
+        let _ = self.index_map.remove(&victim);
 
-        self.debug_assertions_invariant();
-        result
+        Some(victim)
     }
 
     fn len(&self) -> usize {
