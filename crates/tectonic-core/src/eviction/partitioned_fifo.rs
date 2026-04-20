@@ -27,6 +27,7 @@ impl Default for PartitionedFIFO {
     }
 }
 
+#[allow(dead_code)]
 impl PartitionedFIFO {
     #[inline]
     pub fn new() -> Self {
