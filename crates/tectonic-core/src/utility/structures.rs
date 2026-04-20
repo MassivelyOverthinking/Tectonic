@@ -2,6 +2,8 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use std::mem::replace;
+
 use crate::utility::{typings::NodeValue, utils::UniqueID};
 
 // ============================================================
@@ -138,10 +140,72 @@ impl TectonicDoublyLinkedList {
     // ============================================================
 
     #[inline]
+    pub fn push_front(&mut self, id: UniqueID) -> NodeValue {
+        let old_tail = self.tail;
+
+
+    }
+
+    // ============================================================
+    // NODE RETRIEVAL
+    // ============================================================
+
+    #[inline]
     pub fn get_node(&self, value: NodeValue) -> Option<&ListNode> {
         match self.list.get(value)? {
             ListSlot::Occupied(node) => Some(node),
             ListSlot::Free { .. } => None,
         }
     }
+
+    #[inline]
+    pub fn get_mut_node(&mut self, value: NodeValue) -> Option<&mut ListNode> {
+        match self.list.get_mut(value)? {
+            ListSlot::Occupied(node) => Some(node),
+            ListSlot::Free { .. } => None,
+        }
+    }
+
+    // ============================================================
+    // NODE STORAGE
+    // ============================================================
+
+    #[inline]
+    fn allocate_node(&mut self, node: ListNode) -> NodeValue {
+        if let Some(free_index) = self.free_head {
+            let next_free = match self.list[free_index] {
+                ListSlot::Free { next_free } => next_free,
+                ListSlot::Occupied(_) => unreachable!("Pointing at occupied Slot!")
+            };
+
+            self.head = next_free;
+            self.list[free_index] = ListSlot::Occupied(node);
+            free_index
+        } else {
+            let next = self.list.len();
+            self.list.push(ListSlot::Occupied(node));
+            next
+        }
+    }
+
+    #[inline]
+    fn free_node(&mut self, value: NodeValue) -> Option<ListNode> {
+        let old_slot = replace(
+            self.list.get_mut(value)?,
+            ListSlot::Free { 
+                next_free: self.free_head, 
+            },
+        );
+
+        match old_slot {
+            ListSlot::Occupied(node) => {
+                self.free_head = Some(value);
+                Some(node)
+            },
+            ListSlot::Free { next_free } => {
+                self.list[value] = ListSlot::Free { next_free };
+                None
+            }
+        }
+    } 
 }
