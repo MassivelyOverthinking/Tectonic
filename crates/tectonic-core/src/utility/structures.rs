@@ -141,9 +141,78 @@ impl TectonicDoublyLinkedList {
 
     #[inline]
     pub fn push_front(&mut self, id: UniqueID) -> NodeValue {
+        let old_head = self.head;
+
+        let new_node = self.allocate_node(
+            ListNode {
+                payload: id,
+                previous: None,
+                next: old_head
+            }
+        );
+
+        match old_head {
+            Some(head_value) => {
+                let head_node = self
+                    .get_mut_node(head_value)
+                    .expect("Head must reference a live node");
+                debug_assert!(
+                    head_node.previous.is_none(),
+                    "Head node unexpectedly has a previous node"
+                );
+                head_node.previous = Some(new_node);
+            },
+            None => {
+                debug_assert!(
+                    self.tail.is_none(), 
+                    "Linked List had Head but no Tails"
+                );
+                self.tail = Some(new_node);
+            }
+        }
+
+        self.head = Some(new_node);
+        self.size += 1;
+
+        new_node
+    }
+
+    #[inline]
+    pub fn push_back(&mut self, id: UniqueID) -> NodeValue {
         let old_tail = self.tail;
 
+        let new_node = self.allocate_node(
+            ListNode {
+                payload: id,
+                previous: None,
+                next: old_tail
+            }
+        );
 
+        match old_tail {
+            Some(tail_value) => {
+                let tail_node = self
+                    .get_mut_node(tail_value)
+                    .expect("Tail must reference a live node");
+                debug_assert!(
+                    tail_node.previous.is_none(),
+                    "Tail node unexpectedly has a previous node"
+                );
+                tail_node.previous = Some(new_node);
+            },
+            None => {
+                debug_assert!(
+                    self.head.is_none(), 
+                    "Linked List had Tail but no Head"
+                );
+                self.head = Some(new_node);
+            }
+        }
+
+        self.tail = Some(new_node);
+        self.size += 1;
+
+        new_node
     }
 
     // ============================================================
