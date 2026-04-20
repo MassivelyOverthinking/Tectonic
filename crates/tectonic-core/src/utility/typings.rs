@@ -9,6 +9,7 @@ use crate::{result::SearchResult, utility::utils::UniqueID};
 // ============================================================
 
 pub type DimVector<const D: usize> = [f32; D]; 
+pub type NodeValue = usize;
 
 pub type HeapResult = Vec<SearchResult>;
 
