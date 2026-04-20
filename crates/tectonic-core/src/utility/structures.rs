@@ -23,6 +23,7 @@ pub struct ListNode {
     next: Option<NodeValue>,
 }
 
+#[allow(dead_code)]
 impl ListNode {
     #[inline]
     pub fn new(id: UniqueID) -> Self {
@@ -71,6 +72,7 @@ impl Default for TectonicDoublyLinkedList {
     }
 }
 
+#[allow(dead_code)]
 impl TectonicDoublyLinkedList {
     #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
@@ -216,6 +218,41 @@ impl TectonicDoublyLinkedList {
     }
 
     // ============================================================
+    // REMOVAL METHODS
+    // ============================================================
+
+    #[inline]
+    pub fn pop_front(&mut self) -> Option<UniqueID> {
+        let head = self.head?;
+        let removed = self.unlink(head)?;
+        Some(removed)
+    }
+
+    #[inline]
+    pub fn pop_back(&mut self) -> Option<UniqueID> {
+        let tail = self.tail?;
+        let removed = self.unlink(tail)?;
+        Some(removed)
+    }
+
+    #[inline]
+    fn unlink(&mut self, value: NodeValue) -> Option<UniqueID> {
+        let (previous, next) = {
+            let node = self.get_node(value)?;
+            (node.previous, node.next)
+        };
+
+        self.match_previous(previous, next, value);
+        self.match_next(previous, next, value);
+
+        let removed_node = self.free_node(value)?;
+        debug_assert!(self.size > 0, "List size inconsistency");
+        self.size -= 1;
+
+        Some(removed_node.payload)
+    }
+
+    // ============================================================
     // NODE RETRIEVAL
     // ============================================================
 
@@ -276,5 +313,74 @@ impl TectonicDoublyLinkedList {
                 None
             }
         }
-    } 
+    }
+
+    // ============================================================
+    // HELPER METHODS
+    // ============================================================
+
+    #[inline]
+    pub fn match_previous(&mut self, previous: Option<usize>, next: Option<usize>, value: NodeValue) {
+        match previous {
+            Some(previous_value) => {
+                let previous_node = self
+                    .get_mut_node(previous_value)
+                    .expect("Previous value must reference a live node");
+                debug_assert_eq!(
+                    previous_node.next,
+                    Some(value),
+                    "Previous node did not point to target value"
+                );
+                previous_node.next = next;
+            },
+            None => {
+                debug_assert_eq!(
+                    self.tail,
+                    Some(value),
+                    "Node with no next reference was not Tail value"
+                );
+                self.tail = previous;
+            }
+        }
+    }
+
+    #[inline]
+    pub fn match_next(&mut self, previous: Option<usize>, next: Option<usize>, value: NodeValue) {
+        match next {
+            Some(next_value) => {
+                let next_node = self
+                    .get_mut_node(next_value)
+                    .expect("Next value must reference a live node");
+                debug_assert_eq!(
+                    next_node.previous,
+                    Some(value),
+                    "Next node did not point to target value"
+                );
+                next_node.previous = previous;
+            },
+            None => {
+                debug_assert_eq!(
+                    self.head,
+                    Some(value),
+                    "Node with no next reference was not Head value"
+                );
+                self.head = next;
+            }
+        }
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.list.clear();
+        self.free_head = None;
+        self.head = None;
+        self.tail = None;
+        self.size = 0;
+    }
+
+    // ============================================================
+    // DEBUG ASSERTIONS
+    // ============================================================
+
+    
 }
