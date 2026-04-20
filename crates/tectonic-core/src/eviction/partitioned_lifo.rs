@@ -54,9 +54,10 @@ impl PartitionedLIFO {
         self.positions.clear();
     }
 
+    #[inline]
     #[cfg(debug_assertions)]
     fn debug_assertions_consistent(&self) {
-        debug_assert_eq!(self.stack.len(), self.positions.len())
+        debug_assert_eq!(self.stack.len(), self.positions.len());
 
         for (index, id) in self.stack.iter().enumerate() {
             let stored_index = self
