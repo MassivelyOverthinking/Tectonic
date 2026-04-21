@@ -59,12 +59,48 @@ impl PartitionedLRU {
             "Stack/IndexMap state mismatch"
         )
     }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    pub fn debug_assertions_entry_match(&self, entry_id: &UniqueID, value: NodeValue) {
+        let node_payload = self
+            .stack
+            .get(value)
+            .expect("IndexMap value must reference a live Node!");
+
+        debug_assert!(
+            node_payload,
+            entry_id,
+            "IndexMap value did not match requested value"
+        );
+    }
 }
 
 #[allow(dead_code)]
 impl EvictionStrategy for PartitionedLRU {
+    #[inline]
     fn on_get(&mut self, entry_id: &UniqueID) {
-        todo!()
+        if let Some(&node_value) = self.index_map.get(entry_id) {
+            #[cfg(debug_assertions)] 
+            {
+                self.debug_basic_invariants();
+                self.debug_assertions_entry_match(entry_id, node_value);
+            }
+
+            let _moved = self.stack.move_to_back(node_value);
+
+            #[cfg(debug_assertions)]
+            {
+                debug_assert!(
+                    self.stack.is_tail(node_value),
+                    "On_get method did not promote Node to Tail position"
+                );
+                self.debug_basic_invariants();
+            }
+        } else {
+            #[cfg(debug_assertions)]
+            self.debug_basic_invariants();
+        }
     }
 
     fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
