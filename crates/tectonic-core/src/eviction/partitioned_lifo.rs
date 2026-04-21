@@ -72,15 +72,14 @@ impl EvictionStrategy for PartitionedLIFO {
 
     #[inline]
     fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
-        let value = self.index_map.remove(entry_id)?;
+        let &value = self.index_map.get(entry_id)?;
         let removed = self.stack.unlink(value)?;
+        let map_removed = self.index_map.remove(entry_id);
 
         #[cfg(debug_assertions)]
         {
-            debug_assert_eq!(
-                &removed, entry_id,
-                "Removed ID doesn't match requested ID"
-            );
+            debug_assert_eq!(&removed, entry_id);
+            debug_assert!(map_removed.is_some());
             self.debug_basic_invariants();
         }
 
@@ -138,7 +137,7 @@ impl EvictionStrategy for PartitionedLIFO {
     fn is_empty(&self) -> bool {
         #[cfg(debug_assertions)]
         self.debug_basic_invariants();
-        
+
         self.stack.is_empty()
     }
 }
