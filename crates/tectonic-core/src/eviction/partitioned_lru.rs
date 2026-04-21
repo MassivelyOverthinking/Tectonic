@@ -103,27 +103,115 @@ impl EvictionStrategy for PartitionedLRU {
         }
     }
 
+    #[inline]
     fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
-        todo!()
+        let node_value = self.index_map.get(entry_id)?;
+
+        #[cfg(debug_assertions)]
+        {
+            self.debug_basic_invariants();
+            self.debug_assertions_entry_match(entry_id, *node_value);
+        }
+
+        let removed_from_stack = self.stack.unlink(*node_value)?;
+        let removed_from_map = self.index_map.remove(entry_id);
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(
+                &removed_from_stack,
+                entry_id,
+                "Removed node's Payload did not match the requested ID"
+            );
+            debug_assert!(
+                removed_from_map.is_some(),
+                "Stack unlink was successfull, but removal from IndexMap failed"
+            );
+            self.debug_basic_invariants();
+        }
+
+        Some(removed_from_stack)
     }
 
+    #[inline]
     fn on_insert(&mut self, entry: UniqueID) {
-        todo!()
+        match self.index_map.entry(entry) {
+            Entry::Occupied(occupied) => {
+                #[cfg(debug_assertions)]
+                {
+                    self.debug_basic_invariants();
+                    let &node_value = occupied.get();
+                    self.debug_assertions_entry_match(occupied.key(), node_value);
+                }
+            },
+            Entry::Vacant(vacant) => {
+                let node_value = self.stack.push_back(entry);
+                vacant.insert(node_value);
+
+                #[cfg(debug_assertions)]
+                {
+                    debug_assert!(
+                        self.stack.is_tail(node_value),
+                        "New Node was not correctly inserted unto the LinkedList Tail"
+                    );
+
+                    let inserted_entry = self
+                        .stack
+                        .get(node_value)
+                        .expect("New Node must reference and live Node value");
+
+                    debug_assert_eq!(
+                        inserted_entry,
+                        vacant.key(),
+                        "New Node payload value did nnot match inserted Key-value"
+                    );
+                    self.debug_basic_invariants();
+                }
+            }
+        }
     }
 
+    #[inline]
     fn get_victim(&mut self) -> Option<&UniqueID> {
-        todo!()
+        #[cfg(debug_assertions)]
+        self.debug_basic_invariants();
+
+        self.stack.front()
     }
 
+    #[inline]
     fn evict_victim(&mut self) -> Option<UniqueID> {
-        todo!()
+        #[cfg(debug_assertions)]
+        self.debug_basic_invariants();
+
+        let victim = self.stack.pop_front()?;
+        let removed_from_map = self.index_map.remove(&victim);
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(
+                removed_from_map.is_none(),
+                "Removed Node value existed in Stack but not in IndexMap"
+            );
+            self.debug_basic_invariants();
+        }
+
+        Some(victim)
     }
 
+    #[inline]
     fn len(&self) -> usize {
-        todo!()
+        #[cfg(debug_assertions)]
+        self.debug_basic_invariants();
+
+        self.stack.len()
     }
 
+    #[inline]
     fn is_empty(&self) -> bool {
-        todo!()
+        #[cfg(debug_assertions)]
+        self.debug_basic_invariants();
+
+        self.stack.is_empty()
     }
 }
