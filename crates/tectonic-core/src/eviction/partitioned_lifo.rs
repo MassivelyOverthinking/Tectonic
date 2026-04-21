@@ -2,10 +2,9 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::collections::HashMap;
+use hashbrown::{HashMap, hash_map::Entry};
 
-use crate::eviction::eviction_strategy::EvictionStrategy;
-use crate::utility::utils::UniqueID;
+use crate::{eviction::eviction_strategy::EvictionStrategy, utility::{structures::TectonicDoublyLinkedList, typings::NodeValue, utils::UniqueID}};
 
 // ============================================================
 // EVICTION STRATEGY: PARTITIONED LIFO
@@ -14,114 +13,132 @@ use crate::utility::utils::UniqueID;
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct PartitionedLIFO {
-    stack: Vec<UniqueID>,
-    positions: HashMap<UniqueID, usize>
+    stack: TectonicDoublyLinkedList,
+    index_map: HashMap<UniqueID, NodeValue>
 }
 
 impl Default for PartitionedLIFO {
     fn default() -> Self {
         Self { 
-            stack: Vec::new(),
-            positions: HashMap::new(),
+            stack: TectonicDoublyLinkedList::default(),
+            index_map: HashMap::new(),
         }
     }
 }
 
 #[allow(dead_code)]
 impl PartitionedLIFO {
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
         Self { 
-            stack: Vec::with_capacity(capacity),
-            positions: HashMap::with_capacity(capacity)
+            stack: TectonicDoublyLinkedList::with_capacity(capacity),
+            index_map: HashMap::with_capacity(capacity),
         }
-    }
-
-    pub fn contains(&self, entry_id: &UniqueID) -> bool {
-        self.positions.contains_key(entry_id)
-    }
-
-    pub fn reverse(&mut self, additional: usize) {
-        self.stack.reserve(additional);
-        self.positions.reserve(additional);
-    }
-
-    pub fn clear(&mut self) {
-        self.stack.clear();
-        self.positions.clear();
     }
 
     #[inline]
     #[cfg(debug_assertions)]
-    fn debug_assertions_consistent(&self) {
-        debug_assert_eq!(self.stack.len(), self.positions.len());
+    fn debug_basic_invariants(&self) {
+        let stack_length = self.stack.len();
+        let map_length = self.index_map.len();
 
-        for (index, id) in self.stack.iter().enumerate() {
-            let stored_index = self
-                .positions
-                .get(id)
-                .expect("PartitionedLIFO invariant violated: Missing id in position");
+        debug_assert_eq!(
+            stack_length,
+            map_length,
+            "Stack/IndexMap length mismtach: Stack = {}, Map = {}",
+            stack_length,
+            map_length
+        );
 
-            debug_assert_eq!(*stored_index, index, "PartitionedLIFO invariant violated: Incorrect id stored");
-        }
+        debug_assert!(
+            self.stack.is_empty() == self.index_map.is_empty(),
+            "Stack/IndexMap state mismatch"
+        )
     }
 }
 
 #[allow(dead_code)]
 impl EvictionStrategy for PartitionedLIFO {
+    #[inline]
     fn on_get(&mut self, _entry_id: &UniqueID) {
         // Method is redundant for LIFO functionality.
+        self.debug_basic_invariants();
     }
 
+    #[inline]
     fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
-        let index = self.positions.remove(entry_id)?;
-
-        let last_index = self.stack.len() - 1;
-        self.stack.swap(index, last_index);
-        let removed_value = self.stack.pop();
-
-        if index < self.stack.len() {
-            let swapped_id = self.stack[index];
-            self.positions.insert(swapped_id, index);
-        };
+        let value = self.index_map.remove(entry_id)?;
+        let removed = self.stack.unlink(value)?;
 
         #[cfg(debug_assertions)]
-        self.debug_assertions_consistent();
+        {
+            debug_assert_eq!(
+                &removed, entry_id,
+                "Removed ID doesn't match requested ID"
+            );
+            self.debug_basic_invariants();
+        }
 
-        removed_value
+        Some(removed)
     }
 
+    #[inline]
     fn on_insert(&mut self, entry: UniqueID) {
-        let index = self.stack.len();
-        self.stack.push(entry);
-        self.positions.insert(entry, index);
+        match self.index_map.entry(entry) {
+            Entry::Occupied(_) => {},
+            Entry::Vacant(slot) => {
+                let value = self.stack.push_back(entry);
+                slot.insert(value);
 
-        #[cfg(debug_assertions)]
-        self.debug_assertions_consistent();
+                #[cfg(debug_assertions)]
+                self.debug_basic_invariants();
+            }
+        }
     }
 
+    #[inline]
     fn get_victim(&mut self) -> Option<&UniqueID>{
-        self.stack.last()
+        #[cfg(debug_assertions)]
+        self.debug_basic_invariants();
+
+        self.stack.back()
     }
 
+    #[inline]
     fn evict_victim(&mut self) -> Option<UniqueID> {
-        let victim = self.stack.pop()?;
-        self.positions.remove(&victim);
+        let victim = self.stack.pop_back()?;
+        let removed = self.index_map.remove(&victim);
 
         #[cfg(debug_assertions)]
-        self.debug_assertions_consistent();
+        {
+            debug_assert!(
+                removed.is_some(),
+                "Victim value existed in the Stack but not in IndexMap"
+            );
+            self.debug_basic_invariants();
+        }
 
         Some(victim)
     }
 
+    #[inline]
     fn len(&self) -> usize {
+        #[cfg(debug_assertions)]
+        self.debug_basic_invariants();
+
         self.stack.len()
     }
 
+    #[inline]
     fn is_empty(&self) -> bool {
+        #[cfg(debug_assertions)]
+        self.debug_basic_invariants();
+        
         self.stack.is_empty()
     }
 }
