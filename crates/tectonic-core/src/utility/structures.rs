@@ -381,6 +381,71 @@ impl TectonicDoublyLinkedList {
        Some(())
     }
 
+    #[inline]
+    pub fn attach_as_head(&mut self, value: NodeValue) -> Option<()> {
+       let old_head = self.head;
+
+       {
+            let node = self.get_mut_node(value)?;
+            debug_assert!(
+                node.previous.is_none() && node.next.is_none(),
+                "Method requires a detached Node, but none where found!"
+            );
+            node.previous = old_head;
+            node.next = None;
+       };
+
+       match old_head {
+           Some(head_value) => {
+                let head_node = self
+                    .get_mut_node(head_value)
+                    .expect("Head must reference a live Node");
+                debug_assert!(
+                    head_node.previous.is_none(),
+                    "Old Head node unexpectedly had a Previous value"
+                );
+                head_node.previous = Some(value);
+           },
+           None => {
+                debug_assert!(
+                    self.tail.is_none(),
+                    "LinkedList has no Head value, but still possesses a Tails"
+                );
+                self.tail = Some(value);
+           }
+       }
+
+       self.head = Some(value);
+
+       #[cfg(debug_assertions)]
+       self.debug_assertions_shallow();
+
+       Some(())
+    }
+
+    #[inline]
+    pub fn move_to_back(&mut self, value: NodeValue) -> Option<()> {
+        if self.is_tail(value) {
+            #[cfg(debug_assertions)]
+            self.debug_assertions_shallow();
+            return Some(());
+        }
+
+        self.detach(value)?;
+        self.attach_as_tail(value)?;
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(
+                self.is_tail(value),
+                "Move_to_back condition failed: Requested Node was not the Tail"
+            );
+            self.debug_assertions_shallow();
+        };
+
+        Some(())
+    }
+
     // ============================================================
     // NODE RETRIEVAL
     // ============================================================
