@@ -298,17 +298,14 @@ impl TectonicDoublyLinkedList {
 
     #[inline]
     pub fn unlink(&mut self, value: NodeValue) -> Option<UniqueID> {
-        let (previous, next) = {
-            let node = self.get_node(value)?;
-            (node.previous, node.next)
-        };
-
-        self.detach_from_previous(previous, next, value);
-        self.detach_from_next(previous, next, value);
+        self.detach(value)?;
 
         let removed_node = self.free_node(value)?;
-        debug_assert!(self.size > 0, "List size inconsistency");
+        debug_assert!(self.size > 0, "Linked List size inconsistency");
         self.size -= 1;
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_shallow();
 
         Some(removed_node.payload)
     }
