@@ -182,6 +182,22 @@ impl TectonicDoublyLinkedList {
         self.get_node(value)?.next
     }
 
+    #[inline]
+    pub fn is_head(&self, value: NodeValue) -> bool {
+        #[cfg(debug_assertions)]
+        self.debug_assertions_shallow();
+
+        self.head == Some(value)
+    }
+
+    #[inline]
+    pub fn is_tail(&self, value: NodeValue) -> bool {
+        #[cfg(debug_assertions)]
+        self.debug_assertions_shallow();
+
+        self.tail == Some(value)
+    }
+
     // ============================================================
     // INSTERTION METHODS
     // ============================================================
@@ -295,6 +311,74 @@ impl TectonicDoublyLinkedList {
         self.size -= 1;
 
         Some(removed_node.payload)
+    }
+
+    // ============================================================
+    // MOVE METHODS
+    // ============================================================
+
+    #[inline]
+    pub fn detach(&mut self, value: NodeValue) -> Option<()> {
+        let (previous, next) = {
+            let node = self.get_node(value)?;
+            (node.previous, node.next)
+        };
+
+        self.detach_from_previous(previous, next, value);
+        self.detach_from_next(previous, next, value);
+
+        let node = self.get_mut_node(value)?;
+        node.previous = None;
+        node.next = None;
+
+        #[cfg(debug_assertions)]
+        {
+            self.debug_assertions_shallow();
+        };
+
+        Some(())
+    }
+
+    #[inline]
+    pub fn attach_as_tail(&mut self, value: NodeValue) -> Option<()> {
+       let old_tail = self.tail;
+
+       {
+            let node = self.get_mut_node(value)?;
+            debug_assert!(
+                node.previous.is_none() && node.next.is_none(),
+                "Method requires a detached Node, but none where found!"
+            );
+            node.previous = old_tail;
+            node.next = None;
+       };
+
+       match old_tail {
+           Some(tail_value) => {
+                let tail_node = self
+                    .get_mut_node(tail_value)
+                    .expect("Tail must reference a live Node");
+                debug_assert!(
+                    tail_node.next.is_none(),
+                    "Old Tail node unexpectedly had a Next value"
+                );
+                tail_node.next = Some(value);
+           },
+           None => {
+                debug_assert!(
+                    self.head.is_none(),
+                    "LinkedList has no Tail value, but still possesses a Head"
+                );
+                self.head = Some(value);
+           }
+       }
+
+       self.tail = Some(value);
+
+       #[cfg(debug_assertions)]
+       self.debug_assertions_shallow();
+
+       Some(())
     }
 
     // ============================================================
