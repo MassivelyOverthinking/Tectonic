@@ -86,6 +86,51 @@ impl TectonicDoublyLinkedList {
     }
 
     #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_assertions_shallow(&self) {
+        let size = self.size;
+        let head = self.head;
+        let tail = self.tail;
+
+        debug_assert_eq!(
+            size == 0,
+            head.is_none() && tail.is_none(),
+            "Empty-state mismatch: Size={}, Head={:?}, Tail={:?}",
+            size,
+            head,
+            tail
+        );
+
+        if size == 1 {
+            debug_assert_eq!(
+                head,
+                tail,
+                "Single-element invariance: Head and Tail are not identical"
+            );
+        }
+
+        if let Some(head_value) = head {
+            let head_node = self
+                .get_node(head_value)
+                .expect("Head must be a valid, live Node");
+            debug_assert!(
+                head_node.previous.is_none(),
+                "Head node must not contain Previous value"
+            );
+        }
+
+        if let Some(tail_value) = tail {
+            let tail_node = self
+                .get_node(tail_value)
+                .expect("Tail must be a valid, live Node");
+            debug_assert!(
+                tail_node.next.is_none(),
+                "Tail node must not contain Next value"
+            );
+        }
+    }
+
+    #[inline]
     pub fn len(&self) -> usize {
         self.size
     }
@@ -118,7 +163,7 @@ impl TectonicDoublyLinkedList {
     }
 
     #[inline]
-    pub fn contains_hanlde(&self, value: NodeValue) -> bool {
+    pub fn contains_handle(&self, value: NodeValue) -> bool {
         self.get_node(value).is_some()
     }
 
@@ -186,8 +231,8 @@ impl TectonicDoublyLinkedList {
         let new_node = self.allocate_node(
             ListNode {
                 payload: id,
-                previous: None,
-                next: old_tail
+                previous: old_tail,
+                next: None
             }
         );
 
@@ -242,8 +287,8 @@ impl TectonicDoublyLinkedList {
             (node.previous, node.next)
         };
 
-        self.match_previous(previous, next, value);
-        self.match_next(previous, next, value);
+        self.detach_from_previous(previous, next, value);
+        self.detach_from_next(previous, next, value);
 
         let removed_node = self.free_node(value)?;
         debug_assert!(self.size > 0, "List size inconsistency");
@@ -284,7 +329,7 @@ impl TectonicDoublyLinkedList {
                 ListSlot::Occupied(_) => unreachable!("Pointing at occupied Slot!")
             };
 
-            self.head = next_free;
+            self.free_head = next_free;
             self.list[free_index] = ListSlot::Occupied(node);
             free_index
         } else {
@@ -320,7 +365,7 @@ impl TectonicDoublyLinkedList {
     // ============================================================
 
     #[inline]
-    pub fn match_previous(&mut self, previous: Option<usize>, next: Option<usize>, value: NodeValue) {
+    pub fn detach_from_previous(&mut self, previous: Option<usize>, next: Option<usize>, value: NodeValue) {
         match previous {
             Some(previous_value) => {
                 let previous_node = self
@@ -345,7 +390,7 @@ impl TectonicDoublyLinkedList {
     }
 
     #[inline]
-    pub fn match_next(&mut self, previous: Option<usize>, next: Option<usize>, value: NodeValue) {
+    pub fn detach_from_next(&mut self, previous: Option<usize>, next: Option<usize>, value: NodeValue) {
         match next {
             Some(next_value) => {
                 let next_node = self
