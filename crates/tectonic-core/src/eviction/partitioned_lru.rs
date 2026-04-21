@@ -2,7 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use hashbrown::{HashMap, hash_map::Entry};
+use hashbrown::{HashMap};
 
 use crate::{eviction::eviction_strategy::EvictionStrategy, utility::{structures::TectonicDoublyLinkedList, typings::NodeValue, utils::UniqueID}};
 
@@ -26,6 +26,7 @@ impl Default for PartitionedLRU {
     }
 }
 
+#[allow(dead_code)]
 impl PartitionedLRU {
     #[inline]
     pub fn new() -> Self {
@@ -68,7 +69,7 @@ impl PartitionedLRU {
             .get(value)
             .expect("IndexMap value must reference a live Node!");
 
-        debug_assert!(
+        debug_assert_eq!(
             node_payload,
             entry_id,
             "IndexMap value did not match requested value"
@@ -118,7 +119,7 @@ impl EvictionStrategy for PartitionedLRU {
 
         #[cfg(debug_assertions)]
         {
-            debug_assert!(
+            debug_assert_eq!(
                 &removed_from_stack,
                 entry_id,
                 "Removed node's Payload did not match the requested ID"
@@ -135,39 +136,47 @@ impl EvictionStrategy for PartitionedLRU {
 
     #[inline]
     fn on_insert(&mut self, entry: UniqueID) {
-        match self.index_map.entry(entry) {
-            Entry::Occupied(occupied) => {
-                #[cfg(debug_assertions)]
-                {
-                    self.debug_basic_invariants();
-                    let &node_value = occupied.get();
-                    self.debug_assertions_entry_match(occupied.key(), node_value);
-                }
-            },
-            Entry::Vacant(vacant) => {
-                let node_value = self.stack.push_back(entry);
-                vacant.insert(node_value);
-
-                #[cfg(debug_assertions)]
-                {
-                    debug_assert!(
-                        self.stack.is_tail(node_value),
-                        "New Node was not correctly inserted unto the LinkedList Tail"
-                    );
-
-                    let inserted_entry = self
-                        .stack
-                        .get(node_value)
-                        .expect("New Node must reference and live Node value");
-
-                    debug_assert_eq!(
-                        inserted_entry,
-                        vacant.key(),
-                        "New Node payload value did nnot match inserted Key-value"
-                    );
-                    self.debug_basic_invariants();
-                }
+        if let Some(&node_value) = self.index_map.get(&entry) {
+            #[cfg(debug_assertions)]
+            {
+                self.debug_basic_invariants();
+                self.debug_assertions_entry_match(&entry, node_value);
             }
+            return;
+        }
+
+        let node_value = self.stack.push_back(entry);
+        let old_value = self.index_map.insert(entry, node_value);
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(
+                old_value.is_none(),
+                "on_insert replaced an existing IndexMap entry unexpectedly"
+            );
+
+            debug_assert!(
+                self.stack.is_tail(node_value),
+                "New Node was not correctly inserted onto the LinkedList Tail"
+            );
+
+            let inserted_entry = self
+                .stack
+                .get(node_value)
+                .expect("New Node must reference a live Node value");
+
+            let mapped_value = self
+                .index_map
+                .get(inserted_entry)
+                .expect("Inserted entry must exist in IndexMap");
+
+            debug_assert_eq!(
+                *mapped_value,
+                node_value,
+                "IndexMap handle did not match inserted node handle"
+            );
+
+            self.debug_basic_invariants();
         }
     }
 
@@ -190,7 +199,7 @@ impl EvictionStrategy for PartitionedLRU {
         #[cfg(debug_assertions)]
         {
             debug_assert!(
-                removed_from_map.is_none(),
+                removed_from_map.is_some(),
                 "Removed Node value existed in Stack but not in IndexMap"
             );
             self.debug_basic_invariants();
