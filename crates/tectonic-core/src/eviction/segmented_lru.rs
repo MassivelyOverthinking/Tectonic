@@ -64,6 +64,43 @@ impl SegmentedLRU {
     }
 
     #[inline]
+    fn probationary_contains_entry(&self, entry_id: &UniqueID) -> bool {
+        self.segment_contains_entry(&self.probationary, entry_id)
+    }
+
+    #[inline]
+    fn protected_contains_entry(&self, entry_id: &UniqueID) -> bool {
+        self.segment_contains_entry(&self.protected, entry_id)
+    }
+
+    #[inline]
+    fn segment_contains_entry(&self, list: &TectonicDoublyLinkedList, entry_id: &UniqueID) -> bool {
+        let mut current_node = list.get_head();
+        let mut visited = 0usize;
+        let expected_length = list.len();
+
+        while let Some(node_value) = current_node {
+            let payload = list 
+                .get(node_value)
+                .expect("Segment traversal encountered an inactive Node");
+
+            if payload == entry_id {
+                return true;
+            }
+
+            current_node = list.next_of(node_value);
+            visited += 1;
+
+
+            debug_assert!(
+                visited <= expected_length,
+                "Segment traversal exceeded expacted length"
+            );
+        }
+        false
+    }
+
+    #[inline]
     #[cfg(debug_assertions)]
     pub fn debug_assertions_basic_state(&self) {
         let probationary_length = self.probationary.len();
@@ -120,6 +157,46 @@ impl SegmentedLRU {
             self.protected_capacity > 0,
             "Protected Segment capacity must exceed 0"
         );
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    pub fn debug_assertions_entry_match(&self, entry_id: &UniqueID, entry: EntryLocation) {
+        let payload = match entry.segment {
+            SegmentType::Probationary => self
+                .probationary
+                .get(entry.node)
+                .expect("Probationary entry must reference an active Node"),
+            SegmentType::Protected => self
+                .protected
+                .get(entry.node)
+                .expect("Protected entry must reference an active Node"),
+        };
+
+        debug_assert_eq!(
+            payload,
+            entry_id,
+            "Entry/Node payload mismatch"
+        );
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    pub fn debug_assertions_segment_check(&self, entry_id: &UniqueID, entry: EntryLocation) {
+        match entry.segment {
+            SegmentType::Probationary => {
+                debug_assert!(
+                    !self.probationary_contains_entry(entry_id),
+                    "Entry exists in both Probationary & Protected segments"
+                );
+            },
+            SegmentType::Protected => {
+                debug_assert!(
+                    !self.protected_contains_entry(entry_id),
+                    "Entry exists in both Protected & Probationary segments"
+                );
+            }
+        }
     }
 }
 
