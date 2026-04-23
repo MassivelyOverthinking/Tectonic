@@ -135,12 +135,6 @@ impl SegmentedLRU {
 
         self.rebalance_overflow();
 
-        #[cfg(debug_assertions)] 
-        {
-            self.debug_assertions_entry_match(entry_id,SegmentType::Protected);
-            self.debug_assertions_basic_state();
-        }
-
         Some(())
     }
 
@@ -156,20 +150,45 @@ impl SegmentedLRU {
         };
 
         let probationary_entry = self.probationary.push_back(demoted_entry);
-        let old_entry = self.index_map.insert(
+        let _old_entry = self.index_map.insert(
             demoted_entry,
             EntryLocation { 
                 segment: SegmentType::Probationary, 
                 node: probationary_entry 
             },
         );
+    }
+
+    #[inline]
+    fn evict_from_probationary(&mut self) -> Option<UniqueID> {
+        let victim = self.probationary.pop_front()?;
+        let removed_entry = self.index_map.remove(&victim);
 
         #[cfg(debug_assertions)]
         {
-            debug_assert!(old_entry.is_some(), "Demoted value did not update vlaue in internal IndexMap");
-            debug_assert!(self.probationary.is_tail(probationary_entry));
-            self.debug_assertions_entry_match(&demoted_entry, SegmentType::Probationary);
-        }
+            debug_assert!(
+                removed_entry.is_some(),
+                "Probationary victim existed in segment, but not present in the IndexMap"
+            );
+        };
+
+        Some(victim)
+    }
+
+    #[inline]
+    fn evict_from_protected(&mut self) -> Option<UniqueID> {
+        let victim = self.protected.pop_front()?;
+        let removed_entry = self.index_map.remove(&victim);
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(
+                removed_entry.is_some(),
+                "Protected victim existed in segment, but not present in the IndexMap"
+            );
+        };
+
+        Some(victim)
     }
 
     #[inline]
@@ -233,7 +252,7 @@ impl SegmentedLRU {
 
     #[inline]
     #[cfg(debug_assertions)]
-    pub fn debug_assertions_entry_match(&self, entry_id: &UniqueID, entry: EntryLocation) {
+    pub fn debug_assertions_entry_match(&self, entry_id: &UniqueID, entry: &EntryLocation) {
         let payload = match entry.segment {
             SegmentType::Probationary => self
                 .probationary
@@ -254,7 +273,7 @@ impl SegmentedLRU {
 
     #[inline]
     #[cfg(debug_assertions)]
-    pub fn debug_assertions_segment_check(&self, entry_id: &UniqueID, entry: EntryLocation) {
+    pub fn debug_assertions_segment_check(&self, entry_id: &UniqueID, entry: &EntryLocation) {
         match entry.segment {
             SegmentType::Probationary => {
                 debug_assert!(
@@ -269,6 +288,29 @@ impl SegmentedLRU {
                 );
             }
         }
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_assertions_entry_location(&self, entry_id: &UniqueID, entry: &EntryLocation) {
+        self.debug_assertions_entry_match(entry_id, entry);
+        self.debug_assertions_segment_check(entry_id, entry);
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_assertions_validate_all_entries(&self) {
+        for (entry_id, entry) in &self.index_map {
+            self.debug_assertions_entry_location(entry_id, entry);
+        }
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_assertions_complete(&self) {
+        self.debug_assertions_basic_state();
+        self.debug_assertions_capacity_state();
+        self.debug_assertions_validate_all_entries();
     }
 }
 
