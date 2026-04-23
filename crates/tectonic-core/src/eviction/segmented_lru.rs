@@ -54,13 +54,22 @@ impl SegmentedLRU {
 
     #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
+        let (probationary_size, protected_size) = Self::calculate_segment_size(capacity);
+        
         Self {
             probationary: TectonicDoublyLinkedList::with_capacity(capacity),
             protected: TectonicDoublyLinkedList::with_capacity(capacity), 
             index_map: HashMap::with_capacity(capacity), 
-            probationary_capacity: capacity, 
-            protected_capacity: capacity 
+            probationary_capacity: probationary_size, 
+            protected_capacity: protected_size, 
         }
+    }
+
+    #[inline]
+    fn calculate_segment_size(capacity: usize) -> (usize, usize) {
+        let first_value = capacity * 4 / 5;
+        let second_value = capacity - first_value;
+        return (first_value, second_value);
     }
 
     #[inline]
@@ -98,6 +107,69 @@ impl SegmentedLRU {
             );
         }
         false
+    }
+
+    #[inline]
+    fn promote(&mut self, entry_id: &UniqueID, node: NodeValue) -> Option<()> {
+        let removed_value = self.probationary.unlink(node)?;
+        debug_assert_eq!(
+            &removed_value,
+            entry_id,
+            "Promoted value did not match requested entry"
+        );
+
+        let protected_entry = self.protected.push_back(*entry_id);
+        let old_entry = self.index_map.insert(
+            removed_value,
+            EntryLocation { 
+                segment: SegmentType::Protected, 
+                node: protected_entry,
+            }
+        );
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(old_entry.is_some(), "Promotion did not replace any exsitinng value in IndexMap");
+            debug_assert!(self.protected.is_tail(protected_entry));
+        }
+
+        self.rebalance_overflow();
+
+        #[cfg(debug_assertions)] 
+        {
+            self.debug_assertions_entry_match(entry_id,SegmentType::Protected);
+            self.debug_assertions_basic_state();
+        }
+
+        Some(())
+    }
+
+    #[inline]
+    fn rebalance_overflow(&mut self) {
+        if self.protected.len() <= self.protected_capacity {
+            return;
+        }
+
+        let demoted_entry = match self.protected.pop_front() {
+            Some(entry) => entry,
+            None => return,
+        };
+
+        let probationary_entry = self.probationary.push_back(demoted_entry);
+        let old_entry = self.index_map.insert(
+            demoted_entry,
+            EntryLocation { 
+                segment: SegmentType::Probationary, 
+                node: probationary_entry 
+            },
+        );
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(old_entry.is_some(), "Demoted value did not update vlaue in internal IndexMap");
+            debug_assert!(self.probationary.is_tail(probationary_entry));
+            self.debug_assertions_entry_match(&demoted_entry, SegmentType::Probationary);
+        }
     }
 
     #[inline]
