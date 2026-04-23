@@ -32,6 +32,10 @@ pub struct SegmentedLRU {
     protected_capacity: usize,
 }
 
+// ============================================================
+// EVICTION POLICY: CONSTRUCTORS
+// ============================================================
+
 impl Default for SegmentedLRU {
     #[inline]
     fn default() -> Self {
@@ -64,6 +68,10 @@ impl SegmentedLRU {
             protected_capacity: protected_size, 
         }
     }
+
+    // ============================================================
+    // EVICTION POLICY: HELPER METHODS
+    // ============================================================
 
     #[inline]
     fn calculate_segment_size(capacity: usize) -> (usize, usize) {
@@ -191,6 +199,10 @@ impl SegmentedLRU {
         Some(victim)
     }
 
+    // ============================================================
+    // EVICTION POLICY: DEBUGGING ASSERTIONS
+    // ============================================================
+
     #[inline]
     #[cfg(debug_assertions)]
     pub fn debug_assertions_basic_state(&self) {
@@ -313,6 +325,10 @@ impl SegmentedLRU {
         self.debug_assertions_validate_all_entries();
     }
 }
+
+// ============================================================
+// EVICTION POLICY: STRATEGY METHODS
+// ============================================================
 
 #[allow(dead_code)]
 impl EvictionStrategy for SegmentedLRU {
