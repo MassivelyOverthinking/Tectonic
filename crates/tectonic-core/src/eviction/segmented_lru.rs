@@ -10,13 +10,13 @@ use crate::{eviction::eviction_strategy::EvictionStrategy, utility::{structures:
 // EVICTION STRATEGY: SEGMENTED LRU
 // ============================================================
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum SegmentType {
     Probationary,
     Protected
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct EntryLocation {
     segment: SegmentType,
     node: NodeValue,
@@ -358,22 +358,100 @@ impl EvictionStrategy for SegmentedLRU {
 
     #[inline]
     fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
-        
+        let location = self.index_map.get(entry_id).copied()?;
+
+        #[cfg(debug_assertions)]
+        {
+            self.debug_assertions_complete();
+            self.debug_assertions_entry_location(entry_id, &location);
+        };
+
+        let removed_value = match location.segment {
+            SegmentType::Probationary => self.probationary.unlink(location.node)?,
+            SegmentType::Protected => self.protected.unlink(location.node)?,
+        };
+
+        let removed_from_map = self.index_map.remove(entry_id);
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert_eq!(
+                &removed_value,
+                entry_id,
+                "Removed payload did not match requested entry"
+            );
+            debug_assert!(
+                removed_from_map.is_some(),
+                "Removal failed in IndexMap"
+            );
+            self.debug_assertions_complete();
+        }
+        Some(removed_value)
     }
 
     #[inline]
     fn on_insert(&mut self, entry: UniqueID) {
-        todo!()
+        if let Some(existing_value) = self.index_map.get(&entry).copied() {
+            #[cfg(debug_assertions)]
+            {
+                self.debug_assertions_complete();
+                self.debug_assertions_entry_location(&entry, &existing_value);
+            }
+            return;
+        }
+
+        let node = self.probationary.push_back(entry);
+        let old_value = self.index_map.insert(
+            entry, 
+            EntryLocation { 
+                segment: SegmentType::Probationary, 
+                node,
+            }
+        );
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(old_value.is_none(), "Value insertion unexpectedly updated existing value");
+            debug_assert!(self.probationary.is_tail(node));
+        }
+
+        if self.probationary.len() > self.probationary_capacity {
+            let _ = self.evict_from_probationary();
+        }
+
+        #[cfg(debug_assertions)]
+        {
+            self.debug_assertions_complete();
+        }
     }
 
     #[inline]
     fn get_victim(&mut self) -> Option<&UniqueID> {
-        todo!()
+        #[cfg(debug_assertions)]
+        self.debug_assertions_complete();
+
+        if !self.probationary.is_empty() {
+            self.probationary.front()
+        } else {
+            self.protected.front()
+        }
     }
 
     #[inline]
     fn evict_victim(&mut self) -> Option<UniqueID> {
-        todo!()
+        #[cfg(debug_assertions)]
+        self.debug_assertions_complete();
+
+        let victim = if !self.probationary.is_empty() {
+            self.evict_from_probationary()
+        } else {
+            self.evict_from_protected()
+        };
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_complete();
+
+        victim
     }
 
     #[inline]
