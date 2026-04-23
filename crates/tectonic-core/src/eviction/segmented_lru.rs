@@ -318,12 +318,47 @@ impl SegmentedLRU {
 impl EvictionStrategy for SegmentedLRU {
     #[inline]
     fn on_get(&mut self, entry_id: &UniqueID) {
-        todo!()
+        let location = match self.index_map.get(entry_id).copied() {
+            Some(location) => location,
+            None => {
+                #[cfg(debug_assertions)]
+                self.debug_assertions_complete();
+                return;
+            }
+        };
+
+        #[cfg(debug_assertions)]
+        {
+            self.debug_assertions_complete();
+            self.debug_assertions_entry_location(entry_id, &location);
+        };
+
+        match location.segment {
+            SegmentType::Probationary => {
+                let _ = self.promote(entry_id, location.node);
+            },
+            SegmentType::Protected => {
+                let moved_value = self.protected.move_to_back(location.node);
+
+                #[cfg(debug_assertions)]
+                {
+                    debug_assert!(
+                        moved_value.is_some(),
+                        "Protected on_get failed to move node to tail"
+                    );
+                    debug_assert!(
+                        self.protected.is_tail(location.node),
+                        "Protected hit did not refresh MRU position"
+                    );
+                    self.debug_assertions_complete();
+                };
+            }
+        }
     }
 
     #[inline]
     fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
-        todo!()
+        
     }
 
     #[inline]
