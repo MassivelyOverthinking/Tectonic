@@ -112,4 +112,139 @@ impl VARC {
     pub fn is_ghost(list_type: ArcType) -> bool {
         matches!(list_type, ArcType::B1 | ArcType::B2)
     }
+
+    #[inline]
+    fn increase_pivot_b1(&mut self) {
+        let denominator = self.b1.len().max(1);
+        let delta = (self.b1.len() / denominator).max(1);
+        self.pivot = self.capacity.min(self.pivot.saturating_add(delta))
+    }
+
+    #[inline]
+    fn increase_pivot_b2(&mut self) {
+        let denominator = self.b2.len().max(1);
+        let delta = (self.b2.len() / denominator).max(1);
+        self.pivot = self.capacity.min(self.pivot.saturating_add(delta))
+    }
+
+    // ============================================================
+    // EVICTION POLICY: DEBUGGING
+    // ============================================================
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_validate_basic(&self) {
+        debug_assert!(
+            self.capacity > 0,
+            "VARC capacity must be represented by a positive integer"
+        );
+
+        debug_assert!(
+            self.pivot <= self.capacity,
+            "VARC pivot must not exceed capacity: Pivot={}, Capacity={}",
+            self.pivot,
+            self.capacity
+        );
+
+        debug_assert!(
+            self.resident_len() <= self.capacity,
+            "VARC resident list must not exceed capacity: Pivot={}, Capacity={}",
+            self.resident_len(),
+            self.capacity
+        );
+
+        debug_assert!(
+            self.ghost_len() <= self.capacity,
+            "VARC ghost list must not exceed capacity: Pivot={}, Capacity={}",
+            self.ghost_len(),
+            self.capacity
+        );
+
+        debug_assert! {
+            self.list_len() <= self.capacity.saturating_mul(2),
+            "VARC complete history must not exceed 2x capacity: History={}, Capacity={}",
+            self.list_len(),
+            self.capacity
+        };
+
+        debug_assert_eq!(
+            self.list_len(),
+            self.index_map.len(),
+            "VARC History/IndexMap length discrepancy"
+        );
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_assertions_entry_match(&self, entry_id: &UniqueID, entry: ArcLocation) {
+        let payload = self
+            .list(entry.list)
+            .get(entry.node)
+            .expect("VARC ArcLocation must reference a live Node");
+
+        debug_assert_eq!(
+            payload,
+            entry_id,
+            "VARC ArcLocation & Payload mismatch"
+        );
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_segment_match(&self, segment: ArcType, entry_id: &UniqueID) -> bool {
+        let list = self.list(segment);
+        let mut current = list.get_head();
+        let mut visited = 0usize;
+        let expected = list.len();
+
+        while let Some(node) = current {
+            let payload = list
+                .get(node)
+                .expect("VARC traversal encountered a non-live Node");
+
+            if payload == entry_id {
+                return true;
+            }
+
+            current = list.next_of(node);
+            visited += 1;
+
+            debug_assert!(
+                visited <= expected,
+                "VARC traversal exceeded expected length - Possible cycle"
+            );
+        }
+        false
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_assertions_exclusivity(&self, entry_id: &UniqueID, entry: ArcLocation) {
+        for arc_type in [ArcType::T1, ArcType::T2, ArcType::B1, ArcType::B2] {
+            let contains = self.debug_segment_match(arc_type, entry_id);
+
+            if arc_type == entry.list {
+                debug_assert!(
+                    contains,
+                    "VARC entry missing from defined list"
+                );
+            } else {
+                debug_assert!(
+                    !contains,
+                    "VARC entry appeared in multiple internal list"
+                );
+            }
+        }
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_assertion_complete(&self) {
+        self.debug_validate_basic();
+
+        for (entry_id, entry) in &self.index_map {
+            self.debug_assertions_entry_match(entry_id, *entry);
+            self.debug_assertions_exclusivity(entry_id, *entry);
+        }
+    }
 }
