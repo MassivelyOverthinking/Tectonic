@@ -19,13 +19,6 @@ pub enum ArcType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ArcMissStatus {
-    Cold,
-    B1Hit,
-    B2Hit,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ArcLocation {
     list: ArcType,
     node: NodeValue,
@@ -122,7 +115,7 @@ impl VARC {
     }
 
     #[inline]
-    fn increase_pivot_b2(&mut self) {
+    fn decrease_pivot_b2(&mut self) {
         let denominator = self.b2.len().max(1);
         let delta = (self.b2.len() / denominator).max(1);
         self.pivot = self.capacity.min(self.pivot.saturating_add(delta))
@@ -402,5 +395,171 @@ impl VARC {
             self.debug_assertions_entry_match(entry_id, *entry);
             self.debug_assertions_exclusivity(entry_id, *entry);
         }
+    }
+}
+
+impl EvictionStrategy for VARC {
+    #[inline]
+    fn on_get(&mut self, entry_id: &UniqueID) {
+        let location = match self.index_map.get(entry_id).copied() {
+            Some(location) => location,
+            None => {
+                #[cfg(debug_assertions)]
+                self.debug_assertion_complete();
+                return;
+            }
+        };
+
+        #[cfg(debug_assertions)]
+        {
+            self.debug_assertion_complete();
+            self.debug_assertions_entry_match(entry_id, location);
+        }
+
+        match location.list {
+            ArcType::T1 => {
+                let _ = self.move_entry(ArcType::T1, ArcType::T2, entry_id, location.node);
+            },
+            ArcType::T2 => {
+                let moved_value = self.t2.move_to_back(location.node);
+
+                #[cfg(debug_assertions)]
+                {
+                    debug_assert!(
+                        moved_value.is_some(),
+                        "VARC T2 hit failed to correctly move entry to new position"
+                    );
+                    debug_assert!(
+                        self.t2.is_tail(location.node),
+                        "VARC T2 hit moved value to incorrect position"
+                    );
+                    self.debug_assertion_complete();
+                }
+            },
+            ArcType::B1 | ArcType::B2 => {
+                #[cfg(debug_assertions)]
+                self.debug_assertion_complete();
+            }
+        }
+    }
+
+    #[inline]
+    fn on_remove(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
+        let location = self.index_map.get(entry_id).copied()?;
+
+        #[cfg(debug_assertions)]
+        {
+            self.debug_assertion_complete();
+            self.debug_assertions_entry_match(entry_id, location);
+        }
+
+        self.remove_from_location(entry_id, location)
+    }
+
+    #[inline]
+    fn on_insert(&mut self, entry: UniqueID) {
+        let location = self.index_map.get(&entry).copied();
+
+        match location {
+            Some(ArcLocation { list: ArcType::T1, node }) => {
+                let _ = self.move_entry(ArcType::T1, ArcType::T2, &entry, node);
+            }
+            Some(ArcLocation { list: ArcType::T2, node }) => {
+                let _ = self.t2.move_to_back(node);
+
+                #[cfg(debug_assertions)]
+                self.debug_assertion_complete();
+            }
+            Some(ArcLocation { list: ArcType::B1, node }) => {
+                self.increase_pivot_b1();
+
+                debug_assert!(
+                    self.resident_len() < self.capacity,
+                    "VARC B1 admission requires available resident capacity; call evict_victim() first"
+                );
+
+                let _ = self.move_entry(ArcType::B1, ArcType::T2, &entry, node);
+            }
+            Some(ArcLocation { list: ArcType::B2, node }) => {
+                self.decrease_pivot_b2();
+
+                debug_assert!(
+                    self.resident_len() < self.capacity,
+                    "VARC B2 admission requires available resident capacity; call evict_victim() first"
+                );
+
+                let _ = self.move_entry(ArcType::B2, ArcType::T2, &entry, node);
+            }
+            None => {
+                debug_assert!(
+                    self.resident_len() < self.capacity,
+                    "VARC cold admission requires available resident capacity; call evict_victim() first"
+                );
+
+                let node = self.t1.push_back(entry);
+                let old = self.index_map.insert(
+                    entry,
+                    ArcLocation {
+                        list: ArcType::T1,
+                        node,
+                    },
+                );
+
+                #[cfg(debug_assertions)]
+                {
+                    debug_assert!(
+                        old.is_none(),
+                        "VARC cold insert unexpectedly replaced existing entry"
+                    );
+                    debug_assert!(
+                        self.t1.is_tail(node),
+                        "VARC cold insert did not land at T1 MRU"
+                    );
+                    self.debug_assertion_complete();
+                }
+            }
+        }
+
+        self.trim_ghost_lists();
+
+        #[cfg(debug_assertions)]
+        self.debug_assertion_complete();
+    }
+
+    #[inline]
+    fn get_victim(&mut self) -> Option<&UniqueID> {
+        #[cfg(debug_assertions)]
+        self.debug_assertion_complete();
+
+        match self.choose_replacement_source()? {
+            ArcType::T1 => self.t1.front(),
+            ArcType::T2 => self.t2.front(),
+            ArcType::B1 | ArcType::B2 => unreachable!("Ghost lists can be choosen as replacement source")
+        }
+    }
+
+    #[inline]
+    fn evict_victim(&mut self) -> Option<UniqueID> {
+        #[cfg(debug_assertions)]
+        self.debug_assertion_complete();
+
+        let source = self.choose_replacement_source()?;
+        let target = Self::get_replacement_target(source);
+        let victim = self.move_entry_to_ghost(source, target)?;
+
+        #[cfg(debug_assertions)]
+        self.debug_assertion_complete();
+
+        Some(victim)
+    }
+
+    #[inline]
+    fn len(&self) -> usize {
+        self.resident_len()
+    }
+
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.resident_len() == 0
     }
 }
