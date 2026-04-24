@@ -49,6 +49,7 @@ impl Default for VARC {
     }
 }
 
+#[allow(dead_code)]
 impl VARC {
     #[inline]
     pub fn new() -> Self {
@@ -125,6 +126,161 @@ impl VARC {
         let denominator = self.b2.len().max(1);
         let delta = (self.b2.len() / denominator).max(1);
         self.pivot = self.capacity.min(self.pivot.saturating_add(delta))
+    }
+
+    #[inline]
+    fn get_replacement_target(list_type: ArcType) -> ArcType {
+        match list_type {
+            ArcType::T1 => ArcType::B1,
+            ArcType::T2 => ArcType::B2,
+            ArcType::B1 | ArcType::B2 => unreachable!("Ghost list cannot get replacement")
+        }
+    }
+
+    #[inline]
+    fn remove_from_location(&mut self, entry_id: &UniqueID, location: ArcLocation) -> Option<UniqueID> {
+        let removed_value = self.list_mut(location.list).unlink(location.node)?;
+        let removed_from_map = self.index_map.remove(entry_id);
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert_eq!(
+                &removed_value,
+                entry_id,
+                "VARC payload mismatch - Wrong internal value removed"
+            );
+            debug_assert!(
+                removed_from_map.is_some(),
+                "VARC removed from internal list but not from IndexMap"
+            );
+            self.debug_assertion_complete();
+        }
+
+        Some(removed_value)
+    }
+
+    #[inline]
+    fn choose_replacement_source(&self) -> Option<ArcType> {
+        if !self.t1.is_empty() && (self.t1.len() > self.pivot || self.t2.is_empty()) {
+            Some(ArcType::T1)
+        } else if !self.t2.is_empty() {
+            Some(ArcType::T2)
+        } else if !self.t1.is_empty() {
+            Some(ArcType::T1)
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn remove_ghost_lru(&mut self, list_type: ArcType) -> Option<UniqueID> {
+        debug_assert!(Self::is_ghost(list_type));
+
+        let removed_value= self.list_mut(list_type).pop_front()?;
+        let removed_from_map = self.index_map.remove(&removed_value);
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(
+                removed_from_map.is_some(),
+                "VARC Ghost entry existed in internal list, but not in IndexMap"
+            );
+        }
+        Some(removed_value)
+    }
+
+    #[inline]
+    fn trim_ghost_lists(&mut self) {
+        while self.ghost_len() > self.capacity {
+            if self.b1.len() >= self.b2.len() && !self.b1.is_empty() {
+                let _ = self.remove_ghost_lru(ArcType::B1);
+            } else if !self.b2.is_empty() {
+                let _ = self.remove_ghost_lru(ArcType::B2);
+            } else {
+                break;
+            }
+        }
+
+        while self.list_len() > self.capacity.saturating_mul(2) {
+            if !self.b1.is_empty() {
+                let _ = self.remove_ghost_lru(ArcType::B1);
+            } else if !self.b2.is_empty() {
+                let _ = self.remove_ghost_lru(ArcType::B2);
+            } else {
+                break;
+            }
+        }
+    }
+
+    #[inline]
+    fn move_entry_to_ghost(&mut self, from: ArcType, to: ArcType) -> Option<UniqueID> {
+        debug_assert!(Self::is_resident(from));
+        debug_assert!(Self::is_ghost(to));
+
+        let victim = self.list_mut(from).pop_front()?;
+        let ghost_node = self.list_mut(to).push_front(victim);
+
+        let old_value = self.index_map.insert(
+            victim, 
+            ArcLocation { 
+                list: to, 
+                node: ghost_node, 
+            }
+        );
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(
+                old_value.is_some(),
+                "VARC victim entry already existed in IndexMap"
+            );
+            debug_assert!(
+                self.list(to).is_tail(ghost_node),
+                "VARC Ghost node insertion did not reach the correct position"
+            );
+        }
+
+        self.trim_ghost_lists();
+
+        #[cfg(debug_assertions)]
+        self.debug_assertion_complete();
+
+        Some(victim)
+    }
+
+    #[inline]
+    fn move_entry(&mut self, from: ArcType, to: ArcType, entry_id: &UniqueID, entry: NodeValue) -> Option<()> {
+        let removed_value = self.list_mut(from).unlink(entry)?;
+
+        debug_assert_eq!(
+            removed_value,
+            *entry_id,
+            "VARC requested entry did not match removed payload"
+        );
+
+        let new_node = self.list_mut(to).push_back(removed_value);
+
+        let old_value = self.index_map.insert(
+            removed_value, 
+            ArcLocation { 
+                list: to, 
+                node: new_node, 
+            },
+        );
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(
+                old_value.is_some(),
+                "VARC expected an existing entry"
+            );
+            debug_assert!(
+                self.list(to).is_tail(new_node),
+                "VARC Ghost node insertion did not reach the correct position"
+            );
+            self.debug_assertion_complete();
+        }
+        Some(())
     }
 
     // ============================================================
