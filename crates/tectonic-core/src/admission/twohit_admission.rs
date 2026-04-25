@@ -64,6 +64,7 @@ impl TwoHitAdmission {
                 entry_id,
                 "Two-Hit Admission removed entry from history, but did not match requested ID"
             );
+            self.debug_assertions_basic();
         }
 
         Some(removed_value)
@@ -85,7 +86,29 @@ impl TwoHitAdmission {
                     removed_from_map.is_some(),
                     "Removal from interal List succeeded, but IndexMap removal failed"
                 );
+                self.debug_assertions_basic();
             }
         }
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_assertions_basic(&self) {
+        debug_assert_eq!(
+            self.history.len(),
+            self.index_map.len(),
+            "Two-Hit Admission mismatch: List / IndexMap length does not match"
+        );
+
+        debug_assert!(
+            self.history.len() <= self.capacity,
+            "Two-Hit Admission mismatch: Internal list length exceeded capacity"
+        );
+
+        debug_assert_eq!(
+            self.history.is_empty(),
+            self.index_map.is_empty(),
+            "Two-Hit Admission mismatch: List / IndexMap emptiness-state does not match"
+        );
     }
 }
