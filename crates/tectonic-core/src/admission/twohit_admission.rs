@@ -4,7 +4,7 @@
 
 use hashbrown::HashMap;
 
-use crate::admission::admission_strategy::AdmissionStrategy;
+use crate::admission::admission_strategy::{AdmissionStrategy};
 use crate::utility::structures::TectonicDoublyLinkedList;
 use crate::utility::typings::NodeValue;
 use crate::utility::utils::UniqueID;
@@ -45,6 +45,7 @@ impl Default for TwoHitAdmission {
     }
 }
 
+#[allow(dead_code)]
 impl TwoHitAdmission {
     #[inline]
     pub fn new() -> Self {
@@ -126,19 +127,53 @@ impl TwoHitAdmission {
 }
 
 impl AdmissionStrategy for TwoHitAdmission {
+    #[inline]
     fn on_get(&mut self, _entry_id: &UniqueID) {
-        todo!()
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
     }
 
-    fn on_insert(&mut self, _entry_id: &UniqueID) {
-        todo!()
+    fn on_insert(&mut self, entry_id: &UniqueID) {
+        let _ = self.remove_from_history(entry_id);
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
     }
 
-    fn on_remove(&mut self, _entry_id: &UniqueID) {
-        todo!()
+    fn on_remove(&mut self, entry_id: &UniqueID) {
+        let _ = self.remove_from_history(entry_id);
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
     }
 
-    fn should_admit(&mut self, candidate: &super::admission_strategy::AdmissionCandidate) -> bool {
-        todo!()
+    fn should_admit(&mut self, entry_id: &UniqueID) -> bool {
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+
+        if self.index_map.contains_key(entry_id) {
+            let _ = self.remove_from_history(entry_id);
+            return true;
+        }
+
+        let node = self.history.push_back(*entry_id);
+        let old_value = self.index_map.insert(*entry_id, node);
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(
+                old_value.is_some(),
+                "Two-Hit Admission unexpectedly replaced an existing entry from IndexMap"
+            );
+            debug_assert!(
+                self.history.is_tail(node),
+                "Two-Hit Admission failed to insert new entry at the Tail position"
+            );
+            self.debug_assertions_basic();
+        }
+
+        self.trim_history();
+
+        false
     }
 }

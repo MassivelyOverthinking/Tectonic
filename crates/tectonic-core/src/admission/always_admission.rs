@@ -80,7 +80,7 @@ impl AdmissionStrategy for AlwaysAdmission {
         self.debug_assertions_state();
     }
 
-    fn should_admit(&mut self, _candidate: &super::admission_strategy::AdmissionCandidate) -> bool {
+    fn should_admit(&mut self, _entry_id: &UniqueID) -> bool {
         #[cfg(debug_assertions)]
         self.debug_assertions_state();
 

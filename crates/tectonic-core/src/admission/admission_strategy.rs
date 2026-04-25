@@ -37,5 +37,5 @@ pub trait AdmissionStrategy {
 
     fn on_remove(&mut self, _entry_id: &UniqueID);
     
-    fn should_admit(&mut self, candidate: &AdmissionCandidate) -> bool;
+    fn should_admit(&mut self, _entry_id: &UniqueID) -> bool;
 }
