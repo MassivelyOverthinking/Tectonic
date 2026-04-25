@@ -3,12 +3,11 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use crate::utility::utils::UniqueID;
+
 // ============================================================
 // ADMISSION STRATEGIES
 // ============================================================
-
-use crate::utility::utils::UniqueID;
-
 
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
@@ -32,11 +31,11 @@ pub struct AdmissionCandidate {
 
 #[allow(dead_code)]
 pub trait AdmissionStrategy {
-    fn on_get(&mut self);
+    fn on_get(&mut self, _entry_id: &UniqueID);
 
-    fn on_insert(&mut self);
+    fn on_insert(&mut self, _entry_id: &UniqueID);
 
-    fn on_remove(&mut self);
+    fn on_remove(&mut self, _entry_id: &UniqueID);
     
     fn should_admit(&mut self, candidate: &AdmissionCandidate) -> bool;
 }
