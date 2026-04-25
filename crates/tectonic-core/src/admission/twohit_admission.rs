@@ -2,8 +2,6 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::default;
-
 use hashbrown::HashMap;
 
 use crate::admission::admission_strategy::AdmissionStrategy;
@@ -14,6 +12,20 @@ use crate::utility::utils::UniqueID;
 // ============================================================
 // ADMISSION STRATEGY: TWO-HIT
 // ============================================================
+// Admission Policy for admitting entries that appear twice.
+// Candidate entry will always be permitted access if observed twice.
+// ---
+// This admission policy is primarily used for specific scenarios:
+// * Protect cache from general entry pollution.
+// * Simple, predictable and cheap admission strategy.
+// ---
+// Performance Characteristics:
+// * "on_get()" -> O(1)
+// * "on_insert()" -> O(1)
+// * "on_remove()" -> O(1)
+// * "should_admit()" -> O(1)
+// * No unecessary Heap allocation
+// * Trim history using FIFO structure.
 
 #[derive(Debug, Clone)]
 pub struct TwoHitAdmission {
@@ -110,5 +122,23 @@ impl TwoHitAdmission {
             self.index_map.is_empty(),
             "Two-Hit Admission mismatch: List / IndexMap emptiness-state does not match"
         );
+    }
+}
+
+impl AdmissionStrategy for TwoHitAdmission {
+    fn on_get(&mut self, _entry_id: &UniqueID) {
+        todo!()
+    }
+
+    fn on_insert(&mut self, _entry_id: &UniqueID) {
+        todo!()
+    }
+
+    fn on_remove(&mut self, _entry_id: &UniqueID) {
+        todo!()
+    }
+
+    fn should_admit(&mut self, candidate: &super::admission_strategy::AdmissionCandidate) -> bool {
+        todo!()
     }
 }
