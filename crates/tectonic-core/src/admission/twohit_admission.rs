@@ -126,6 +126,10 @@ impl TwoHitAdmission {
     }
 }
 
+// ============================================================
+// ADMISSION STRATEGY: STRATEGY METHODS
+// ============================================================
+
 impl AdmissionStrategy for TwoHitAdmission {
     #[inline]
     fn on_get(&mut self, _entry_id: &UniqueID) {
@@ -133,6 +137,7 @@ impl AdmissionStrategy for TwoHitAdmission {
         self.debug_assertions_basic();
     }
 
+    #[inline]
     fn on_insert(&mut self, entry_id: &UniqueID) {
         let _ = self.remove_from_history(entry_id);
 
@@ -140,6 +145,7 @@ impl AdmissionStrategy for TwoHitAdmission {
         self.debug_assertions_basic();
     }
 
+    #[inline]
     fn on_remove(&mut self, entry_id: &UniqueID) {
         let _ = self.remove_from_history(entry_id);
 
@@ -147,6 +153,7 @@ impl AdmissionStrategy for TwoHitAdmission {
         self.debug_assertions_basic();
     }
 
+    #[inline]
     fn should_admit(&mut self, entry_id: &UniqueID) -> bool {
         #[cfg(debug_assertions)]
         self.debug_assertions_basic();
