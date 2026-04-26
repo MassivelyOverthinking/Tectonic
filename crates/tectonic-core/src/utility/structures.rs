@@ -56,6 +56,107 @@ impl CountMinSketch {
     }
 
     // ============================================================
+    // COUNT-MIN SKETCH => HELPER METHODS
+    // ============================================================
+
+    #[inline]
+    pub fn increment<T: Hash>(&mut self, item: &T) {
+        let hash = hash_item(item);
+
+        for row in 0..self.depth {
+            let index = self.index(hash, row);
+            self.counters[index] = self.counters[index].saturating_add(1);
+        }
+
+        self.size += 1;
+
+        if self.size >= self.sample_size {
+            self.age();
+        }
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    #[inline]
+    pub fn estimate<T: Hash>(&self, item: &T) -> u8 {
+        let hash = hash_item(item);
+        let mut estimate = u8::MAX;
+
+        for row in 0..self.depth {
+            let index = self.index(hash, row);
+            estimate = estimate.min(self.counters[index]);
+        }
+
+        estimate
+    }
+
+    #[inline]
+    pub fn estimate_least<T: Hash>(&self, item: &T, threshold: u8) -> bool {
+        self.estimate(item) >= threshold
+    }
+
+    #[inline]
+    pub fn age(&mut self) {
+        for counter in &mut self.counters {
+            *counter >>= 1;
+        }
+
+        self.size = 0;
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    #[inline]
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    #[inline]
+    pub fn depth(&self) -> usize {
+        self.depth
+    }
+
+    #[inline]
+    pub fn count(&self) -> usize {
+        self.counters.len()
+    }
+
+    #[inline]
+    pub fn sample_size(&self) -> usize {
+        self.sample_size
+    }
+
+    #[inline]
+    pub fn size(&self) -> usize {
+        self.size
+    }
+
+    #[inline]
+    pub fn counter_bytes(&self) -> usize {
+        self.counters.len() * core::mem::size_of::<u8>()
+    }
+
+    #[inline]
+    pub fn index(&self, hash: u64, row: usize) -> usize {
+        debug_assert!(row < self.depth, "Requested row is out of bounds");
+
+        let row_seed = (row as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+        let mixed_value = split_mix64(hash ^ row_seed);
+        row * self.width + ((mixed_value as usize) & self.mask)
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.counters.fill(0);
+        self.size = 0;
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    // ============================================================
     // COUNT-MIN SKETCH => DEBUGGING
     // ============================================================
 
@@ -92,12 +193,6 @@ impl CountMinSketch {
             "Size currently exceed structure's internal sample size"
         );
     }
-}
-
-#[inline]
-#[cfg(debug_assertions)]
-fn debug_assertions_basic(&self) {
-    debug_assert!(self.width < 0, "Width must be represented by a positive integer");
 }
 
 // ============================================================
