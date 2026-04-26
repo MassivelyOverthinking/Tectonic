@@ -2,12 +2,73 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::mem::replace;
+use std::{hash::{DefaultHasher, Hash, Hasher}, mem::replace};
+
+use hashbrown::DefaultHasher;
 
 use crate::utility::{typings::NodeValue, utils::UniqueID};
 
 // ============================================================
 // CUSTOM DATA STRUCTURES
+// ============================================================
+
+// ============================================================
+// DATA STRUCTURE: COUNT-MIN SKETCH
+// ============================================================
+
+#[derive(Debug, Clone)]
+pub struct CountMinSketch {
+    counters: Vec<u8>,
+    width: usize,
+    depth: usize,
+    mask: usize,
+    sample_size: usize,
+    size: usize,
+}
+
+impl CountMinSketch {
+    #[inline]
+    pub fn new(width: usize, depth: usize) -> Self {
+        let width = width.max(1).next_power_of_two();
+        let depth = depth.max(1);
+
+        let counter_count = width
+            .checked_mul(depth)
+            .expect("CountMinSketch dimensions overflow");
+
+        Self { 
+            counters: vec![0; counter_count], 
+            width, 
+            depth, 
+            mask: width - 1, 
+            sample_size: counter_count.max(1), 
+            size: 0 
+        }
+    }
+}
+
+// ============================================================
+// COUNT-MIN SKETCH => HASH HELPER
+// ============================================================
+
+#[inline]
+fn hash_item<T: Hash>(item: &T) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    item.hash(&mut hasher);
+    hasher.finish()
+}
+
+
+#[inline]
+fn split_mix64(mut value: u64) -> u64 {
+    value = value.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    value ^ (value >> 31)
+}
+
+// ============================================================
+// DATA STRUCTURE: DOUBLY LINKED LIST
 // ============================================================
 
 #[derive(Debug, Clone)]
