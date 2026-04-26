@@ -6,24 +6,25 @@ use crate::admission::admission_strategy::{AdmissionStrategy};
 use crate::utility::structures::CountMinSketch;
 use crate::utility::utils::UniqueID;
 
-
 // ============================================================
 // ADMISSION STRATEGY: TINY-LFU
 // ============================================================
-// Admission Policy for admitting entries that appear twice.
-// Candidate entry will always be permitted access if observed twice.
+// Admission Policy for admitting entries based on a probabilistic frequency
+// calculated using custom Count-Min Sketch structure.
+// Candidate are only permitted entry once their estimated frequency exceeds
+// configurable minimum frequency.
 // ---
 // This admission policy is primarily used for specific scenarios:
-// * Protect cache from general entry pollution.
-// * Simple, predictable and cheap admission strategy.
+// * Provides memory efficient, high-quality entry admission
+// * Easily adapt to diverse admission patterns
 // ---
 // Performance Characteristics:
-// * "on_get()" -> O(1)
+// * "on_get()" -> O(n)
 // * "on_insert()" -> O(1)
 // * "on_remove()" -> O(1)
-// * "should_admit()" -> O(1)
-// * No unecessary Heap allocation
-// * Trim history using FIFO structure.
+// * "should_admit()" -> O(n)
+// * Fix size memory footprint
+// * Highly cache efficient and scan resistant structure
 
 const DEFAULT_SKETCH_WIDTH: usize = 4096;
 const DEFAULT_SKETCH_DEPTH: usize = 4;
@@ -139,5 +140,45 @@ impl TinyLFUAdmission {
             self.sketch.size() <= self.sketch.sample_size(),
             "TinyLFU internal size exceeds current sample size"
         );
+    }
+}
+
+impl AdmissionStrategy for TinyLFUAdmission {
+    #[inline]
+    fn on_get(&mut self, entry_id: &UniqueID) {
+        self.record_access(entry_id);
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    fn on_insert(&mut self, _entry_id: &UniqueID) {
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    fn on_remove(&mut self, _entry_id: &UniqueID) {
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    fn should_admit(&mut self, entry_id: &UniqueID) -> bool {
+        self.record_access(entry_id);
+
+        let should_admit = self
+            .sketch
+            .estimate_least(entry_id, self.frequency);
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert_eq!(
+                should_admit,
+                self.sketch.estimate(entry_id) >= self.frequency,
+                "TinyLFU admission decision failed"
+            );
+            self.debug_assertions_basic();
+        }
+
+        should_admit
     }
 }
