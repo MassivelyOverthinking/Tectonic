@@ -42,6 +42,7 @@ impl Default for TinyLFUAdmission {
     }
 }
 
+#[allow(dead_code)]
 impl TinyLFUAdmission {
     #[inline]
     pub fn with_params(width: usize, depth: usize, frequency: u8) -> Self {
@@ -51,6 +52,24 @@ impl TinyLFUAdmission {
             sketch: CountMinSketch::new(width, depth),
             frequency,
         };
+
+        #[cfg(debug_assertions)]
+        policy.debug_assertions_basic();
+
+        policy
+    }
+
+    #[inline]
+    pub fn with_sample_size(width: usize, depth: usize, frequency: u8, sample_size: usize) -> Self {
+        let frequency = frequency.max(1);
+
+        let policy = Self {
+            sketch: CountMinSketch::with_sample_size(width, depth, sample_size),
+            frequency
+        };
+
+        #[cfg(debug_assertions)]
+        policy.debug_assertions_basic();
 
         policy
     }
@@ -62,5 +81,63 @@ impl TinyLFUAdmission {
             DEFAULT_SKETCH_DEPTH,
             DEFAULT_MIN_FREQUENCY,
         )
+    }
+
+    #[inline]
+    pub fn estimated_frequency(&self, entry_id: &UniqueID) -> u8 {
+        self.sketch.estimate(entry_id)
+    }
+
+    #[inline]
+    pub fn record_access(&mut self, entry_id: &UniqueID) {
+        self.sketch.increment(entry_id);
+    }
+
+    #[inline]
+    pub fn frequency(&self) -> u8 {
+        self.frequency
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.sketch.clear();
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_assertions_basic(&self) {
+        debug_assert!(
+            self.frequency > 0,
+            "TinyLFU frequency variable must be represented by a positive integer"
+        );
+
+        debug_assert!(
+            self.sketch.width() > 0,
+            "TinyLFU width variable must be represented by a postive integer"
+        );
+
+        debug_assert!(
+            self.sketch.depth() > 0,
+            "TinyLFU depth variable must be represented by a postive integer"
+        );
+
+        debug_assert_eq!(
+            self.sketch.count(),
+            self.sketch.width() * self.sketch.depth(),
+            "TinyLFU sketch size mismatch"
+        );
+
+        debug_assert!(
+            self.sketch.sample_size() > 0,
+            "TinyLFU sample size variable must be represented by a postive integer"
+        );
+
+        debug_assert!(
+            self.sketch.size() <= self.sketch.sample_size(),
+            "TinyLFU internal size exceeds current sample size"
+        );
     }
 }
