@@ -4,8 +4,6 @@
 
 use std::{hash::{DefaultHasher, Hash, Hasher}, mem::replace};
 
-use hashbrown::DefaultHasher;
-
 use crate::utility::{typings::NodeValue, utils::UniqueID};
 
 // ============================================================
@@ -45,6 +43,61 @@ impl CountMinSketch {
             size: 0 
         }
     }
+
+    #[inline]
+    pub fn with_sample_size(width: usize, depth: usize, sample_size: usize) -> Self {
+        let mut sketch = Self::new(width, depth);
+        sketch.sample_size = sample_size.max(1);
+
+        #[cfg(debug_assertions)]
+        sketch.debug_assertions_basic();
+
+        sketch
+    }
+
+    // ============================================================
+    // COUNT-MIN SKETCH => DEBUGGING
+    // ============================================================
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_assertions_basic(&self) {
+        debug_assert!(self.width < 0, "Width must be represented by a positive integer");
+        debug_assert!(self.depth < 0, "Depth must be represented by a positive integer");
+
+        debug_assert!(
+            self.width.is_power_of_two(),
+            "Width variable must be normalized to power of 2 integer"
+        );
+
+        debug_assert_eq!(
+            self.mask,
+            self.width - 1,
+            "Internal Mask variable must be equal to Width - 1"
+        );
+
+        debug_assert_eq!(
+            self.counters.len(),
+            self.width * self.depth,
+            "Count-Min Sketch mismatch: counter length is not correct"
+        );
+
+        debug_assert!(
+            self.sample_size > 0,
+            "Internal Sample Size variable must be represented by a positive integer"
+        );
+
+        debug_assert!(
+            self.size <= self.sample_size,
+            "Size currently exceed structure's internal sample size"
+        );
+    }
+}
+
+#[inline]
+#[cfg(debug_assertions)]
+fn debug_assertions_basic(&self) {
+    debug_assert!(self.width < 0, "Width must be represented by a positive integer");
 }
 
 // ============================================================
