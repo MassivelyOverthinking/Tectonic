@@ -163,8 +163,8 @@ impl CountMinSketch {
     #[inline]
     #[cfg(debug_assertions)]
     fn debug_assertions_basic(&self) {
-        debug_assert!(self.width < 0, "Width must be represented by a positive integer");
-        debug_assert!(self.depth < 0, "Depth must be represented by a positive integer");
+        debug_assert!(self.width > 0, "Width must be represented by a positive integer");
+        debug_assert!(self.depth > 0, "Depth must be represented by a positive integer");
 
         debug_assert!(
             self.width.is_power_of_two(),
