@@ -102,6 +102,36 @@ impl WindowTinyLFUAdmisssion {
     }
 
     #[inline]
+    pub fn estimate_frequency(&self, entry_id: &UniqueID) -> u8 {
+        self.sketch.estimate(entry_id)
+    }
+
+    #[inline]
+    pub fn record_access(&mut self, entry_id: &UniqueID) {
+        self.sketch.increment(entry_id);
+    }
+
+    #[inline]
+    pub fn window_capacity(&self) -> usize {
+        self.window_capacity
+    }
+
+    #[inline]
+    pub fn frequency(&self) -> u8 {
+        self.frequency
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.sketch.clear();
+        self.window.clear();
+        self.window_index.clear();
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    #[inline]
     #[cfg(debug_assertions)]
     fn debug_assertions_basic(&self) {
         debug_assert!(
