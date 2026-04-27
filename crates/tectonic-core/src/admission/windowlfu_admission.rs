@@ -95,6 +95,61 @@ impl WindowTinyLFUAdmisssion {
             frequency: min_frequency,
         };
 
+        #[cfg(debug_assertions)]
+        policy.debug_assertions_basic();
+
         policy
+    }
+
+    #[inline]
+    #[cfg(debug_assertions)]
+    fn debug_assertions_basic(&self) {
+        debug_assert!(
+            self.window_capacity > 0,
+            "WindowTinyLFU capacity must be represented by a positive integer"
+        );
+
+        debug_assert!(
+            self.frequency > 0,
+            "WindowTinyLFU frequency must be represented by a positive integer"
+        );
+
+        debug_assert_eq!(
+            self.window.len(),
+            self.window_index.len(),
+            "WindowTinyLFU window/IndexMap length mismatch"
+        );
+
+        debug_assert!(
+            self.window.len() <= self.window_capacity,
+            "WindowTinyLFU window exceeds defined capacity"
+        );
+
+        debug_assert_eq!(
+            self.window.is_empty(),
+            self.window_index.is_empty(),
+            "WindowTinyLFU window/IndexMap empty-state mismatch"
+        );
+
+        debug_assert!(
+            self.sketch.width() > 0,
+            "WindowTinyLFU sketch width must be represented by a positive integer"
+        );
+
+        debug_assert!(
+            self.sketch.depth() > 0,
+            "WindowTinyLFU sketch depth must be represented by a positive integer"
+        );
+
+        debug_assert_eq!(
+            self.sketch.count(),
+            self.sketch.width() * self.sketch.depth(),
+            "WindowTinyLFU intenral sketch counter mismatch"
+        );
+
+        debug_assert!(
+            self.sketch.sample_size() <= self.sketch.sample_size(),
+            "WindowTinyLFU internal sketch size exceeds sample size"
+        );
     }
 }
