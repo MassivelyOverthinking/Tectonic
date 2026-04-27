@@ -35,6 +35,10 @@ const DEFAULT_SKETCH_DEPTH: usize = 4;
 const DEFAULT_MIN_FREQUENCY: u8 = 2;
 const DEFAULT_WINDOW_CAPACITY: usize = 256;
 
+// ============================================================
+// ADMISSION STRATEGY: CONSTRUCTORS
+// ============================================================
+
 #[derive(Debug, Clone)]
 pub struct WindowTinyLFUAdmisssion {
     sketch: CountMinSketch,
@@ -51,6 +55,7 @@ impl Default for WindowTinyLFUAdmisssion {
     }
 }
 
+#[allow(dead_code)]
 impl WindowTinyLFUAdmisssion {
     #[inline]
     pub fn new() -> Self {
@@ -100,6 +105,10 @@ impl WindowTinyLFUAdmisssion {
 
         policy
     }
+
+    // ============================================================
+    // ADMISSION STRATEGY: HELPER METHODS
+    // ============================================================
 
     #[inline]
     fn remove_from_window(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
@@ -209,6 +218,10 @@ impl WindowTinyLFUAdmisssion {
         self.debug_assertions_basic();
     }
 
+    // ============================================================
+    // ADMISSION STRATEGY: DEBUGGING
+    // ============================================================
+
     #[inline]
     #[cfg(debug_assertions)]
     fn debug_assertions_basic(&self) {
@@ -259,5 +272,67 @@ impl WindowTinyLFUAdmisssion {
             self.sketch.sample_size() <= self.sketch.sample_size(),
             "WindowTinyLFU internal sketch size exceeds sample size"
         );
+    }
+}
+
+// ============================================================
+// ADMISSION STRATEGY: STRATEGY METHODS
+// ============================================================
+
+impl AdmissionStrategy for WindowTinyLFUAdmisssion {
+    #[inline]
+    fn on_get(&mut self, entry_id: &UniqueID) {
+        self.record_access(entry_id);
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    #[inline]
+    fn on_insert(&mut self, entry_id: &UniqueID) {
+        let _ = self.remove_from_window(entry_id);
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    #[inline]
+    fn on_remove(&mut self, entry_id: &UniqueID) {
+        let _ = self.remove_from_window(entry_id);
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    #[inline]
+    fn should_admit(&mut self, entry_id: &UniqueID) -> bool {
+        self.record_access(entry_id);
+
+        if self.window_index.contains_key(entry_id) {
+            let _ = self.remove_from_window(entry_id);
+
+            #[cfg(debug_assertions)]
+            self.debug_assertions_basic();
+
+            return true;
+        }
+
+        let admit_by_frequency = self
+            .sketch
+            .estimate_least(entry_id, self.frequency);
+
+        if admit_by_frequency {
+            #[cfg(debug_assertions)]
+            self.debug_assertions_basic();
+
+            return true;
+        }
+
+        self.remember_in_window(entry_id);
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+
+        false
     }
 }
