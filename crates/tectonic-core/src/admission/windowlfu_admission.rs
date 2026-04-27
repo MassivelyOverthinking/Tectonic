@@ -43,3 +43,58 @@ pub struct WindowTinyLFUAdmisssion {
     window_capacity: usize,
     frequency: u8,
 }
+
+impl Default for WindowTinyLFUAdmisssion {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl WindowTinyLFUAdmisssion {
+    #[inline]
+    pub fn new() -> Self {
+        Self::with_params(
+            DEFAULT_SKETCH_WIDTH, 
+            DEFAULT_SKETCH_DEPTH, 
+            DEFAULT_WINDOW_CAPACITY, 
+            DEFAULT_MIN_FREQUENCY,
+        )
+    }
+
+    #[inline]
+    pub fn with_params(width: usize, depth: usize, capacity: usize, frequency: u8) -> Self {
+        let window_capacity = capacity.max(1);
+        let min_frequency = frequency.max(1);
+
+        let policy = Self {
+            sketch: CountMinSketch::new(width, depth),
+            window: TectonicDoublyLinkedList::with_capacity(window_capacity),
+            window_index: HashMap::with_capacity(window_capacity),
+            window_capacity,
+            frequency: min_frequency,
+        };
+
+        policy
+    }
+
+    #[inline]
+    pub fn with_sample_size(width: usize, depth: usize, capacity: usize, frequency: u8, sample_size: usize) -> Self {
+        let window_capacity = capacity.max(1);
+        let min_frequency = frequency.max(1);
+
+        let policy = Self {
+            sketch: CountMinSketch::with_sample_size(
+                width, 
+                depth, 
+                sample_size
+            ),
+            window: TectonicDoublyLinkedList::with_capacity(window_capacity),
+            window_index: HashMap::with_capacity(window_capacity),
+            window_capacity,
+            frequency: min_frequency,
+        };
+
+        policy
+    }
+}
