@@ -102,6 +102,84 @@ impl WindowTinyLFUAdmisssion {
     }
 
     #[inline]
+    fn remove_from_window(&mut self, entry_id: &UniqueID) -> Option<UniqueID> {
+        let node = self.window_index.remove(entry_id)?;
+        let removed_value = self.window.unlink(node)?;
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert_eq!(
+                &removed_value,
+                entry_id,
+                "WindowTinyLFU removed window entry did not match requested ID"
+            );
+            self.debug_assertions_basic();
+        }
+
+        Some(removed_value)
+    }
+
+    #[inline]
+    fn remember_in_window(&mut self, entry_id: &UniqueID) {
+        if let Some(&node) = self.window_index.get(entry_id) {
+            let moved_value = self.window.move_to_back(node);
+
+            #[cfg(debug_assertions)]
+            {
+                debug_assert!(
+                    moved_value.is_some(),
+                    "WindowTinyLFU failed to refresg existing node value"
+                );
+                debug_assert!(
+                    self.window.is_tail(node),
+                    "WindowTinyLFU failed to move entry ID to the correct Tail position"
+                );
+                self.debug_assertions_basic();
+            }
+            return;
+        }
+
+        let node = self.window.push_back(*entry_id);
+        let old_value = self.window_index.insert(*entry_id, node);
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(
+                old_value.is_none(),
+                "WindowTinyLFU unexpectedly replaced existing node value"
+            );
+            debug_assert!(
+                self.window.is_tail(node),
+                "WindowTinyLFU failed to move entry ID to the correct Tail position"
+            );
+        }
+        self.trim_window();
+    }
+
+    #[inline]
+    fn trim_window(&mut self) {
+        while self.window.len() > self.window_capacity {
+            let removed_value = self
+                .window
+                .pop_front()
+                .expect("Window exceeded capacity, but popping values failed");
+
+            let removed_from_map = self.window_index.remove(&removed_value);
+
+            #[cfg(debug_assertions)]
+            {
+                debug_assert!(
+                    removed_from_map.is_some(),
+                    "WindowTinyLFU removed value from Window, but not from IndexMap"
+                );
+            }
+        }
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_basic();
+    }
+
+    #[inline]
     pub fn estimate_frequency(&self, entry_id: &UniqueID) -> u8 {
         self.sketch.estimate(entry_id)
     }
