@@ -6,7 +6,9 @@ use std::cmp::Ordering;
 use std::fmt::Display;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
+use crate::admission::admission_strategy::AdmissionStrategy;
 use crate::error::TectonicError;
+use crate::eviction::eviction_strategy::EvictionStrategy;
 use crate::location::location_entry::{ShardEntry};
 use crate::utility::typings::DimVector;
 
@@ -55,6 +57,33 @@ impl UniqueID {
             slot_id: slot,
             gen_id: generation,
         }
+    }
+}
+
+pub struct  StrategyStructure {
+    admission: Box<dyn AdmissionStrategy>,
+    eviction: Box<dyn EvictionStrategy>,
+}
+
+impl StrategyStructure {
+    #[inline]
+    pub fn get_admission(&self) -> &dyn AdmissionStrategy {
+        self.admission.as_ref()
+    }
+
+    #[inline]
+    pub fn get_admission_mut(&mut self) -> &mut dyn AdmissionStrategy {
+        self.admission.as_mut()
+    }
+
+    #[inline]
+    pub fn get_eviction(&self) -> &dyn EvictionStrategy {
+        self.eviction.as_ref()
+    }
+
+    #[inline]
+    pub fn get_eviction_mut(&mut self) -> &mut dyn EvictionStrategy {
+        self.eviction.as_mut()
     }
 }
 
