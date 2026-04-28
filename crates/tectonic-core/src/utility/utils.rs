@@ -6,9 +6,18 @@ use std::cmp::Ordering;
 use std::fmt::Display;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use crate::admission::admission_strategy::AdmissionStrategy;
+use crate::admission::admission_strategy::{Admission, AdmissionStrategy};
+use crate::admission::always_admission::AlwaysAdmission;
+use crate::admission::tinylfu_admission::TinyLFUAdmission;
+use crate::admission::twohit_admission::TwoHitAdmission;
+use crate::admission::windowlfu_admission::WindowTinyLFUAdmisssion;
 use crate::error::TectonicError;
-use crate::eviction::eviction_strategy::EvictionStrategy;
+use crate::eviction::eviction_strategy::{Eviction, EvictionStrategy};
+use crate::eviction::partitioned_fifo::PartitionedFIFO;
+use crate::eviction::partitioned_lifo::PartitionedLIFO;
+use crate::eviction::partitioned_lru::PartitionedLRU;
+use crate::eviction::segmented_lru::SegmentedLRU;
+use crate::eviction::varc::VARC;
 use crate::location::location_entry::{ShardEntry};
 use crate::utility::typings::DimVector;
 
@@ -84,6 +93,45 @@ impl StrategyStructure {
     #[inline]
     pub fn get_eviction_mut(&mut self) -> &mut dyn EvictionStrategy {
         self.eviction.as_mut()
+    }
+}
+
+#[inline]
+fn build_admission_strategy(strategy: Admission) -> Box<dyn AdmissionStrategy> {
+    match strategy {
+        Admission::Always => {
+            Box::new(AlwaysAdmission::new())
+        },
+        Admission::TwoHit => {
+            Box::new(TwoHitAdmission::new())
+        },
+        Admission::TinyLFU => {
+            Box::new(TinyLFUAdmission::new())
+        },
+        Admission::WeightedTinyLFU => {
+            Box::new(WindowTinyLFUAdmisssion::new())
+        }
+    }
+}
+
+#[inline]
+fn build_eviction_strategy(strategy: Eviction) -> Box<dyn EvictionStrategy> {
+    match strategy {
+        Eviction::PartitionedLIFO => {
+            Box::new(PartitionedLIFO::new())
+        },
+        Eviction::PartitionedFIFO => {
+            Box::new(PartitionedFIFO::new())
+        },
+        Eviction::PartitionedLRU => {
+            Box::new(PartitionedLRU::new())
+        },
+        Eviction::SegmentedLRU => {
+            Box::new(SegmentedLRU::new())
+        },
+        Eviction::VARC => {
+            Box::new(VARC::new())
+        }
     }
 }
 

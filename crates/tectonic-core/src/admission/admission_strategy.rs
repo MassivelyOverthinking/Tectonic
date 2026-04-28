@@ -13,11 +13,11 @@ use crate::utility::utils::UniqueID;
 #[allow(dead_code)]
 pub enum Admission {
     Always,
-    Threshold,
+    // Threshold (DEPRECATED),
     TwoHit,
     TinyLFU,
     WeightedTinyLFU,
-    SemAware,
+    // SemAware (DEPRECATED),
 }
 
 #[derive(Debug, Clone, Copy)]

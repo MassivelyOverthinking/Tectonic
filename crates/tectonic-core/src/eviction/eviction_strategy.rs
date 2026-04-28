@@ -17,7 +17,7 @@ pub enum Eviction {
     PartitionedLRU,         // Simple partition-related LRU eviction strategy.
     SegmentedLRU,           // A segmented LRU strategy.
     VARC,                   // A Vector-aware and partition-related ARC strategy.
-    SemAware,               // Semantically-aware eviction policy.
+    // SemAware (DEPRECATED),               // Semantically-aware eviction policy.
 }
 
 #[allow(dead_code)]

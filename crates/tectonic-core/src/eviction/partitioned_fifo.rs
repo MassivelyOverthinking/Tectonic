@@ -12,7 +12,7 @@ use crate::{eviction::eviction_strategy::EvictionStrategy, utility::{structures:
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-struct PartitionedFIFO {
+pub struct PartitionedFIFO {
     // Possibly user "OrderedHashmap" or "IndexMap" for O(1) lookup.
     stack: TectonicDoublyLinkedList,
     index_map: HashMap<UniqueID, NodeValue>,

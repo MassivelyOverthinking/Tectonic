@@ -12,7 +12,7 @@ use crate::{eviction::eviction_strategy::EvictionStrategy, utility::{structures:
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-struct PartitionedLRU {
+pub struct PartitionedLRU {
     stack: TectonicDoublyLinkedList,
     index_map: HashMap<UniqueID, NodeValue>
 }
