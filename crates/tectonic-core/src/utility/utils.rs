@@ -69,12 +69,71 @@ impl UniqueID {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct StrategyConfig {
+    admission_policy: Admission,
+    eviction_policy: Eviction,
+    capacity: usize,
+
+    // Admission Parameters
+    threshold: f32,
+    tiny_lfu_width: usize,
+    tiny_lfu_depth: usize,
+    tiny_lfu_frequency: u8,
+    window_capacity: usize,
+}
+
+impl StrategyConfig {
+    #[inline]
+    pub fn new(admission_policy: Admission, eviction_policy: Eviction, capacity: usize) -> Self {
+        Self { 
+            admission_policy, 
+            eviction_policy, 
+            capacity, 
+            threshold: 0.0, 
+            tiny_lfu_width: 4096, 
+            tiny_lfu_depth: 4, 
+            tiny_lfu_frequency: 2, 
+            window_capacity: 256, 
+        }
+    }
+
+    #[inline]
+    fn debug_assertions_state(&self) {
+        debug_assert!(self.capacity > 0, "Strategy Config capacity must exceed 0");
+        debug_assert!(self.threshold.is_finite(), "Strategy Config threshold must be initie");
+        debug_assert!(self.tiny_lfu_width > 0, "Strategy Config widtd must exceed 0");
+        debug_assert!(self.tiny_lfu_depth > 0, "Strategy Config depth must exceed 0");
+        debug_assert!(self.tiny_lfu_frequency > 0, "Strategy Config frequncy must exceed 0");
+        debug_assert!(self.window_capacity > 0, "Strategy Config window capacity must exceed 0");
+    }
+}
+
 pub struct  StrategyStructure {
     admission: Box<dyn AdmissionStrategy>,
     eviction: Box<dyn EvictionStrategy>,
 }
 
 impl StrategyStructure {
+    #[inline]
+    pub fn new(admission: Box<dyn AdmissionStrategy>, eviction: Box<dyn EvictionStrategy>) -> Self {
+        Self { 
+            admission, 
+            eviction 
+        }
+    }
+
+    #[inline]
+    pub fn from_config(config: StrategyConfig) -> Self {
+        #[cfg(debug_assertions)]
+        config.debug_assertions_state();
+
+        Self { 
+            admission: build_admission_strategy(&config), 
+            eviction: build_eviction_strategy(&config), 
+        }
+    }
+
     #[inline]
     pub fn get_admission(&self) -> &dyn AdmissionStrategy {
         self.admission.as_ref()
@@ -97,40 +156,49 @@ impl StrategyStructure {
 }
 
 #[inline]
-fn build_admission_strategy(strategy: Admission) -> Box<dyn AdmissionStrategy> {
-    match strategy {
+fn build_admission_strategy(config: &StrategyConfig) -> Box<dyn AdmissionStrategy> {
+    match config.admission_policy {
         Admission::Always => {
             Box::new(AlwaysAdmission::new())
         },
         Admission::TwoHit => {
-            Box::new(TwoHitAdmission::new())
+            Box::new(TwoHitAdmission::with_capacity(config.window_capacity))
         },
         Admission::TinyLFU => {
-            Box::new(TinyLFUAdmission::new())
+            Box::new(TinyLFUAdmission::with_params(
+                config.tiny_lfu_width, 
+                config.tiny_lfu_depth, 
+                config.tiny_lfu_frequency
+            ))
         },
         Admission::WeightedTinyLFU => {
-            Box::new(WindowTinyLFUAdmisssion::new())
+            Box::new(WindowTinyLFUAdmisssion::with_params(
+                config.tiny_lfu_width, 
+                config.tiny_lfu_depth, 
+                config.window_capacity, 
+                config.tiny_lfu_frequency,
+            ))
         }
     }
 }
 
 #[inline]
-fn build_eviction_strategy(strategy: Eviction) -> Box<dyn EvictionStrategy> {
-    match strategy {
+fn build_eviction_strategy(config: &StrategyConfig) -> Box<dyn EvictionStrategy> {
+    match config.eviction_policy {
         Eviction::PartitionedLIFO => {
-            Box::new(PartitionedLIFO::new())
+            Box::new(PartitionedLIFO::with_capacity(config.capacity))
         },
         Eviction::PartitionedFIFO => {
-            Box::new(PartitionedFIFO::new())
+            Box::new(PartitionedFIFO::with_capacity(config.capacity, config.capacity))
         },
         Eviction::PartitionedLRU => {
-            Box::new(PartitionedLRU::new())
+            Box::new(PartitionedLRU::with_capacity(config.capacity))
         },
         Eviction::SegmentedLRU => {
-            Box::new(SegmentedLRU::new())
+            Box::new(SegmentedLRU::with_capacity(config.capacity))
         },
         Eviction::VARC => {
-            Box::new(VARC::new())
+            Box::new(VARC::with_capacity(config.capacity))
         }
     }
 }
