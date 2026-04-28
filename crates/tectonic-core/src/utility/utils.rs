@@ -6,18 +6,7 @@ use std::cmp::Ordering;
 use std::fmt::Display;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use crate::admission::admission_strategy::{Admission, AdmissionStrategy};
-use crate::admission::always_admission::AlwaysAdmission;
-use crate::admission::tinylfu_admission::TinyLFUAdmission;
-use crate::admission::twohit_admission::TwoHitAdmission;
-use crate::admission::windowlfu_admission::WindowTinyLFUAdmisssion;
 use crate::error::TectonicError;
-use crate::eviction::eviction_strategy::{Eviction, EvictionStrategy};
-use crate::eviction::partitioned_fifo::PartitionedFIFO;
-use crate::eviction::partitioned_lifo::PartitionedLIFO;
-use crate::eviction::partitioned_lru::PartitionedLRU;
-use crate::eviction::segmented_lru::SegmentedLRU;
-use crate::eviction::varc::VARC;
 use crate::location::location_entry::{ShardEntry};
 use crate::utility::typings::DimVector;
 
