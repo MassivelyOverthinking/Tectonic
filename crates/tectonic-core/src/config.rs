@@ -42,24 +42,46 @@ impl CacheConfig {
 
     // Validation-method for CacheConfig to ensure parameter integrity.
     pub fn validate(&self) -> Result<(), TectonicError> {
-        if self.max_entries <= 0 { 
+        if self.max_entries == 0 { 
             return Err(TectonicError::InvalidParamaterError { param: "Max Entries", issue: "be a Positive Integer" }); 
         }
-        if self.num_partitions <= 0 {
+        if self.num_partitions == 0 {
             return Err(TectonicError::InvalidParamaterError { param: "Number of partitions", issue: "be a Positive Integer" }); 
         }
-        if self.num_shards <= 0 {
+        if self.num_shards == 0 {
             return Err(TectonicError::InvalidParamaterError { param: "Number of shards", issue: "be a Positive Integer" });
         }
-        if self.routing.search_partitions <= 0 {
+        if self.routing.search_partitions == 0 {
             return Err(TectonicError::InvalidParamaterError { param: "Search partitions", issue: "be a Positive Integer" });
         }
         if self.routing.search_partitions > self.num_partitions {
             return Err(TectonicError::InvalidParamaterError { param: "Search partitions", issue: "not be greater than number of partitions" }); 
         }
 
+        if self.strategy.capacity > self.max_entries {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "Strategy Capacity", 
+                issue: "Must not exceed Max Entries" 
+            });
+        }
+
         self.strategy.validate()?;
+
         Ok(())
+    }
+
+    pub fn debug_summary(&self) -> String {
+        format!(
+            "CacheConfig {{ max_entries: {}, partitions: {}, shards: {}, search_partitions: {}, admission: {:?}, eviction: {:?}, strategy_capacity: {}, metrics: {} }}",
+            self.max_entries,
+            self.num_partitions,
+            self.num_shards,
+            self.routing.search_partitions,
+            self.strategy.admission_policy,
+            self.strategy.eviction_policy,
+            self.strategy.capacity,
+            self.metrics.metrics_enabled,
+        )
     }
 }
 
@@ -87,7 +109,7 @@ pub struct CacheConfigBuilder {
     window_capacity: Option<usize>,
 
     search_partitions: Option<usize>,
-    coopoerative: Option<bool>,
+    cooperative: Option<bool>,
 
     hysteresis: Option<f32>,
     move_cooldown: Option<usize>,
@@ -138,7 +160,7 @@ impl CacheConfigBuilder {
     }
 
     pub fn admission_width(mut self, value: usize) -> Self {
-        self.admission_depth = Some(value);
+        self.admission_width = Some(value);
         self
     }
 
@@ -162,8 +184,8 @@ impl CacheConfigBuilder {
         self
     }
 
-    pub fn coopoerative(mut self, value: bool) -> Self {
-        self.coopoerative = Some(value);
+    pub fn cooperative(mut self, value: bool) -> Self {
+        self.cooperative = Some(value);
         self
     }
 
@@ -198,9 +220,8 @@ impl CacheConfigBuilder {
         const DEFAULT_SHARDS: usize = 1;
         const DEFAULT_DISTANCE_METRIC: DistanceMetric = DistanceMetric::Euclidean;
         const DEFAULT_SIM_THRESHOLD: f32 = 0.0;
-        const DEFAULT_EVICTION: Eviction = Eviction::PartitionedLRU;
         const DEFAULT_SEARCH_PARTITIONS: usize = 3;
-        const DEFAULT_COOPOERATIVE: bool = true;
+        const DEFAULT_COOPERATIVE: bool = true;
         const DEFAULT_HYSTERESIS: f32 = 0.2;
         const DEFAULT_MOVE_COOLDOWN: usize = 10_000;
         const DEFAULT_STEP_COOLDOWN: usize = 0;
@@ -215,18 +236,38 @@ impl CacheConfigBuilder {
             similarity_threshold: self.similarity_threshold.unwrap_or(DEFAULT_SIM_THRESHOLD)
         };
 
-        let strategy_config = StrategyConfig::new(
+        let mut strategy_config = StrategyConfig::new(
             self.admission_strategy.unwrap_or(DEFAULT_ADMISSON_STRATEGY), 
             self.eviction_strategy.unwrap_or(DEFAULT_EVICTION_STRATEGY), 
             self.strategy_capacity.unwrap_or(max_entries),
         );
+
+        if let Some(value) = self.admission_threshold {
+            strategy_config.threshold = value;
+        }
+
+        if let Some(value) = self.admission_width {
+            strategy_config.tiny_lfu_width = value;
+        }
+
+        if let Some(value) = self.admission_depth {
+            strategy_config.tiny_lfu_depth = value;
+        }
+
+        if let Some(value) = self.admission_frequency {
+            strategy_config.tiny_lfu_frequency = value;
+        }
+
+        if let Some(value) = self.window_capacity {
+            strategy_config.window_capacity = value;
+        }
 
         let routing_config = RoutingConfig {
             search_partitions: self.search_partitions.unwrap_or(DEFAULT_SEARCH_PARTITIONS)
         };
 
         let maintenance_config = MaintenanceConfig {
-            coopoerative: self.coopoerative.unwrap_or(DEFAULT_COOPOERATIVE),
+            cooperative: self.cooperative.unwrap_or(DEFAULT_COOPERATIVE),
             hysteresis: self.hysteresis.unwrap_or(DEFAULT_HYSTERESIS),
             move_cooldown: self.move_cooldown.unwrap_or(DEFAULT_MOVE_COOLDOWN),
             step_cooldown: self.step_cooldown.unwrap_or(DEFAULT_STEP_COOLDOWN)
@@ -260,12 +301,6 @@ pub struct SearchConfig {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub struct EvictionConfig {
-    pub eviction_strategy: Eviction,
-}
-
-#[derive(Debug, Clone)]
 pub struct RoutingConfig {
     search_partitions: usize
 }
@@ -273,7 +308,7 @@ pub struct RoutingConfig {
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct MaintenanceConfig {
-    coopoerative: bool,
+    cooperative: bool,
     hysteresis: f32,
     move_cooldown: usize,
     step_cooldown: usize,
@@ -314,6 +349,21 @@ impl StrategyConfig {
             tiny_lfu_frequency: 2, 
             window_capacity: 256, 
         }
+    }
+
+    #[inline]
+    pub fn admission_policy(&self) -> Admission {
+        self.admission_policy
+    }
+
+    #[inline]
+    pub fn eviction_policy(&self) -> Eviction {
+        self.eviction_policy
+    }
+
+    #[inline]
+    pub fn capacity(&self) -> usize {
+        self.capacity
     }
 
     #[inline]
@@ -360,17 +410,14 @@ impl StrategyConfig {
             });
         }
 
-        Ok(())
-    }
+        if self.window_capacity > self.capacity {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "Window Capacity", 
+                issue: "Must not exceed strategy capacity" 
+            });
+        }
 
-    #[inline]
-    fn debug_assertions_state(&self) {
-        debug_assert!(self.capacity > 0, "Strategy Config capacity must exceed 0");
-        debug_assert!(self.threshold.is_finite(), "Strategy Config threshold must be initie");
-        debug_assert!(self.tiny_lfu_width > 0, "Strategy Config widtd must exceed 0");
-        debug_assert!(self.tiny_lfu_depth > 0, "Strategy Config depth must exceed 0");
-        debug_assert!(self.tiny_lfu_frequency > 0, "Strategy Config frequncy must exceed 0");
-        debug_assert!(self.window_capacity > 0, "Strategy Config window capacity must exceed 0");
+        Ok(())
     }
 }
 
@@ -391,14 +438,13 @@ impl StrategyStructure {
     }
 
     #[inline]
-    pub fn from_config(config: StrategyConfig) -> Self {
-        #[cfg(debug_assertions)]
-        config.debug_assertions_state();
+    pub fn from_config(config: StrategyConfig) -> Result<Self, TectonicError> {
+        config.validate()?;
 
-        Self { 
+        Ok(Self { 
             admission: build_admission_strategy(&config), 
             eviction: build_eviction_strategy(&config), 
-        }
+        })
     }
 
     #[inline]
