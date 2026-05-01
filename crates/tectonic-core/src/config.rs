@@ -26,9 +26,8 @@ pub struct CacheConfig {
     pub max_entries: usize,
     pub num_partitions: usize,
     pub num_shards: usize,
-    pub quantization_enabled: bool,
     pub search: SearchConfig,
-    pub eviction: EvictionConfig,
+    pub strategy: StrategyConfig,
     pub routing: RoutingConfig,
     pub maintenance: MaintenanceConfig,
     pub metrics: MetricsConfig,
@@ -72,12 +71,22 @@ pub struct CacheConfigBuilder {
     max_entries: Option<usize>,
     num_partitions: Option<usize>,
     num_shards: Option<usize>,
-    quantization_enabled: Option<bool>,
+    
     distance_metric: Option<DistanceMetric>,
     similarity_threshold: Option<f32>,
+
+    admission_strategy: Option<Admission>,
     eviction_strategy: Option<Eviction>,
+    strategy_capacity: Option<usize>,
+    admission_threshold: Option<f32>,
+    admission_width: Option<usize>,
+    admission_depth: Option<usize>,
+    admission_frequency: Option<u8>,
+    window_capacity: Option<usize>,
+
     search_partitions: Option<usize>,
     coopoerative: Option<bool>,
+
     hysteresis: Option<f32>,
     move_cooldown: Option<usize>,
     step_cooldown: Option<usize>,
@@ -101,18 +110,48 @@ impl CacheConfigBuilder {
         self
     }
 
-    pub fn quantization_enabled(mut self, value: bool) -> Self {
-        self.quantization_enabled = Some(value);
-        self
-    }
-
     pub fn distance_metric(mut self, value: DistanceMetric) -> Self {
         self.distance_metric = Some(value);
         self
     }
 
+    pub fn admission_strategy(mut self, value: Admission) -> Self {
+        self.admission_strategy = Some(value);
+        self
+    }
+
     pub fn eviction_strategy(mut self, value: Eviction) -> Self {
         self.eviction_strategy = Some(value);
+        self
+    }
+
+    pub fn strategy_capacity(mut self, value: usize) -> Self {
+        self.strategy_capacity = Some(value);
+        self
+    }
+
+    pub fn admission_threshold(mut self, value: f32) -> Self {
+        self.admission_threshold = Some(value);
+        self
+    }
+
+    pub fn admission_width(mut self, value: usize) -> Self {
+        self.admission_depth = Some(value);
+        self
+    }
+
+    pub fn admission_depth(mut self, value: usize) -> Self {
+        self.admission_depth = Some(value);
+        self
+    }
+
+    pub fn admission_frequency(mut self, value: u8) -> Self {
+        self.admission_frequency = Some(value);
+        self
+    }
+
+    pub fn window_capacity(mut self, value: usize) -> Self {
+        self.window_capacity = Some(value);
         self
     }
 
@@ -164,19 +203,21 @@ impl CacheConfigBuilder {
         const DEFAULT_MOVE_COOLDOWN: usize = 10_000;
         const DEFAULT_STEP_COOLDOWN: usize = 0;
         const DEFAULT_METRICS_ENABLED: bool = true;
-        const DEFAULT_QUANTIZATION_ENABLED: bool = false;
+        const DEFAULT_ADMISSON_STRATEGY: Admission = Admission::WeightedTinyLFU;
+        const DEFAULT_EVICTION_STRATEGY: Eviction = Eviction::VARC;
 
         let num_shards = self.num_shards.unwrap_or(DEFAULT_SHARDS);
-        let quantization_enabled = self.quantization_enabled.unwrap_or(DEFAULT_QUANTIZATION_ENABLED);
 
         let search_config = SearchConfig {
             distance_metric: self.distance_metric.unwrap_or(DEFAULT_DISTANCE_METRIC),
             similarity_threshold: self.similarity_threshold.unwrap_or(DEFAULT_SIM_THRESHOLD)
         };
 
-        let eviction_config = EvictionConfig {
-            eviction_strategy: self.eviction_strategy.unwrap_or(DEFAULT_EVICTION)
-        };
+        let strategy_config = StrategyConfig::new(
+            self.admission_strategy.unwrap_or(DEFAULT_ADMISSON_STRATEGY), 
+            self.eviction_strategy.unwrap_or(DEFAULT_EVICTION_STRATEGY), 
+            self.strategy_capacity.unwrap_or(max_entries),
+        );
 
         let routing_config = RoutingConfig {
             search_partitions: self.search_partitions.unwrap_or(DEFAULT_SEARCH_PARTITIONS)
@@ -197,9 +238,8 @@ impl CacheConfigBuilder {
             max_entries: max_entries,
             num_partitions: num_partitions,
             num_shards: num_shards,
-            quantization_enabled: quantization_enabled,
             search: search_config,
-            eviction: eviction_config,
+            strategy: strategy_config,
             routing: routing_config,
             maintenance: maintenance_config,
             metrics: metrics_config
@@ -244,6 +284,7 @@ pub struct MetricsConfig {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct StrategyConfig {
     admission_policy: Admission,
     eviction_policy: Eviction,
@@ -257,6 +298,7 @@ pub struct StrategyConfig {
     window_capacity: usize,
 }
 
+#[allow(dead_code)]
 impl StrategyConfig {
     #[inline]
     pub fn new(admission_policy: Admission, eviction_policy: Eviction, capacity: usize) -> Self {
@@ -283,11 +325,13 @@ impl StrategyConfig {
     }
 }
 
+#[allow(dead_code)]
 pub struct  StrategyStructure {
     admission: Box<dyn AdmissionStrategy>,
     eviction: Box<dyn EvictionStrategy>,
 }
 
+#[allow(dead_code)]
 impl StrategyStructure {
     #[inline]
     pub fn new(admission: Box<dyn AdmissionStrategy>, eviction: Box<dyn EvictionStrategy>) -> Self {
