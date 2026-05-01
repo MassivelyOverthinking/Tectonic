@@ -57,6 +57,8 @@ impl CacheConfig {
         if self.routing.search_partitions > self.num_partitions {
             return Err(TectonicError::InvalidParamaterError { param: "Search partitions", issue: "not be greater than number of partitions" }); 
         }
+
+        self.strategy.validate()?;
         Ok(())
     }
 }
@@ -312,6 +314,53 @@ impl StrategyConfig {
             tiny_lfu_frequency: 2, 
             window_capacity: 256, 
         }
+    }
+
+    #[inline]
+    pub fn validate(&self) -> Result<(), TectonicError> {
+        if self.capacity == 0 {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "Strategy Capacity", 
+                issue: "Must be a positive Integer"
+            });
+        }
+
+        if !self.threshold.is_finite() {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "Strategy Threshold", 
+                issue: "Must be finite" 
+            });
+        }
+
+        if self.tiny_lfu_width == 0 {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "TinyLFU Width", 
+                issue: "Must be a postive integer" 
+            });
+        }
+
+        if self.tiny_lfu_depth == 0 {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "TinyLFU Depth", 
+                issue: "Must be a postive integer" 
+            });
+        }
+
+        if self.tiny_lfu_frequency == 0 {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "TinyLFU frequency", 
+                issue: "Must be a postive integer" 
+            });
+        }
+
+        if self.window_capacity == 0 {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "Window Capacity", 
+                issue: "Must be a postive integer" 
+            });
+        }
+
+        Ok(())
     }
 
     #[inline]
