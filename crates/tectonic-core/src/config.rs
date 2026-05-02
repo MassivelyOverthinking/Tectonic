@@ -107,6 +107,20 @@ impl CacheConfig {
             });
         }
 
+        if !self.search.similarity_threshold.is_finite() {
+            return Err(TectonicError::InvalidParamaterError {
+                param: "Similarity threshold", 
+                issue: "Must be a finite integer" 
+            });
+        }
+
+        if !self.maintenance.hysteresis {
+            return Err(TectonicError::InvalidParamaterError {
+                param: "Hysteresis",
+                issue: "Must be finite" 
+            });
+        }
+
         self.strategy.validate()?;
 
         Ok(())
