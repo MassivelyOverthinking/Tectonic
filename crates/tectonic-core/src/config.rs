@@ -114,13 +114,6 @@ impl CacheConfig {
             });
         }
 
-        if !self.maintenance.hysteresis {
-            return Err(TectonicError::InvalidParamaterError {
-                param: "Hysteresis",
-                issue: "Must be finite" 
-            });
-        }
-
         self.strategy.validate()?;
 
         Ok(())
