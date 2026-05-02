@@ -19,7 +19,41 @@ use crate::eviction::varc::VARC;
 // ============================================================
 // INTERNAL CONFIGURATION OBJECTS
 // ============================================================
+// Configuration, Building & Stragety construction for main Vector Cache
+// ---
+// This module owns the initialization path for `VectorCache`.
+// It converts user-facing builder parameters into validated internal
+// configuration objects and constructs admission/eviction strategy
+// implementations from those configurations.
+// ---
+// The configuration layer holds 3 main responsibilities:
+// 1. Provide a stable and reliable Builder API for cache initialization.
+// 2. Perform parameter validation before cache initialization.
+// 3. Materialize complete function-ready vector cache object.
+// ---
+// All paramater validation is performed before cache-object initialization
+// so that invalid runtime states are rejected rearly and consistently.
 
+
+// Fully resolved configuration object for main `VectorCache`.
+// ---
+// `CacheConfig` is the immutable runtime configuration produced by
+// `CacheConfigBuilder`. All optional builder parameters are resolved into
+// concrete values before this type is returned.
+// ---
+// This type should be treated as the single source of truth during cache
+// initialization. Any component that depends on capacity, routing, search,
+// maintenance, metrics, admission, or eviction behavior should read from this
+// object instead of duplicating configuration state.
+// ---
+// Invariants:
+// - `max_entries > 0`
+// - `num_partitions > 0`
+// - `num_shards > 0`
+// - `routing.search_partitions > 0`
+// - `routing.search_partitions <= num_partitions`
+// - `strategy.capacity <= max_entries`
+// - `strategy.validate()` succeeds
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct CacheConfig {
@@ -40,7 +74,15 @@ impl CacheConfig {
         CacheConfigBuilder::default()
     }
 
-    // Validation-method for CacheConfig to ensure parameter integrity.
+    // Validates the fully resolved cache configuration.
+    // ---
+    // This method enforces cross-field invariants that cannot be checked by
+    // individual builder setters. It should be called exactly once before
+    // constructing runtime cache structures.
+    // ---
+    // Validation is intentionally strict: invalid configuration should fail during
+    // initialization rather than causing degraded recall, unbounded memory growth,
+    // panics, or inconsistent eviction behavior later.
     pub fn validate(&self) -> Result<(), TectonicError> {
         if self.max_entries == 0 { 
             return Err(TectonicError::InvalidParamaterError { param: "Max Entries", issue: "be a Positive Integer" }); 
@@ -89,6 +131,22 @@ impl CacheConfig {
 // INTERNAL BUILDER
 // ============================================================
 
+// Builder pattern constructor for producing a validated `CacheConfig`.
+// ---
+// The Builder-pattern separates required parameters from tunable defaults.
+// `max_entries` and `num_partitions` are required because they define the
+// physical cache size and partitioning model. Other fields have production
+// defaults suitable for a high-throughput cache.
+// ---
+// Validation is deferred until `build()` so callers can configure fields in
+// any order.
+// ---
+// Default strategy:
+// - Admission: `Admission::WeightedTinyLFU`
+// - Eviction: `Eviction::VARC`
+// - Strategy capacity: `max_entries`
+// - Search partitions: `3`
+// - Shards: `1`
 #[derive(Default)]
 #[allow(dead_code)]
 pub struct CacheConfigBuilder {
@@ -119,16 +177,29 @@ pub struct CacheConfigBuilder {
 
 #[allow(dead_code)]
 impl CacheConfigBuilder {
+    // Sets the maximum number of vector entries the cache may hold.
+    // ---
+    // This is the primary capacity bound for the cache. Unless
+    // `strategy_capacity()` is explicitly set, this value is also used as the
+    // capacity for the admission/eviction strategy layer.
     pub fn max_entries(mut self, value: usize) -> Self { 
         self.max_entries = Some(value); 
         self
     }
 
+    // Sets the number of IVF-style partitions used for vector routing.
+    // ---
+    // More partitions can reduce candidate-set size during lookup, but may
+    // increase maintenance overhead and routing complexity.
     pub fn num_partitions(mut self, value: usize) -> Self {
         self.num_partitions = Some(value);
         self
     }
 
+    // Sets the number of independent shards used by the cache.
+    // ---
+    // Sharding can improve write/read concurrency, but excessive shard counts may
+    // increase memory overhead and reduce per-shard locality.
     pub fn num_shards(mut self, value: usize) -> Self {
         self.num_shards = Some(value);
         self
@@ -139,16 +210,29 @@ impl CacheConfigBuilder {
         self
     }
 
+    // Sets the admission policy used to decide whether a candidate should enter the cache.
+    // ---
+    // TinyLFU-style policies are better for protecting the cache from one-off
+    // accesses, while `Always` is simpler and cheaper but less selective.
     pub fn admission_strategy(mut self, value: Admission) -> Self {
         self.admission_strategy = Some(value);
         self
     }
 
+    // Sets the eviction policy used when the cache is at capacity.
+    // ---
+    // The eviction policy determines which resident item is removed when a new
+    // item is admitted and capacity has been reached.
     pub fn eviction_strategy(mut self, value: Eviction) -> Self {
         self.eviction_strategy = Some(value);
         self
     }
 
+    // Sets the capacity used by the admission/eviction strategy layer.
+    // ---
+    // This defaults to `max_entries`. It should usually not exceed `max_entries`,
+    // because the strategy layer should not believe it can retain more entries
+    // than the cache itself can store.    
     pub fn strategy_capacity(mut self, value: usize) -> Self {
         self.strategy_capacity = Some(value);
         self
@@ -159,26 +243,46 @@ impl CacheConfigBuilder {
         self
     }
 
+    // Sets the width of the TinyLFU frequency sketch.
+    // ---
+    // Larger widths reduce hash collisions and improve frequency estimation
+    // accuracy, but consume more memory.
     pub fn admission_width(mut self, value: usize) -> Self {
         self.admission_width = Some(value);
         self
     }
 
+    // Sets the depth of the TinyLFU frequency sketch.
+    // --- 
+    // Larger depths improve robustness against collisions, but increase update
+    // cost and memory usage.
     pub fn admission_depth(mut self, value: usize) -> Self {
         self.admission_depth = Some(value);
         self
     }
 
+    // Sets the minimum frequency threshold used by TinyLFU-style admission.
+    // ---
+    // This controls how aggressively the admission layer rejects low-frequency
+    // items. The value must be finite.
     pub fn admission_frequency(mut self, value: u8) -> Self {
         self.admission_frequency = Some(value);
         self
     }
 
+    // Sets the size of the admission window used by windowed TinyLFU policies.
+    // ---
+    // The window allows new items to prove utility before competing with the main
+    // cache. It must be greater than zero and must not exceed strategy capacity.
     pub fn window_capacity(mut self, value: usize) -> Self {
         self.window_capacity = Some(value);
         self
     }
 
+    // Sets how many partitions are searched per lookup.
+    // ---
+    // Higher values improve recall but increase query latency. This value must be
+    // greater than zero and must not exceed `num_partitions`.
     pub fn search_partitions(mut self, value: usize) -> Self {
         self.search_partitions = Some(value);
         self
