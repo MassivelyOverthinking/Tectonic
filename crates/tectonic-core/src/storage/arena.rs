@@ -13,6 +13,26 @@ use crate::utility::utils::UniqueID;
 // ============================================================
 // VECTOR STORAGE (ARENA)
 // ============================================================
+// Fixed-size (static) vector Arena/Slab used as the primary storage for vector entries.
+// ---
+// `VectorArena` owns the actual vector data stored in the main cache. Each vector entry
+// is placed into a stable slot-object, and granted a unique ID value for consistency-checking
+// based on generational-counting.
+// The VectorArena is designed to be a secure and stable storage layer for efficient vector management.
+// ---
+// The Arena/Slab structure utilizes a free-list to track availability  without removing existing
+// resident vector entries. This provides the Arena/Slab with stable indicies for efficient
+// vector retrieval, replacement, insertions and duplicate handling.
+// --- 
+// Invariants:
+// 1. size <= capacity
+// 2. free-list indicies always point to empty slots (vector == None)
+// 3. free_list indcies are always within bounds of the arena vector (index < capacity)
+// ---
+// Performance:
+// - Insert: O(1)
+// - Remove: O(1)
+// - Index Lookup: O(1)
 
 #[derive(Debug, Clone)]
 pub struct VectorArena<const D: usize> {
@@ -22,6 +42,10 @@ pub struct VectorArena<const D: usize> {
     free_list: Vec<usize>,
     arena: Vec<ArenaSlot<D>>
 }
+
+// ============================================================
+// VECTOR SLAB: CONSTRUCTORS
+// ============================================================
 
 #[allow(dead_code)]
 impl<const D: usize> VectorArena<D> {
@@ -41,6 +65,18 @@ impl<const D: usize> VectorArena<D> {
         })
     }
 
+    // ============================================================
+    // VECTOR SLAB: METHODS
+    // ============================================================
+
+    // Inserts new vector entry into the stable Arena/Slab structure and returns the index.
+    // ---
+    // The Arena/Slab first attempts to reuse previously freed slots by checking internal free-list.
+    // If no reusable slots exists, the Arena/Slab proceeds to utilise the next available index.
+    // ---
+    // Returns:
+    // - Ok(index) => The Arean/Slab index where the vector entry was inserted.
+    // - Err(TectonicError) => If the Arena/Slab is full or due to inconsistencies.
     pub fn insert(&mut self, value: DimVector<D>, metrics_enabled: bool) -> Result<usize, TectonicError> {
         // Check if the internal Slab/Arena structure is currently full.
         if self.is_full() {
@@ -82,6 +118,15 @@ impl<const D: usize> VectorArena<D> {
         Ok(index)
     }
 
+    // Removes vector entry from the Arena/Slab based on provided index and unique ID.
+    // ---
+    // Removal validates the internal vector identity before freeing the slot. This validation 
+    // check ensure that only the intended vector entry is removed, 
+    // preventing accidental overwrites or data loss.
+    // ---
+    // Returns:
+    // - Ok(true) => The vector entry was successfully removed.
+    // - Err(TectonicError) => If the requested entry was not found or ID mismatch.
     pub fn remove(&mut self, id: UniqueID, index: usize) -> Result<bool, TectonicError> {
         let slot_value = self.arena.get_mut(index)
             .ok_or(TectonicError::ArenaError { 
@@ -199,6 +244,10 @@ impl<const D: usize> VectorArena<D> {
         Ok(vector_id)       // Returns Vector-ID for clarity & debugging.
     }
 
+    // ============================================================
+    // VECTOR SLAB: HELPER METHODS
+    // ============================================================
+
     pub fn load_factor(&self) -> f32 {
         // Helper-method for checking the current availability of the Arena/Slab.
         (self.size as f32 / self.capacity as f32) * 100.0
@@ -238,6 +287,10 @@ impl<const D: usize> VectorArena<D> {
         self.next_index += 1;
         current_index
     }
+
+    // ============================================================
+    // VECTOR SLAB: DEBUGGING
+    // ============================================================
 
     pub fn debug_assertions_validate(&self) -> Result<(), TectonicError> {
         if self.size > self.capacity {
