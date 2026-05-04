@@ -2,7 +2,6 @@
 // IMPORTS AND MODULES
 // ============================================================
 
-use std::collections::VecDeque;
 use std::iter::repeat_with;
 use crate::location::location_slab::LocationEntry;
 use crate::storage::slot::ArenaSlot;
@@ -18,13 +17,30 @@ use crate::utility::utils::UniqueID;
 #[derive(Debug, Clone)]
 pub struct VectorArena<const D: usize> {
     capacity: usize,
-    pub size: usize,
-    free_list: VecDeque<usize>,
-    pub arena: Vec<ArenaSlot<D>>
+    next_index: usize,
+    size: usize,
+    free_list: Vec<usize>,
+    arena: Vec<ArenaSlot<D>>
 }
 
 #[allow(dead_code)]
 impl<const D: usize> VectorArena<D> {
+    pub fn with_capacity(max_entries: usize) -> Result<Self, TectonicError> {
+        if max_entries == 0 {
+            return Err(TectonicError::ArenaError { 
+                message: "Capacity must be greater than zero" 
+            });
+        }
+
+        Ok(Self { 
+            capacity: max_entries,
+            next_index: 0,
+            size: 0,
+            free_list: Vec::new(),
+            arena: repeat_with(|| ArenaSlot::<D>::default()).take(max_entries).collect()
+        })
+    }
+
     pub fn insert(&mut self, value: DimVector<D>, metrics_enabled: bool) -> Result<usize, TectonicError> {
         // Check if the internal Slab/Arena structure is currently full.
         if self.is_full() {
@@ -32,7 +48,7 @@ impl<const D: usize> VectorArena<D> {
         };
 
         // Check if Free-list contains an available value for insertion.
-        if let Some(available_index) = self.free_list.pop_back() {
+        if let Some(available_index) = self.free_list.pop() {
             let new_vector = VectorEntry::new(
                 available_index,
                 self.arena[available_index].get_and_increment(),
@@ -44,7 +60,7 @@ impl<const D: usize> VectorArena<D> {
             return Ok(available_index);         // Return the index where at the value was inserted.
         } else {
             // If no free slots found in Free-list => Insert entry using next available index.
-            let next_index = self.size;
+            let next_index = self.get_next_index();
             let new_vector = VectorEntry::new(
                 next_index,
                 self.arena[next_index].get_and_increment(),
@@ -65,7 +81,7 @@ impl<const D: usize> VectorArena<D> {
             if entry.vector_id.slot_id == vector_id {
                 self.arena[vector_index].vector = None;
                 self.size -= 1;
-                self.free_list.push_front(vector_index);
+                self.free_list.push(vector_index);
                 return Ok(true);
             } else {
                 return Err(TectonicError::ArenaError { message: "IDs do not match!" });
@@ -175,17 +191,33 @@ impl<const D: usize> VectorArena<D> {
         self.size
     }
 
-    pub fn is_full(&self) -> bool {
-        // Helper-method for determining if the Arena/Slab is currently full.
-        self.size > self.capacity
+    pub fn capacity(&self) -> usize {
+        // Helper-method for determining the maximum number of entries the Arena/Slab can hold.
+        self.capacity
     }
 
-    pub fn with_capacity(max_entries: usize) -> Self {
-        Self { 
-            capacity: max_entries,
-            size: 0,
-            free_list: VecDeque::new(),
-            arena: repeat_with(|| ArenaSlot::<D>::default()).take(max_entries).collect()
-        }
+    pub fn remain_capacity(&self) -> usize {
+        // Helper-method for determining the remaining capacity of the Arena/Slab.
+        self.capacity - self.size
+    }
+
+    pub fn is_full(&self) -> bool {
+        // Helper-method for determining if the Arena/Slab is currently full.
+        self.size >= self.capacity
+    }
+
+    pub fn is_empty(&self) -> bool {
+        // Helper-method for determining if the Arena/Slab is currently empty.
+        self.size == 0
+    }
+
+    pub fn increase_size(&mut self) {
+        self.size += 1;
+    }
+
+    pub fn get_next_index(&mut self) -> usize {
+        let current_index = self.next_index;
+        self.next_index += 1;
+        current_index
     }
 }

@@ -171,8 +171,8 @@ impl<const D: usize> VectorCache<D> {
         todo!()
     }
 
-    pub fn config(&self) -> Result<bool, TectonicError> {
-        todo!()
+    pub fn config(&self) -> Result<&CacheConfig, TectonicError> {
+        Ok(&self.config)
     }
 
     pub fn vectors(&self) -> Result<bool, TectonicError> {
