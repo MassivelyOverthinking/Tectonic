@@ -75,6 +75,9 @@ impl<const D: usize> VectorArena<D> {
             metrics_enabled
         ));
 
+        #[cfg(debug_assertions)]
+        self.debug_assertions_validate()?;
+
         self.size += 1;
         Ok(index)
     }
@@ -99,6 +102,9 @@ impl<const D: usize> VectorArena<D> {
         slot_value.vector = None;     // Clear the slot by setting it to None.
         self.size -= 1;              // Decrease the size count of the Arena/Slab.
         self.free_list.push(index);   // Add the index of the removed entry to the Free
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_validate()?;
 
         Ok(true)
     }
@@ -231,5 +237,41 @@ impl<const D: usize> VectorArena<D> {
         let current_index = self.next_index;
         self.next_index += 1;
         current_index
+    }
+
+    pub fn debug_assertions_validate(&self) -> Result<(), TectonicError> {
+        if self.size > self.capacity {
+            return Err(TectonicError::InconsistenStateError { 
+                message: "Size exceeds capacity in Arena" 
+            });
+        }
+
+        let occupied = self
+            .arena
+            .iter()
+            .filter(|slot| slot.vector.is_some())
+            .count();
+
+        if occupied != self.size {
+            return Err(TectonicError::InconsistenStateError {
+                message: "Arena size does not match occupied slot count",
+            });
+        }
+
+        for &index in &self.free_list {
+            if index >= self.capacity {
+                return Err(TectonicError::InconsistenStateError {
+                    message: "Free-list contains out-of-bounds index",
+                });
+            }
+
+            if self.arena[index].vector.is_some() {
+                return Err(TectonicError::InconsistenStateError {
+                    message: "Free-list contains occupied slot",
+                });
+            }
+        }
+
+        Ok(())
     }
 }
