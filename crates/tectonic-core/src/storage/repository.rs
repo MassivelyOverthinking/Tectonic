@@ -14,6 +14,7 @@ use crate::search::distance::{SearchMethod};
 use crate::location::location_entry::{ShardEntry};
 use crate::storage::partition::CachePartition;
 use crate::utility::utils::{UniqueID, calculate_sizes, hash_dimvector};
+use crate::config::StrategyConfig;
 
 // ============================================================
 // INTERNAL STORE (PARTITIONS + SHARDS)
@@ -34,17 +35,17 @@ pub struct CacheRepo<const D: usize> {
 
 #[allow(dead_code)]
 impl<const D: usize> CacheRepo<D> {
-    pub fn with_capacity(max_entries: usize, partitions: usize, shards: usize) -> Self {
+    pub fn with_capacity(max_entries: usize, partitions: usize, shards: usize, strategy: &StrategyConfig) -> Result<Self, TectonicError> {
         let partition_capacities = calculate_sizes(max_entries, partitions);
-
+        
         let mut partitions_vector = Vec::with_capacity(partition_capacities.len());
         for (id, &cap) in partition_capacities.iter().enumerate() {
-            partitions_vector.push(CachePartition::with_capacity( id as u32, cap as u64, shards as u32));
+            partitions_vector.push(CachePartition::with_capacity( id as u32, cap as u64, shards as u32, strategy.clone())?);
         }
 
         let buffer_threshold = (partitions * 16).max(partitions);
 
-        Self {
+        Ok(Self {
             vector_repo: partitions_vector,
             capacity: max_entries,
             size: 0,
@@ -53,7 +54,7 @@ impl<const D: usize> CacheRepo<D> {
             centroid_buffer: Vec::with_capacity(buffer_threshold),
             centroid_buffer_threshold: buffer_threshold,
             centroids_initialized: false,
-        }
+        })
     }
 
     pub fn insert<M>(

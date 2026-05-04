@@ -5,6 +5,7 @@
 use std::collections::BinaryHeap;
 use rayon::prelude::*;
 
+use crate::config::{StrategyConfig, StrategyStructure};
 use crate::error::TectonicError;
 use crate::metrics::cluster_metrics::ClusterMetrics;
 use crate::quantization::quantized_entry::QuantizedEntry;
@@ -26,13 +27,14 @@ pub struct CachePartition<const D: usize> {
     pub size: u64,
     pub capacity: u64,
     pub shards: Vec<CacheShard<D>>,
+    pub strategy: StrategyStructure,
 
     // Internal Partition-metrics.
     pub metrics: ClusterMetrics
 }
 
 impl<const D: usize> CachePartition<D> {
-    pub fn with_capacity(partition_id: u32, capacity: u64, num_shards: u32) -> Self {
+    pub fn with_capacity(partition_id: u32, capacity: u64, num_shards: u32, strategy: StrategyConfig) -> Result<Self, TectonicError> {
         let shard_sizes = calculate_sizes(capacity as usize, num_shards as usize);
 
         let mut shard_vectors = Vec::with_capacity(shard_sizes.len());
@@ -40,14 +42,15 @@ impl<const D: usize> CachePartition<D> {
             shard_vectors.push(CacheShard::with_capacity(id as u32, cap));
         }
 
-        Self { 
+        Ok(Self { 
             partition_id,
             centroid: None,
             size: 0, 
             capacity, 
             shards: shard_vectors,
+            strategy: StrategyStructure::from_config(strategy.clone())?,
             metrics: ClusterMetrics::default(),
-        }
+        })
     }
 
     pub fn search<M>(

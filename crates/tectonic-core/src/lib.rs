@@ -16,7 +16,7 @@ mod result;
 
 use std::time::Instant;
 
-use crate::config::CacheConfig;
+use crate::config::{CacheConfig};
 use crate::error::TectonicError;
 use crate::metrics::cache_metrics::CacheMetrics;
 use crate::quantization::scalar_qunatization::{quantize};
@@ -44,17 +44,29 @@ pub struct VectorCache<const D: usize> {
 impl<const D: usize> VectorCache<D> {
     pub fn new(config: CacheConfig) -> Result<Self, TectonicError> {
         config.validate()?;
+
         let max_entries = config.max_entries;
         let num_partitions = config.num_partitions;
         let num_shards = config.num_shards;
 
+        let arena = VectorArena::with_capacity(max_entries)?;
+        let repository = CacheRepo::with_capacity(
+            max_entries,
+            num_partitions,
+            num_shards,
+            &config.strategy
+        )?;
+
+        let locations = LocationSlab::default();
+        let metrics = CacheMetrics::with_capacity(max_entries);
+
         Ok(
             Self { 
-                config: config, 
-                arena: VectorArena::with_capacity(max_entries)?,
-                repository: CacheRepo::with_capacity(max_entries, num_partitions, num_shards),
-                locations: LocationSlab::default(),
-                metrics: CacheMetrics::with_capacity(max_entries), 
+                config, 
+                arena, 
+                repository, 
+                locations, 
+                metrics 
             }
         )
     }
