@@ -44,51 +44,63 @@ impl<const D: usize> VectorArena<D> {
     pub fn insert(&mut self, value: DimVector<D>, metrics_enabled: bool) -> Result<usize, TectonicError> {
         // Check if the internal Slab/Arena structure is currently full.
         if self.is_full() {
-            return Err(TectonicError::CacheLimitError { size: self.size, limit: self.capacity })
+            return Err(TectonicError::CacheLimitError { 
+                size: self.size, limit: self.capacity 
+            });
+        }
+
+        let index = if let Some(index) = self.free_list.pop() {
+            index
+        } else {
+            self.get_next_index()
         };
 
-        // Check if Free-list contains an available value for insertion.
-        if let Some(available_index) = self.free_list.pop() {
-            let new_vector = VectorEntry::new(
-                available_index,
-                self.arena[available_index].get_and_increment(),
-                value,
-                metrics_enabled,
-            );
-            self.arena[available_index].vector = Some(new_vector);
-            self.size += 1;
-            return Ok(available_index);         // Return the index where at the value was inserted.
-        } else {
-            // If no free slots found in Free-list => Insert entry using next available index.
-            let next_index = self.get_next_index();
-            let new_vector = VectorEntry::new(
-                next_index,
-                self.arena[next_index].get_and_increment(),
-                value,
-                metrics_enabled,
-            );
-            self.arena[next_index].vector = Some(new_vector);
-            self.size += 1;
-            return Ok(next_index);          // Return the index where at the value was inserted.
+        let slot = self.arena.get_mut(index)
+        .ok_or(TectonicError::InconsistenStateError {
+            message: "Arena insertion index out of bounds",
+        })?;
+
+        if slot.vector.is_some() {
+            return Err(TectonicError::InconsistenStateError {
+                message: "Arena attempted to insert into occupied slot",
+            });
         }
+
+        let generation = slot.get_and_increment();
+
+        slot.vector = Some(VectorEntry::new(
+            index,
+            generation, 
+            value, 
+            metrics_enabled
+        ));
+
+        self.size += 1;
+        Ok(index)
     }
 
-    pub fn remove(&mut self, id: &usize, index: &usize) -> Result<bool, TectonicError> {
-        let vector_id = *id;
-        let vector_index = *index;
+    pub fn remove(&mut self, id: UniqueID, index: usize) -> Result<bool, TectonicError> {
+        let slot_value = self.arena.get_mut(index)
+            .ok_or(TectonicError::ArenaError { 
+                message: "Index out of bounds" 
+            })?;
 
-        if let Some(entry) = &self.arena[vector_index].vector {
-            if entry.vector_id.slot_id == vector_id {
-                self.arena[vector_index].vector = None;
-                self.size -= 1;
-                self.free_list.push(vector_index);
-                return Ok(true);
-            } else {
-                return Err(TectonicError::ArenaError { message: "IDs do not match!" });
-            }
+        let entry = slot_value.vector.as_ref()
+            .ok_or(TectonicError::ArenaError { 
+                message: "Could not locate Vector inside Entry" 
+            })?;
+
+        if entry.vector_id != id {
+            return Err(TectonicError::InconsistenStateError { 
+                message: "Arena entry ID doesn't match found ID" 
+            });
         }
 
-        Err(TectonicError::ArenaError { message: "No Vector entry located at specified index" })
+        slot_value.vector = None;     // Clear the slot by setting it to None.
+        self.size -= 1;              // Decrease the size count of the Arena/Slab.
+        self.free_list.push(index);   // Add the index of the removed entry to the Free
+
+        Ok(true)
     }
 
     pub fn get_vector_by_location(&self, location: &LocationEntry, id: UniqueID) -> Result<(&DimVector<D>, &UniqueID), TectonicError> {

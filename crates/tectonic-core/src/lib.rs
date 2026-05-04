@@ -51,7 +51,7 @@ impl<const D: usize> VectorCache<D> {
         Ok(
             Self { 
                 config: config, 
-                arena: VectorArena::with_capacity(max_entries),
+                arena: VectorArena::with_capacity(max_entries)?,
                 repository: CacheRepo::with_capacity(max_entries, num_partitions, num_shards),
                 locations: LocationSlab::default(),
                 metrics: CacheMetrics::with_capacity(max_entries), 
