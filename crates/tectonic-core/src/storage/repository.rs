@@ -308,9 +308,9 @@ impl<const D: usize> CacheRepo<D> {
         for partition_index in 0..partition_count {
             if counts[partition_index] == 0 {
                 let seed_idx = seed_indices[partition_index];
-                self.vector_repo[partition_index].centroid =
+                self.vector_repo[partition_index].get_centroid() =
                     Some(self.centroid_buffer[seed_idx].vector);
-                self.vector_repo[partition_index].size = 0;
+                self.vector_repo[partition_index].size() = 0;
                 continue;
             }
 

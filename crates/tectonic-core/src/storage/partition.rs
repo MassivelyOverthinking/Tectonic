@@ -14,7 +14,7 @@ use crate::search::distance::{SearchMethod};
 use crate::utility::typings::{DimVector};
 use crate::storage::shard::{CacheShard};
 use crate::location::location_entry::{ShardEntry};
-use crate::utility::utils::{calculate_sizes, hash_shard_entry, secondary_arena_hash};
+use crate::utility::utils::{UniqueID, calculate_sizes, hash_shard_entry, secondary_arena_hash};
 
 // ============================================================
 // INTERNAL PARTITIONS (SEARCH SPACE)
@@ -22,15 +22,15 @@ use crate::utility::utils::{calculate_sizes, hash_shard_entry, secondary_arena_h
 
 #[allow(dead_code)]
 pub struct CachePartition<const D: usize> {
-    pub partition_id: u32,
-    pub centroid: Option<[f32; D]>,
-    pub size: u64,
-    pub capacity: u64,
-    pub shards: Vec<CacheShard<D>>,
-    pub strategy: StrategyStructure,
+    partition_id: u32,
+    centroid: Option<[f32; D]>,
+    size: u64,
+    capacity: u64,
+    shards: Vec<CacheShard<D>>,
+    strategy: StrategyStructure,
 
     // Internal Partition-metrics.
-    pub metrics: ClusterMetrics
+    metrics: ClusterMetrics
 }
 
 impl<const D: usize> CachePartition<D> {
@@ -184,11 +184,31 @@ impl<const D: usize> CachePartition<D> {
         Ok(true)
     }
 
+    pub fn size(&self) -> u64 {
+        self.size
+    }
+
+    pub fn capacity(&self) -> u64 {
+        self.capacity
+    }
+
     pub fn has_no_centroid(&self) -> bool {
         self.centroid.is_none()
     }
 
     pub fn has_centroid(&self) -> bool {
         self.centroid.is_some()
+    }
+
+    pub fn get_partition_id(&self) -> u32 {
+        self.partition_id
+    }
+
+    pub fn get_centroid(&self) -> Option<[f32; D]> {
+        self.centroid
+    }
+
+    pub fn insert_admission(&mut self, id: UniqueID) -> Result<bool, TectonicError> {
+        Ok(self.strategy.get_admission_mut().on_insert(entry_id))
     }
 }
