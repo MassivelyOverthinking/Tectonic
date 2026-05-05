@@ -80,25 +80,31 @@ impl Default for ClusterMetrics {
 }
 
 // ============================================================
-// CLUSTER METRICS UPDATES
+// CLUSTER METRICS: METHODS
 // ============================================================
 
 #[allow(dead_code)]
 impl ClusterMetrics {
-    
     #[inline]
     pub fn on_hit(&mut self, tick: u64) {
-        self.hits += 1;
+        self.hits = self.hits.saturating_add(1);
         self.last_access_tick = tick;
     }
 
     #[inline]
     pub fn on_insert(&mut self, bytes: usize, distance: f32, tick: u64)  {
-        self.count += 1;
-        self.bytes += bytes;
-        self.inserts += 1;
+        debug_assert!(distance.is_finite(), "Insert Distance-value must be finite");
+        self.count = self.count.saturating_add(1);
+        self.bytes = self.bytes.saturating_add(bytes);
+        self.inserts = self.inserts.saturating_add(1);
         self.last_access_tick = tick;
-        self.distance_sum += distance;
+    
+        if distance.is_finite() {
+            self.distance_sum += distance.max(0.0);
+        }
+
+        #[cfg(debug_assertions)]
+        self.debug_assertion_validate();
     }
 
     #[inline]
@@ -118,6 +124,19 @@ impl ClusterMetrics {
             self.distance_sum -= distance;
         }
     }
+
+// ============================================================
+// CLUSTER METRICS: DEBUGGING
+// ============================================================
+
+#[inline]
+#[cfg(debug_assertions)]
+pub fn debug_assertion_validate(&self) {
+    debug_assert!(self.distance_sum.is_finite());
+    debug_assert!(self.count > 0 || self.bytes == 0);
+    debug_assert!(self.count > 0 || self.distance_sum == 0.0);
+    debug_assert!(self.evictions <= self.inserts);
+}
 
 // ============================================================
 // CLUSTER ACCESS METHODS
