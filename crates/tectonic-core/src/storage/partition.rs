@@ -192,23 +192,68 @@ impl<const D: usize> CachePartition<D> {
         self.capacity
     }
 
+    #[inline]
+    pub fn increment_size(&mut self) -> Result<(), TectonicError> {
+        if self.size >= self.capacity {
+            return Err(TectonicError::RepoError {
+                message: "Partition capacity exceeded!" 
+            });
+        }
+
+        self.size += 1;
+        Ok(())
+    }
+
+    #[inline]
+    pub fn set_size(&mut self, size: u64) -> Result<(), TectonicError> {
+        if size > self.capacity {
+            return Err(TectonicError::RepoError {
+                message: "Partition capacity exceeded!" 
+            });
+        }
+
+        self.size = size;
+        Ok(())
+    }
+
+    #[inline]
     pub fn has_no_centroid(&self) -> bool {
         self.centroid.is_none()
     }
 
+    #[inline]
     pub fn has_centroid(&self) -> bool {
         self.centroid.is_some()
     }
 
+    #[inline]
     pub fn get_partition_id(&self) -> u32 {
         self.partition_id
     }
 
-    pub fn get_centroid(&self) -> Option<[f32; D]> {
+    #[inline]
+    pub fn centroid(&self) -> Option<&DimVector<D>> {
+        self.centroid.as_ref()
+    }
+
+    #[inline]
+    pub fn set_centroid(&mut self, centroid: DimVector<D>) -> Result<bool, TectonicError> {
+        self.centroid = Some(centroid);
+        Ok(true)
+    }
+
+    #[inline]
+    pub fn clear_centroid(&mut self) {
+        self.centroid = None;
+    }
+
+    #[inline]
+    pub fn get_centroid(&self) -> Option<DimVector<D>> {
         self.centroid
     }
 
     pub fn insert_admission(&mut self, id: UniqueID) -> Result<bool, TectonicError> {
-        Ok(self.strategy.get_admission_mut().on_insert(entry_id))
+        self.strategy.get_admission_mut().on_insert(&id);
+        Ok(true)
     }
 }

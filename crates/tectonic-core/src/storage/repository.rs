@@ -168,7 +168,7 @@ impl<const D: usize> CacheRepo<D> {
         let mut candidates: Vec<(usize, f32)> = Vec::with_capacity(self.vector_repo.len());
 
         for (position, partition) in self.vector_repo.iter().enumerate() {
-            if let Some(par_centroid) = partition.centroid.as_ref() {
+            if let Some(par_centroid) = partition.get_centroid() {
                 let centroid_distance = distance.distance_f32(vector, &par_centroid);
                 candidates.push((position, centroid_distance));
             } else {
@@ -308,9 +308,8 @@ impl<const D: usize> CacheRepo<D> {
         for partition_index in 0..partition_count {
             if counts[partition_index] == 0 {
                 let seed_idx = seed_indices[partition_index];
-                self.vector_repo[partition_index].get_centroid() =
-                    Some(self.centroid_buffer[seed_idx].vector);
-                self.vector_repo[partition_index].size() = 0;
+                self.vector_repo[partition_index].set_centroid(self.centroid_buffer[seed_idx].vector)?;
+                self.vector_repo[partition_index].set_size(0)?;
                 continue;
             }
 
@@ -320,8 +319,8 @@ impl<const D: usize> CacheRepo<D> {
                 centroid[dim] = centroid_sums[partition_index][dim] * inv;
             }
 
-            self.vector_repo[partition_index].centroid = Some(centroid);
-            self.vector_repo[partition_index].size = counts[partition_index] as u64;
+            self.vector_repo[partition_index].set_centroid(centroid)?;
+            self.vector_repo[partition_index].set_size(counts[partition_index] as u64)?;
         }
 
         // Route buffered entries into their assigned partitions/shards
