@@ -237,6 +237,16 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
+    pub fn metrics(&self) -> &ClusterMetrics {
+        &self.metrics
+    }
+
+    #[inline]
+    pub fn metrics_mut(&mut self) -> &mut ClusterMetrics {
+        &mut self.metrics
+    }
+
+    #[inline]
     pub fn set_centroid(&mut self, centroid: DimVector<D>) -> Result<bool, TectonicError> {
         self.centroid = Some(centroid);
         Ok(true)
