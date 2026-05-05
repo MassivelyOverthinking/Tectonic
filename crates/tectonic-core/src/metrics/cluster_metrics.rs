@@ -4,7 +4,7 @@
 
 use std::{fmt::Debug};
 
-use crate::utility::typings::{usize_to_f32};
+use crate::{error::TectonicError, utility::typings::usize_to_f32};
 
 // ============================================================
 // INTERNAL CLUSTER METRICS
@@ -109,25 +109,57 @@ impl ClusterMetrics {
 
     #[inline]
     pub fn on_evict(&mut self, bytes: usize, distance: f32, tick: u64)  {
-        debug_assert!(self.count > 0);
-        debug_assert!(self.bytes >= bytes);
-        debug_assert!(self.distance_sum >= distance || self.count == 1);
+        debug_assert!(self.count > 0, "Eviction count must be positive before eviction");
+        debug_assert!(self.bytes >= bytes, "Eviction bytes must not exceed current byte count");
+        debug_assert!(distance.is_finite(), "Distance-value must be finite");
 
-        self.count -= 1;
-        self.bytes -= bytes;
-        self.inserts -= 1;
+        self.count = self.count.saturating_sub(1);
+        self.bytes = self.bytes.saturating_sub(bytes);
+        self.inserts = self.inserts.saturating_sub(1);
         self.last_access_tick = tick;
 
         if self.count == 0 {
+            self.bytes = 0;
             self.distance_sum = 0.0
-        } else {
-            self.distance_sum -= distance;
+        } else if distance.is_finite() {
+            self.distance_sum = (self.distance_sum - distance.max(0.0)).max(0.0);
         }
+
+        #[cfg(debug_assertions)]
+        self.debug_assertion_validate();
     }
 
 // ============================================================
 // CLUSTER METRICS: DEBUGGING
 // ============================================================
+
+#[inline]
+pub fn validate(&self) -> Result<(), TectonicError> {
+    if !self.distance_sum.is_finite() {
+        return Err(TectonicError::RepoError { 
+            message: "ClusterMetrics distance_sum must be finite!" 
+        });
+    }
+
+    if self.count == 0 && self.bytes != 0 {
+        return Err(TectonicError::RepoError { 
+            message: "ClusterMetrics with zero count must have zero bytes!" 
+        });
+    }
+
+    if self.count == 0 && self.distance_sum != 0.0 {
+        return Err(TectonicError::RepoError { 
+            message: "ClusterMetrics with zero count must have zero distance_sum!" 
+        });
+    }
+
+    if self.evictions > self.inserts {
+        return Err(TectonicError::RepoError { 
+            message: "ClusterMetrics evictions cannot exceed inserts!" 
+        });
+    }
+    Ok(())
+}
 
 #[inline]
 #[cfg(debug_assertions)]
@@ -139,7 +171,7 @@ pub fn debug_assertion_validate(&self) {
 }
 
 // ============================================================
-// CLUSTER ACCESS METHODS
+// CLUSTER METRICS: HELPER-METHODS
 // ============================================================
 
     #[inline]
