@@ -7,8 +7,30 @@ use std::{fmt::Debug};
 use crate::utility::typings::{usize_to_f32};
 
 // ============================================================
-// INTERNAL PARTITION METRICS
+// INTERNAL CLUSTER METRICS
 // ============================================================
+// Lightweight cluster-based metrics used for routing, observability, and
+// eviction candidate ranking.
+// ---
+// `ClusterMetrics` intentionally stores only O(1)-update counters for efficiency.
+// It does not retain per-entry history. This keeps mutation cheap in cache
+// hot path while still allowing the repository to rank partitions by relative
+// eviction weakness.
+// ---
+// Semantics:
+// - `count`: number of live entries in the partition.
+// - `bytes`: estimated live memory owned by entries in the partition.
+// - `hits`: lifetime hit count.
+// - `inserts`: lifetime insert count.
+// - `evictions`: lifetime eviction count.
+// - `last_access_tick`: logical timestamp of the most recent hit/insert/evict.
+// - `distance_sum`: sum of live entry distances to the partition centroid.
+// ---
+// Invariants:
+// - `count == 0` implies `bytes == 0`.
+// - `count == 0` implies `distance_sum == 0.0`.
+// - `distance_sum` must be finite.
+// - `evictions <= inserts` under normal cache operation.
 
 #[derive(Clone, Copy)]
 #[allow(dead_code)]
@@ -22,6 +44,10 @@ pub struct ClusterMetrics {
     distance_sum: f32,
 }
 
+// ============================================================
+// CLUSTER METRICS: CONSTRUCTORS
+// ============================================================
+
 impl Debug for ClusterMetrics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ClusterMetric")
@@ -32,6 +58,9 @@ impl Debug for ClusterMetrics {
             .field("evictions", &self.evictions)
             .field("last_access_tick", &self.last_access_tick)
             .field("distance_sum", &self.distance_sum)
+            .field("mean_distance_to_centroid", &self.mean_distance_to_centroid())
+            .field("churn_rate", &self.churn_rate())
+            .field("hits_pr_byte", &self.hits_pr_byte())
             .finish()
     }
 }

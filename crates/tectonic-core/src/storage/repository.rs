@@ -36,6 +36,27 @@ pub struct CacheRepo<const D: usize> {
 #[allow(dead_code)]
 impl<const D: usize> CacheRepo<D> {
     pub fn with_capacity(max_entries: usize, partitions: usize, shards: usize, strategy: &StrategyConfig) -> Result<Self, TectonicError> {
+        if max_entries == 0 {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "Cache Max Entries",
+                issue: "Maximum entries must be greater than 0",
+            });
+        }
+
+        if partitions == 0 {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "Cache Partitions",
+                issue: "Number of partitions must be greater than 0",
+            });
+        }
+
+        if shards == 0 {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "Cache Shards",
+                issue: "Number of shards must be greater than 0",
+            });
+        }
+        
         let partition_capacities = calculate_sizes(max_entries, partitions);
         
         let mut partitions_vector = Vec::with_capacity(partition_capacities.len());
