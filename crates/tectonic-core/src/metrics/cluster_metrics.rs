@@ -175,6 +175,11 @@ pub fn debug_assertion_validate(&self) {
 // ============================================================
 
     #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
+
+    #[inline]
     pub fn count(&self) -> usize {
         self.count
     }
@@ -210,7 +215,7 @@ pub fn debug_assertion_validate(&self) {
     }
 
 // ============================================================
-// CLUSTER METRICS METHODS
+// CLUSTER METRICS: SCORE METHODS
 // ============================================================
 
     #[inline]
@@ -227,7 +232,7 @@ pub fn debug_assertion_validate(&self) {
         if self.count == 0 {
             0.0
         } else {
-            usize_to_f32(self.inserts + self.evictions) / usize_to_f32(self.count)
+            usize_to_f32(self.inserts.saturating_add(self.evictions)) / usize_to_f32(self.count)
         }
     }
 
@@ -250,8 +255,44 @@ pub fn debug_assertion_validate(&self) {
     }
 
     #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.count == 0
+    pub fn age(&self, current_tick: u64) -> u64 {
+        current_tick.saturating_sub(self.last_access_tick)
     }
 
+    // Computes a cheap partition-level weakness score for entry eviction.
+    // ---
+    // Higher score means the partition is a stronger eviction candidate.
+    // Lower score indiciates a weak partition => Best for eviction
+    // ---
+    // Inputs:
+    // - `current_tick`: global logical clock.
+    // - `target_bytes`: desired byte capacity for the partition.
+    //
+    // Score components:
+    // - high age increases weakness;
+    // - high churn increases weakness;
+    // - high mean centroid distance increases weakness;
+    // - high occupancy pressure increases weakness;
+    // - high hit density reduces weakness.
+    #[inline]
+    pub fn weakness_score(&self, current_tick: u64, target_bytes: usize) -> f32 {
+        if self.count == 0 {
+            return f32::NEG_INFINITY;
+        }
+
+        let age = self.age(current_tick) as f32;
+        let churn = self.churn_rate();
+        let distance = self.mean_distance_to_centroid();
+        let pressure = self.occupancy_pressure(target_bytes);
+        let hits_pr_byte = self.hits_pr_byte();
+
+        let age_score = age.ln_1p();
+        let penalty = hits_pr_byte.ln_1p();
+
+        age_score 
+            + churn 
+            + distance 
+            + pressure 
+            - penalty
+    }
 }
