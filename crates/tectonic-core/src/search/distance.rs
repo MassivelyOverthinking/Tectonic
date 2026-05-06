@@ -17,10 +17,16 @@ pub enum DistanceMetric {
     Euclidean,
 } 
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DistanceOrdering {
+    HigherIsBetter,
+    LowerIsBetter,
+}
+
 pub trait SearchMethod<const D: usize>: Send + Sync {
     fn distance_f32(&self, x: &DimVector<D>, y: &DimVector<D>) -> f32;
-
-    fn distance_u8(&self, x: &QuantizedEntry, y: &QuantizedEntry) -> u8;
+    fn distance_u8(&self, x: &QuantizedEntry, y: &QuantizedEntry) -> f32;
+    fn ordering(&self) -> DistanceOrdering;
 }
 
 pub trait SearchMethodDyn<const D: usize>: SearchMethod<D> {

@@ -175,6 +175,7 @@ impl<const D: usize> CacheRepo<D> {
         }
     }
 
+    #[inline]
     pub fn get_candidate_partitions(&self, current_tick: u64, target_bytes: usize, k: usize) -> Result<Vec<usize>, TectonicError> {
         if self.vector_repo.is_empty() {
             return Err(TectonicError::RepoError { 
@@ -201,7 +202,7 @@ impl<const D: usize> CacheRepo<D> {
             let metrics = partition.metrics();
 
             #[cfg(debug_assertions)]
-            metrics.validate();
+            metrics.validate()?;
 
             if metrics.is_empty() {
                 continue;
@@ -230,7 +231,7 @@ impl<const D: usize> CacheRepo<D> {
 
         candidates.truncate(limit);
 
-        Ok(candidates.into_iter().map(|(i, _)| i).collect())
+        Ok(candidates.into_iter().map(|(index, _)| index).collect())
     }
 
     pub fn find_nearest_centroids<M>(&self, vector: &DimVector<D>, top_n: usize, distance: &M) -> Result<Vec<usize>, TectonicError> 
