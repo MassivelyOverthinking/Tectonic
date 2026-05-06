@@ -175,6 +175,64 @@ impl<const D: usize> CacheRepo<D> {
         }
     }
 
+    pub fn get_candidate_partitions(&self, current_tick: u64, target_bytes: usize, k: usize) -> Result<Vec<usize>, TectonicError> {
+        if self.vector_repo.is_empty() {
+            return Err(TectonicError::RepoError { 
+                message: "No internal partitions found!" 
+            });
+        }
+
+        if target_bytes == 0 {
+            return Err(TectonicError::InvalidParamaterError { 
+                param: "Target partition byte size", 
+                issue: "Must be greater than 0" 
+            });
+        }
+
+        if k == 0 {
+            return Ok(Vec::new());
+        }
+
+        let limit = k.min(self.vector_repo.len());
+
+        let mut candidates: Vec<(usize, f32)> = Vec::with_capacity(self.vector_repo.len());
+
+        for (position, partition) in self.vector_repo.iter().enumerate() {
+            let metrics = partition.metrics();
+
+            #[cfg(debug_assertions)]
+            metrics.validate();
+
+            if metrics.is_empty() {
+                continue;
+            }
+
+            let weakness_score = metrics.weakness_score(current_tick, target_bytes);
+
+            if !weakness_score.is_finite() {
+                continue;
+            }
+
+            candidates.push((position, weakness_score));
+        }
+
+        if candidates.is_empty() {
+            return Err(TectonicError::RepoError { 
+                message: "No candidate partitions found based on weakness score!" 
+            });
+        }
+
+        candidates.sort_unstable_by(|x, y| {
+            y.1.partial_cmp(&x.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| x.0.cmp(&y.0))
+        });
+
+        candidates.truncate(limit);
+
+        Ok(candidates.into_iter().map(|(i, _)| i).collect())
+    }
+
     pub fn find_nearest_centroids<M>(&self, vector: &DimVector<D>, top_n: usize, distance: &M) -> Result<Vec<usize>, TectonicError> 
     where M: SearchMethod<D> {
         
