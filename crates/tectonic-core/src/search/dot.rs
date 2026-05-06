@@ -7,31 +7,43 @@ use crate::utility::typings::DimVector;
 use crate::search::distance::SearchMethod;
 
 // ============================================================
-// DOT PRODUCT DISTANCE METRICS
+// DISTANCE METHOD: DOT PRODUCT
 // ============================================================
-#[derive(Clone)]
+#[derive(Debug, Clone, Copy, Default)]
 #[allow(dead_code)]
 pub struct DotProduct;
 
 impl<const D: usize> SearchMethod<D> for DotProduct {
     #[inline(always)]
     fn distance_f32(&self, x: &DimVector<D>, y: &DimVector<D>) -> f32 {
-        assert!(x.len() == y.len());
+        debug_assert_eq!(x.len(), y.len());
 
-        let mut acc = 0.0f32;
-        for (&a, &b) in x.iter().zip(y.iter()) {
-            acc += a * b;
+        let mut acc = 0.0_f32;
+
+        for i in 0..D {
+            acc += x[i] * y[i];
         }
+
+        debug_assert!(acc.is_finite(), "Dot product resulted in non-finite value: {}", acc);
+
         acc
     }
 
-    fn distance_u8(&self, x: &QuantizedEntry, y: &QuantizedEntry) -> u8 {
-        assert!(x.get_length() == y.get_length());
+    #[inline(always)]
+    fn distance_u8(&self, x: &QuantizedEntry, y: &QuantizedEntry) -> f32 {
+        debug_assert_eq!(x.get_length(), y.get_length());
 
-        let mut acc = 0u8;
+        let mut acc = 0_u32;
+
         for (&a, &b) in x.get_iter().zip(y.get_iter()) {
-            acc += a * b;
+            acc = acc.saturating_add((a as u32) * (b as u32));
         }
-        acc
+
+        acc as f32
+    }
+
+    #[inline(always)]
+    fn ordering(&self) -> super::distance::DistanceOrdering {
+        super::distance::DistanceOrdering::HigherIsBetter
     }
 }
