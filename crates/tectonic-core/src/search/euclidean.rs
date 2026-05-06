@@ -9,9 +9,9 @@ use crate::search::distance::SearchMethod;
 // DISTANCE METHOD: EUCLIDEAN
 // ============================================================
 // Squared Euclidean distance.
-//
+// ---
 // Lower values indicate greater similarity.
-//
+// ---
 // This intentionally returns squared distance instead of true Euclidean
 // distance. For nearest-neighbor ranking, `sqrt` is unnecessary because it is
 // monotonic and does not change ordering.

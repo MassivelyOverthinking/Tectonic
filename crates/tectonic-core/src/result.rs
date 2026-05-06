@@ -195,7 +195,7 @@ impl<const D: usize> fmt::Display for CacheResult<D> {
 #[allow(dead_code)]
 pub struct SearchResult {
    pub id: UniqueID,
-   pub distance: u8,
+   pub distance: f32,
 }
 
 impl PartialEq for SearchResult {
@@ -214,13 +214,13 @@ impl PartialOrd for SearchResult {
 
 impl Ord for SearchResult {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.distance.cmp(&other.distance)
+        self.distance.total_cmp(&other.distance)
         .then_with(|| self.id.cmp(&other.id))
     }
 }
 
 impl SearchResult {
-    pub fn new(id: &UniqueID, distance: &u8) -> Self {
+    pub fn new(id: &UniqueID, distance: &f32) -> Self {
         SearchResult { 
             id: *id, 
             distance: *distance,
@@ -256,7 +256,7 @@ impl PartialOrd for MergeResult {
 
 impl Ord for MergeResult {
     fn cmp(&self, other: &Self) -> Ordering {
-        other.result.distance.cmp(&self.result.distance)
+        other.result.distance.total_cmp(&self.result.distance)
     }
 }
 

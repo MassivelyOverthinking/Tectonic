@@ -10,14 +10,14 @@ use crate::search::distance::SearchMethod;
 // DISTANCE METHOD: COSINE
 // ============================================================
 // Cosine similarity.
-//
+// ---
 // Higher values indicate greater similarity.
-//
+// ---
 // Return range is approximately:
 // - `1.0` for same direction
 // - `0.0` for orthogonal vectors
 // - `-1.0` for opposite direction
-//
+// ---
 // Zero vectors return `0.0`.
 
 #[derive(Clone, Copy, Debug, Default)]

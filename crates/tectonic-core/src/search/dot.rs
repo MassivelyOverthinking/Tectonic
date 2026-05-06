@@ -5,10 +5,19 @@
 use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::utility::typings::DimVector;
 use crate::search::distance::SearchMethod;
-
 // ============================================================
 // DISTANCE METHOD: DOT PRODUCT
 // ============================================================
+// Dot-product similarity.
+// ---
+// Higher values indicate greater similarity.
+// ---
+// Performance:
+// - O(D)
+// - single linear pass
+// - no heap allocation
+// - compiler-friendly loop over const generic dimension
+
 #[derive(Debug, Clone, Copy, Default)]
 #[allow(dead_code)]
 pub struct DotProduct;
