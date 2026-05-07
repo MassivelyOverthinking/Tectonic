@@ -5,8 +5,37 @@
 use std::{error::Error, fmt::{self}};
 
 // ============================================================
-// CUSTOM ERROS (TECTONIC-ERROR)
+// TECTONIC ERROR
 // ============================================================
+// Error definitions for complete Tectonic project.
+// ---
+// This module provides a single project-wide error type used consitently throughout the codebase 
+// by configuration, arena storage, routing, quantization, similarity search, eviction, admission,
+// and location tracking.
+// ---
+// Design goals:
+// - keep hot-path errors cheap to construct.
+// - provide structured context for debugging.
+// - avoid stringly-typed error categories spread across the codebase.
+// - make invalid internal state explicit and easy to detect.
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TectonicErrorKind {
+    InvalidInput,
+    InvalidParameter,
+    RequiredField,
+    CapacityExceeded,
+    NotFound,
+    Arena,
+    Repository,
+    Centroid,
+    Location,
+    Quantization,
+    Search,
+    Admission,
+    Eviction,
+    InconsistentState,
+}
 
 #[derive(Debug)]
 pub enum TectonicError {          // Simple Error with custom messaging

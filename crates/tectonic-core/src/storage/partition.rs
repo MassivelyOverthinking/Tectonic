@@ -262,6 +262,11 @@ impl<const D: usize> CachePartition<D> {
         self.centroid
     }
 
+    #[inline]
+    pub fn is_full(&self) -> bool {
+        self.size >= self.capacity
+    }
+
     pub fn insert_admission(&mut self, id: UniqueID) -> Result<bool, TectonicError> {
         self.strategy.get_admission_mut().on_insert(&id);
         Ok(true)

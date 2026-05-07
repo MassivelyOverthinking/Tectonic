@@ -78,7 +78,7 @@ impl<const D: usize> VectorArena<D> {
     // - Ok(index) => The Arean/Slab index where the vector entry was inserted.
     // - Err(TectonicError) => If the Arena/Slab is full or due to inconsistencies.
     #[inline]
-    pub fn insert(&mut self, value: DimVector<D>, metrics_enabled: bool) -> Result<usize, TectonicError> {
+    pub fn insert(&mut self, value: DimVector<D>, metrics_enabled: bool) -> Result<(UniqueID, usize), TectonicError> {
         // Check if the internal Slab/Arena structure is currently full.
         if self.is_full() {
             return Err(TectonicError::CacheLimitError { 
@@ -112,11 +112,13 @@ impl<const D: usize> VectorArena<D> {
             metrics_enabled
         ));
 
+        let inserted_id = UniqueID::new(index, generation);
+
         #[cfg(debug_assertions)]
         self.debug_assertions_validate()?;
 
         self.size += 1;
-        Ok(index)
+        Ok((inserted_id, index))
     }
 
     // Removes vector entry from the Arena/Slab based on provided index and unique ID.

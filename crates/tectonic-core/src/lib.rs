@@ -106,7 +106,18 @@ impl<const D: usize> VectorCache<D> {
 
         // 3. step => Eviction & Insertion
         if !self.is_full()? {
-            todo!()
+
+            let (vector_id, arena_index) = self.arena.insert(vector, self.config.metrics.metrics_enabled)?;
+            let quantized_vector = quantize(&vector)?;
+            let _ = self.repository.insert(
+                &vector, 
+                quantized_vector, 
+                vector_id,
+                &self.config.search.distance_metric
+            )?;
+            
+
+            
         }
         todo!()
     }
@@ -192,6 +203,13 @@ impl<const D: usize> VectorCache<D> {
     }
 
     pub fn is_full(&self) -> Result<bool, TectonicError> {
+        let repo_size = self.repository.size();
+        let arena_size = self.arena.size();
+        if repo_size != arena_size {
+            return Err(TectonicError::ArenaError { 
+                message: "Inconsistent size count between Arena and Repository"
+            });
+        }
         Ok(self.size()? >= self.metrics.capacity())
     }
 
