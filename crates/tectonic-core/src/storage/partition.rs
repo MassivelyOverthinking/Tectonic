@@ -11,7 +11,7 @@ use crate::metrics::cluster_metrics::ClusterMetrics;
 use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::result::{MergeResult, SearchResult};
 use crate::search::distance::{SearchMethod};
-use crate::utility::typings::{DimVector};
+use crate::utility::typings::{DimVector, TectonicResult};
 use crate::storage::shard::{CacheShard};
 use crate::location::location_entry::{ShardEntry};
 use crate::utility::utils::{UniqueID, calculate_sizes, hash_shard_entry, secondary_arena_hash};
@@ -34,7 +34,7 @@ pub struct CachePartition<const D: usize> {
 }
 
 impl<const D: usize> CachePartition<D> {
-    pub fn with_capacity(partition_id: u32, capacity: u64, num_shards: u32, strategy: StrategyConfig) -> Result<Self, TectonicError> {
+    pub fn with_capacity(partition_id: u32, capacity: u64, num_shards: u32, strategy: StrategyConfig) -> TectonicResult<Self> {
         let shard_sizes = calculate_sizes(capacity as usize, num_shards as usize);
 
         let mut shard_vectors = Vec::with_capacity(shard_sizes.len());
@@ -58,13 +58,13 @@ impl<const D: usize> CachePartition<D> {
         vector: &QuantizedEntry,
         search_method: &M,
         k: usize
-    ) -> Result<Vec<SearchResult>, TectonicError>
+    ) -> TectonicResult<Vec<SearchResult>>
     where M: SearchMethod<D> + Sync {
         if k == 0 || self.shards.is_empty() {
             return Ok(Vec::new());
         }
 
-        let shard_results: Result<Vec<Vec<SearchResult>>, TectonicError> = self
+        let shard_results: TectonicResult<Vec<Vec<SearchResult>>> = self
             .shards
             .par_iter()
             .map(| shard | shard.search(vector, search_method, k))
@@ -120,9 +120,9 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    pub fn increase_centroid_average(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
+    pub fn increase_centroid_average(&mut self, vector: &DimVector<D>) ->TectonicResult<bool> {
         let centroid = self.centroid.as_mut().ok_or_else(|| {
-            TectonicError::CentroidError { message: "No centroid available!" }
+            TectonicError::centroid("No centroid available!")
         })?;
 
         let old_n = self.size;
@@ -138,9 +138,9 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    pub fn decrease_centroid_average(&mut self, vector: &DimVector<D>) -> Result<bool, TectonicError> {
+    pub fn decrease_centroid_average(&mut self, vector: &DimVector<D>) -> TectonicResult<bool> {
         let centroid = self.centroid.as_mut().ok_or_else(|| {
-            TectonicError::CentroidError { message: "No centroid available!" }
+            TectonicError::centroid("No centroid available!")
         })?;
 
         let old_n = self.size;
@@ -148,7 +148,7 @@ impl<const D: usize> CachePartition<D> {
         let inv_new_avg = 1.0f32 / (new_n as f32);
 
         if old_n <= 1 {
-            return Err(TectonicError::CentroidError { message: "Cannot Descrease Centroid value below 0" })
+            return Err(TectonicError::centroid("Cannot decrease Centroid value below 0"))
         }
 
         for index in 0..D {
@@ -160,12 +160,12 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    pub fn route_to_shard(&mut self, entry: ShardEntry) -> Result<bool, TectonicError> {
+    pub fn route_to_shard(&mut self, entry: ShardEntry) -> TectonicResult<bool> {
         let hash_value = hash_shard_entry(&entry);
         let length = self.shards.len();
 
         if length == 0 {
-            return Err(TectonicError::RepoError { message: "No Shards initiated in Partition!" });
+            return Err(TectonicError::repository("No Shards initiated in Partition!"));
         }
 
         let idx1 = (hash_value as usize) % length;
@@ -193,11 +193,9 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    pub fn increment_size(&mut self) -> Result<(), TectonicError> {
+    pub fn increment_size(&mut self) -> TectonicResult<()> {
         if self.size >= self.capacity {
-            return Err(TectonicError::RepoError {
-                message: "Partition capacity exceeded!" 
-            });
+            return Err(TectonicError::repository("Partition capacity exceeded!"));
         }
 
         self.size += 1;
@@ -205,11 +203,9 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    pub fn set_size(&mut self, size: u64) -> Result<(), TectonicError> {
+    pub fn set_size(&mut self, size: u64) -> TectonicResult<()> {
         if size > self.capacity {
-            return Err(TectonicError::RepoError {
-                message: "Partition capacity exceeded!" 
-            });
+            return Err(TectonicError::repository("Partition capacity exceeded!"));
         }
 
         self.size = size;
@@ -247,7 +243,7 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    pub fn set_centroid(&mut self, centroid: DimVector<D>) -> Result<bool, TectonicError> {
+    pub fn set_centroid(&mut self, centroid: DimVector<D>) -> TectonicResult<bool> {
         self.centroid = Some(centroid);
         Ok(true)
     }
@@ -267,7 +263,7 @@ impl<const D: usize> CachePartition<D> {
         self.size >= self.capacity
     }
 
-    pub fn insert_admission(&mut self, id: UniqueID) -> Result<bool, TectonicError> {
+    pub fn insert_admission(&mut self, id: UniqueID) -> TectonicResult<bool> {
         self.strategy.get_admission_mut().on_insert(&id);
         Ok(true)
     }
