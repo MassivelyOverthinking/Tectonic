@@ -7,7 +7,7 @@ use crate::location::location_slab::LocationEntry;
 use crate::storage::slot::ArenaSlot;
 use crate::result::{VectorEntry};
 use crate::error::TectonicError;
-use crate::utility::typings::DimVector;
+use crate::utility::typings::{DimVector, TectonicResult};
 use crate::utility::utils::UniqueID;
 
 // ============================================================
@@ -49,11 +49,9 @@ pub struct VectorArena<const D: usize> {
 
 #[allow(dead_code)]
 impl<const D: usize> VectorArena<D> {
-    pub fn with_capacity(max_entries: usize) -> Result<Self, TectonicError> {
+    pub fn with_capacity(max_entries: usize) -> TectonicResult<Self> {
         if max_entries == 0 {
-            return Err(TectonicError::ArenaError { 
-                message: "Capacity must be greater than zero" 
-            });
+            return Err(TectonicError::arena("Capacity must be greater than zero"));
         }
 
         Ok(Self { 
@@ -78,12 +76,10 @@ impl<const D: usize> VectorArena<D> {
     // - Ok(index) => The Arean/Slab index where the vector entry was inserted.
     // - Err(TectonicError) => If the Arena/Slab is full or due to inconsistencies.
     #[inline]
-    pub fn insert(&mut self, value: DimVector<D>, metrics_enabled: bool) -> Result<(UniqueID, usize), TectonicError> {
+    pub fn insert(&mut self, value: DimVector<D>, metrics_enabled: bool) -> TectonicResult<(UniqueID, usize)> {
         // Check if the internal Slab/Arena structure is currently full.
         if self.is_full() {
-            return Err(TectonicError::CacheLimitError { 
-                size: self.size, limit: self.capacity 
-            });
+            return Err(TectonicError::capacity_exceeded("Arena/Slab", self.size, self.capacity));
         }
 
         let index = if let Some(index) = self.free_list.pop() {
@@ -93,14 +89,10 @@ impl<const D: usize> VectorArena<D> {
         };
 
         let slot = self.arena.get_mut(index)
-        .ok_or(TectonicError::InconsistenStateError {
-            message: "Arena insertion index out of bounds",
-        })?;
+        .ok_or(TectonicError::inconsistent_state("Arena insertion index out of bounds"))?;
 
         if slot.vector.is_some() {
-            return Err(TectonicError::InconsistenStateError {
-                message: "Arena attempted to insert into occupied slot",
-            });
+            return Err(TectonicError::inconsistent_state("Arena attempted to insert into occupied slot"));
         }
 
         let generation = slot.get_and_increment();
@@ -130,21 +122,15 @@ impl<const D: usize> VectorArena<D> {
     // Returns:
     // - Ok(true) => The vector entry was successfully removed.
     // - Err(TectonicError) => If the requested entry was not found or ID mismatch.
-    pub fn remove(&mut self, id: UniqueID, index: usize) -> Result<bool, TectonicError> {
+    pub fn remove(&mut self, id: UniqueID, index: usize) -> TectonicResult<bool> {
         let slot_value = self.arena.get_mut(index)
-            .ok_or(TectonicError::ArenaError { 
-                message: "Index out of bounds" 
-            })?;
+            .ok_or(TectonicError::arena("Index out of bounds"))?;
 
         let entry = slot_value.vector.as_ref()
-            .ok_or(TectonicError::ArenaError { 
-                message: "Could not locate Vector inside Entry" 
-            })?;
+            .ok_or(TectonicError::arena("Could not locate Vector inside Entry"))?;
 
         if entry.vector_id != id {
-            return Err(TectonicError::InconsistenStateError { 
-                message: "Arena entry ID doesn't match found ID" 
-            });
+            return Err(TectonicError::inconsistent_state("Arena entry ID doesn't match found ID"));
         }
 
         slot_value.vector = None;     // Clear the slot by setting it to None.
@@ -157,27 +143,21 @@ impl<const D: usize> VectorArena<D> {
         Ok(true)
     }
 
-    pub fn get_vector_by_location(&self, location: &LocationEntry, id: UniqueID) -> Result<(&DimVector<D>, &UniqueID), TectonicError> {
+    pub fn get_vector_by_location(&self, location: &LocationEntry, id: UniqueID) -> TectonicResult<(&DimVector<D>, &UniqueID)> {
         let arena_entry = self.arena.get(*location.get_arena())
-            .ok_or(TectonicError::ArenaError {
-                message: "Index out of bounds" 
-            })?;
+            .ok_or(TectonicError::arena("Index out of bounds"))?;
 
         let entry = arena_entry.vector.as_ref()
-            .ok_or(TectonicError::ArenaError { 
-                message: "Could not locate Vector inside Entry" 
-            })?;
+            .ok_or(TectonicError::arena("Could not locate Vector inside Entry"))?;
 
         if entry.vector_id == id {
             Ok((&entry.vector, &entry.vector_id))
         } else {
-            return Err(TectonicError::InconsistenStateError {
-                message: "Arena entry ID doesn't match found ID" 
-            });
+            return Err(TectonicError::inconsistent_state("Arena entry ID doesn't match found ID"));
         }
     }
 
-    pub fn get_vector_at_position(&self, index: usize) -> Result<(&DimVector<D>, &UniqueID), TectonicError> {
+    pub fn get_vector_at_position(&self, index: usize) -> TectonicResult<(&DimVector<D>, &UniqueID)> {
         // Helper-method
         // Retrieves reference-pointer to the interanl VectorEntry located in parameter: Index.
         // Used for Duplicate-handling & Vector retrieval.
@@ -185,21 +165,17 @@ impl<const D: usize> VectorArena<D> {
         // Retrieve Mutable instance of the internal Slot (ArenaSlot).
         // Default => Throw new TectonicError::ArenaError
         let arena_entry = self.arena.get(index)
-            .ok_or(TectonicError::ArenaError {
-                message: "Index out of bounds" 
-            })?;
+            .ok_or(TectonicError::arena("Index out of bounds"))?;
 
         // Retrieve Mutable instance of the actual VectorEntry-instance found inside Slot.
         // Default => Throw new TectonicError::ArenaError
         let entry = arena_entry.vector.as_ref()
-            .ok_or(TectonicError::ArenaError { 
-                message: "Could not locate Vector inside Entry" 
-            })?;
+            .ok_or(TectonicError::arena("Could not locate Vector inside Entry"))?;
 
         Ok((&entry.vector, &entry.vector_id))   // Return Borrowed-instance of the internal VectorEntry.
     }
 
-    pub fn replace_vector(&mut self, new_vector: DimVector<D>, location: &LocationEntry) ->Result<UniqueID, TectonicError> {
+    pub fn replace_vector(&mut self, new_vector: DimVector<D>, location: &LocationEntry) ->TectonicResult<UniqueID> {
         // Helper-method
         // Replaces the internal VectorEntry-instance with new value found by ArenaLocation.
         // Used for Duplicate-handling.
@@ -207,23 +183,19 @@ impl<const D: usize> VectorArena<D> {
         // Retrieve Mutable instance of the internal Slot (ArenaSlot).
         // Default => Throw new TectonicError::ArenaError
         let arena_entry = self.arena.get_mut(*location.get_arena())
-            .ok_or(TectonicError::ArenaError {
-                message: "Index out of bounds" 
-            })?;
+            .ok_or(TectonicError::arena("Index out of bounds"))?;
 
         // Retrieve Mutable instance of the actual VectorEntry-instance found inside Slot.
         // Default => Throw new TectonicError::ArenaError
         let entry = arena_entry.vector.as_mut()
-            .ok_or(TectonicError::ArenaError { 
-                message: "Could not locate Vector inside Entry" 
-            })?;
+            .ok_or(TectonicError::arena("Could not locate Vector inside Entry"))?;
 
         // Use internal Helper-method to replace the internal VectorEntry.
         let vector_id = entry.replace_internal_vector(new_vector);
         Ok(vector_id)       // Returns Vector-ID for clarity & debugging.
     }
 
-    pub fn update_vector(&mut self, new_vector: DimVector<D>, index: &usize) -> Result<UniqueID, TectonicError> {
+    pub fn update_vector(&mut self, new_vector: DimVector<D>, index: &usize) -> TectonicResult<UniqueID> {
         // Helper-method
         // Replaces the internal VectorEntry-instance with new value found by ArenaLocation.
         // Used for Duplicate-handling.
@@ -231,16 +203,12 @@ impl<const D: usize> VectorArena<D> {
         // Retrieve Mutable instance of the internal Slot (ArenaSlot).
         // Default => Throw new TectonicError::ArenaError
         let arena_entry = self.arena.get_mut(*index)
-            .ok_or(TectonicError::ArenaError {
-                message: "Index out of bounds" 
-            })?;
+            .ok_or(TectonicError::arena("Index out of bounds"))?;
 
         // Retrieve Mutable instance of the actual VectorEntry-instance found inside Slot.
         // Default => Throw new TectonicError::ArenaError
         let entry = arena_entry.vector.as_mut()
-            .ok_or(TectonicError::ArenaError { 
-                message: "Could not locate Vector inside Entry" 
-            })?;
+            .ok_or(TectonicError::arena("Could not locate Vector inside Entry"))?;
 
         // Use internal Helper-method to replace the internal VectorEntry.
         let vector_id = entry.replace_internal_vector(new_vector);
@@ -295,11 +263,9 @@ impl<const D: usize> VectorArena<D> {
     // VECTOR SLAB: DEBUGGING
     // ============================================================
 
-    pub fn debug_assertions_validate(&self) -> Result<(), TectonicError> {
+    pub fn debug_assertions_validate(&self) -> TectonicResult<()> {
         if self.size > self.capacity {
-            return Err(TectonicError::InconsistenStateError { 
-                message: "Size exceeds capacity in Arena" 
-            });
+            return Err(TectonicError::inconsistent_state("Size exceeds capacity in Arena"));
         }
 
         let occupied = self
@@ -309,22 +275,16 @@ impl<const D: usize> VectorArena<D> {
             .count();
 
         if occupied != self.size {
-            return Err(TectonicError::InconsistenStateError {
-                message: "Arena size does not match occupied slot count",
-            });
+            return Err(TectonicError::inconsistent_state("Arena size does not match occupied slot count"));
         }
 
         for &index in &self.free_list {
             if index >= self.capacity {
-                return Err(TectonicError::InconsistenStateError {
-                    message: "Free-list contains out-of-bounds index",
-                });
+                return Err(TectonicError::inconsistent_state("Free-list contains out-of-bounds index"));
             }
 
             if self.arena[index].vector.is_some() {
-                return Err(TectonicError::InconsistenStateError {
-                    message: "Free-list contains occupied slot",
-                });
+                return Err(TectonicError::inconsistent_state("Free-list contains occupied slot"));
             }
         }
 
