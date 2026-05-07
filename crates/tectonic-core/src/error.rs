@@ -39,63 +39,77 @@ pub enum TectonicErrorKind {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TectonicError {          // Simple Error with custom messaging
+    // Input validation errors for public API boundaries.
     InvalidInput {
         context: &'static str,
         what: &'static str, 
         got: String},
 
+    // Configuration or runtime parameter validation failed.
     InvalidParameter {
         param: &'static str,
         issue: &'static str
     },
 
+    // Required field missing in configuration or internal state.
     RequiredField { 
         field: &'static str 
     },
 
+    // Internal component capacity reached (e.g. Arena full, Partition full).
     CapacityExceeded {
         component: &'static str, 
         size: usize, 
         limit: usize 
     },
 
+    // Requested item/element not found in expected location.
     NotFound {
         component: &'static str,
         key: &'static str,
     },
 
+    // Internal Arena/Slab-related errors.
     Arena { 
         message: &'static str 
     },
 
+    // Internal Repository, Partition or Shard-related errors.
     Repository { 
         message: &'static str 
     },
 
+    // Internal Centroid-related errors (e.g. invalid centroid computation).
     Centroid { 
         message: &'static str 
     },
 
+    // Location mapping/indexing errors (e.g. missing location for vector ID).
     Location { 
         message: &'static str 
     },
 
+    // Quantization state not valid or quantization process failed.
     Quantization { 
         message: &'static str 
     },
 
+    // Internal error arised during similarity search process.
     Search { 
         message: &'static str 
     },
 
+    // Admission control errors (e.g. vector rejected by admission policy).
     Admission { 
         message: &'static str 
     },
 
+    // Eviction errors (e.g. eviction policy failed to select candidates or remove vectors).
     Eviction { 
         message: &'static str 
     },
 
+    // Inconsistent internal state detected (e.g. size mismatch between Arena and Repository).
     InconsistentState { 
         message: &'static str 
     },

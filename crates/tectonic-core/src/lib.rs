@@ -132,9 +132,9 @@ impl<const D: usize> VectorCache<D> {
     where M: SearchMethod<D>{
         // 1. Step -> Check if main cahce is currently empty.
         if self.metrics.is_empty() {
-            return Err(TectonicError::RepoError { 
-                message: "No vectors currently stored in Repository"
-            });
+            return Err(TectonicError::repository(
+                "No vectors currently stored in Repository"
+            ));
         }
 
         // 2. Step -> Start lantency timer for search-method execution.
@@ -206,9 +206,9 @@ impl<const D: usize> VectorCache<D> {
         let repo_size = self.repository.size();
         let arena_size = self.arena.size();
         if repo_size != arena_size {
-            return Err(TectonicError::ArenaError { 
-                message: "Inconsistent size count between Arena and Repository"
-            });
+            return Err(TectonicError::arena(
+                "Inconsistent size count between Arena and Repository"
+            ));
         }
         Ok(self.size()? >= self.metrics.capacity())
     }
@@ -219,9 +219,9 @@ impl<const D: usize> VectorCache<D> {
         if repo_size == arena_size {
             return Ok(repo_size);
         } else {
-            return Err(TectonicError::ArenaError {
-                message: "Inconsistent size count between Arena and Repository"
-            });
+            return Err(TectonicError::arena(
+                "Inconsistent size count between Arena and Repository"
+            ));
         }
     }
 

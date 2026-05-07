@@ -12,6 +12,7 @@ pub type DimVector<const D: usize> = [f32; D];
 pub type NodeValue = usize;
 
 pub type HeapResult = Vec<SearchResult>;
+pub type TectonicResult<T> = Result<T, crate::error::TectonicError>;
 
 // ============================================================
 // CUSTOM TYPE TRANSFORMATION
