@@ -22,6 +22,7 @@ use std::{error::Error, fmt::{self}};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TectonicErrorKind {
     InvalidInput,
+    InvalidVector,
     InvalidParameter,
     RequiredField,
     CapacityExceeded,
@@ -44,6 +45,11 @@ pub enum TectonicError {          // Simple Error with custom messaging
         context: &'static str,
         what: &'static str, 
         got: String},
+
+    // Specific error for invalid vector input (e.g. wrong dimension, NaN values).
+    InvalidVector {
+        index: usize,
+    },
 
     // Configuration or runtime parameter validation failed.
     InvalidParameter {
@@ -120,6 +126,7 @@ impl TectonicError {
     pub fn kind(&self) -> TectonicErrorKind {
         match self {
             TectonicError::InvalidInput { .. } => TectonicErrorKind::InvalidInput,
+            TectonicError::InvalidVector { .. } => TectonicErrorKind::InvalidVector,
             TectonicError::InvalidParameter { .. } => TectonicErrorKind::InvalidParameter,
             TectonicError::RequiredField { .. } => TectonicErrorKind::RequiredField,
             TectonicError::CapacityExceeded { .. } => TectonicErrorKind::CapacityExceeded,
@@ -139,6 +146,11 @@ impl TectonicError {
     #[inline]
     pub fn invalid_input(context: &'static str, what: &'static str, got: String) -> Self {
         TectonicError::InvalidInput { context, what, got }
+    }
+
+    #[inline]
+    pub fn invalid_vector(index: usize) -> Self {
+        TectonicError::InvalidVector { index }
     }
 
     #[inline]
@@ -213,6 +225,8 @@ impl fmt::Display for TectonicError {
         match self {
             Self::InvalidInput { context, what, got } => 
             write!(f, "Invalid input in {}: expected {}, got {}", context, what, got),
+            Self::InvalidVector { index } =>
+            write!(f, "Invalid vector at index {}: vector is not valid)", index),
             Self::InvalidParameter { param, issue } => 
             write!(f, "Invalid parameter {}: {}", param, issue),
             Self::RequiredField { field } => 

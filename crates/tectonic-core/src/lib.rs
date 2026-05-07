@@ -24,7 +24,7 @@ use crate::result::{CacheEntry, CacheResult};
 use crate::search::distance::SearchMethod;
 use crate::storage::arena::{VectorArena};
 use crate::storage::repository::CacheRepo;
-use crate::utility::typings::{DimVector, DuplicatePolicy, InsertOutcome, ValidationMode, usize_to_f32};
+use crate::utility::typings::{DimVector, DuplicatePolicy, InsertOutcome, TectonicResult, ValidationMode, usize_to_f32};
 use crate::utility::utils::{hash_dimvector, validate_vector};
 use crate::location::location_slab::LocationSlab;
 
@@ -42,7 +42,7 @@ pub struct VectorCache<const D: usize> {
 }
 
 impl<const D: usize> VectorCache<D> {
-    pub fn new(config: CacheConfig) -> Result<Self, TectonicError> {
+    pub fn new(config: CacheConfig) -> TectonicResult<Self> {
         config.validate()?;
 
         let max_entries = config.max_entries;
@@ -76,7 +76,7 @@ impl<const D: usize> VectorCache<D> {
         vector: DimVector<D>,
         duplicate: DuplicatePolicy,
         validation_mode: ValidationMode
-    ) -> Result<InsertOutcome, TectonicError> {
+    ) -> TectonicResult<InsertOutcome> {
 
         // 1. step => Vector validation
         if matches!(validation_mode, ValidationMode::Strict) {
@@ -128,7 +128,7 @@ impl<const D: usize> VectorCache<D> {
         search_method: &M,
         k: usize,
         partitions: usize
-    ) -> Result<CacheResult<D>, TectonicError> 
+    ) -> TectonicResult<CacheResult<D>> 
     where M: SearchMethod<D>{
         // 1. Step -> Check if main cahce is currently empty.
         if self.metrics.is_empty() {
@@ -178,7 +178,7 @@ impl<const D: usize> VectorCache<D> {
     pub fn remove(
         &mut self,
         _internal_id: usize,
-    ) -> Result<DimVector<D>, TectonicError> {
+    ) -> TectonicResult<DimVector<D>> {
         todo!()
     }
 
@@ -186,23 +186,23 @@ impl<const D: usize> VectorCache<D> {
         &mut self,
         _vectors: Vec<DimVector<D>>,
         _overwrite: bool,
-    ) -> Result<bool, TectonicError> {
+    ) -> TectonicResult<bool> {
         todo!()
     }
 
-    pub fn metrics(&self) -> Result<bool, TectonicError> {
+    pub fn metrics(&self) -> TectonicResult<bool> {
         todo!()
     }
 
-    pub fn config(&self) -> Result<&CacheConfig, TectonicError> {
+    pub fn config(&self) -> TectonicResult<&CacheConfig> {
         Ok(&self.config)
     }
 
-    pub fn vectors(&self) -> Result<bool, TectonicError> {
+    pub fn vectors(&self) -> TectonicResult<bool> {
         todo!()
     }
 
-    pub fn is_full(&self) -> Result<bool, TectonicError> {
+    pub fn is_full(&self) -> TectonicResult<bool> {
         let repo_size = self.repository.size();
         let arena_size = self.arena.size();
         if repo_size != arena_size {
@@ -213,7 +213,7 @@ impl<const D: usize> VectorCache<D> {
         Ok(self.size()? >= self.metrics.capacity())
     }
 
-    pub fn size(&self) -> Result<usize, TectonicError> {
+    pub fn size(&self) -> TectonicResult<usize> {
         let repo_size = self.repository.size();
         let arena_size = self.arena.size();
         if repo_size == arena_size {

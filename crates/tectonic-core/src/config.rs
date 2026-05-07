@@ -85,33 +85,27 @@ impl CacheConfig {
     // panics, or inconsistent eviction behavior later.
     pub fn validate(&self) -> Result<(), TectonicError> {
         if self.max_entries == 0 { 
-            return Err(TectonicError::InvalidParamaterError { param: "Max Entries", issue: "be a Positive Integer" }); 
+            return Err(TectonicError::invalid_parameter("Max Entries","be a Positive Integer")); 
         }
         if self.num_partitions == 0 {
-            return Err(TectonicError::InvalidParamaterError { param: "Number of partitions", issue: "be a Positive Integer" }); 
+            return Err(TectonicError::invalid_parameter("Number of partitions", "be a Positive Integer")); 
         }
         if self.num_shards == 0 {
-            return Err(TectonicError::InvalidParamaterError { param: "Number of shards", issue: "be a Positive Integer" });
+            return Err(TectonicError::invalid_parameter("Number of shards", "be a Positive Integer"));
         }
         if self.routing.search_partitions == 0 {
-            return Err(TectonicError::InvalidParamaterError { param: "Search partitions", issue: "be a Positive Integer" });
+            return Err(TectonicError::invalid_parameter("Search partitions", "be a Positive Integer"));
         }
         if self.routing.search_partitions > self.num_partitions {
-            return Err(TectonicError::InvalidParamaterError { param: "Search partitions", issue: "not be greater than number of partitions" }); 
+            return Err(TectonicError::invalid_parameter("Search partitions", "not be greater than number of partitions")); 
         }
 
         if self.strategy.capacity > self.max_entries {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "Strategy Capacity", 
-                issue: "Must not exceed Max Entries" 
-            });
+            return Err(TectonicError::invalid_parameter("Strategy Capacity", "Must not exceed Max Entries"));
         }
 
         if !self.search.similarity_threshold.is_finite() {
-            return Err(TectonicError::InvalidParamaterError {
-                param: "Similarity threshold", 
-                issue: "Must be a finite integer" 
-            });
+            return Err(TectonicError::invalid_parameter("Similarity threshold", "Must be a finite integer"));
         }
 
         self.strategy.validate()?;
@@ -323,10 +317,10 @@ impl CacheConfigBuilder {
     pub fn build(self) -> Result<CacheConfig, TectonicError> {
         let max_entries = self
             .max_entries
-            .ok_or_else(|| TectonicError::RequiredFieldError { field: "Max Entries" })?;
+            .ok_or_else(|| TectonicError::required_field("Max Entries"))?;
         let num_partitions = self
             .num_partitions
-            .ok_or_else(|| TectonicError::RequiredFieldError { field: "Number of Partitions" })?;
+            .ok_or_else(|| TectonicError::required_field("Number of Partitions"))?;
 
         const DEFAULT_SHARDS: usize = 1;
         const DEFAULT_DISTANCE_METRIC: DistanceMetric = DistanceMetric::Euclidean;
@@ -480,52 +474,59 @@ impl StrategyConfig {
     #[inline]
     pub fn validate(&self) -> Result<(), TectonicError> {
         if self.capacity == 0 {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "Strategy Capacity", 
-                issue: "Must be a positive Integer"
-            });
+            return Err(TectonicError::invalid_parameter(
+                "Strategy Capacity", 
+                "Must be a positive Integer"
+            ));
         }
 
         if !self.threshold.is_finite() {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "Strategy Threshold", 
-                issue: "Must be finite" 
-            });
+            return Err(TectonicError::invalid_parameter(
+                "Strategy Threshold", 
+                "Must be finite"
+            ));
         }
 
         if self.tiny_lfu_width == 0 {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "TinyLFU Width", 
-                issue: "Must be a postive integer" 
-            });
+            return Err(TectonicError::invalid_parameter(
+                "Strategy Width",
+                "Must be a positive integer"
+            ));
         }
 
         if self.tiny_lfu_depth == 0 {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "TinyLFU Depth", 
-                issue: "Must be a postive integer" 
-            });
+            return Err(TectonicError::invalid_parameter(
+                "Strategy Depth",
+                "Must be a positive integer"
+            ));
         }
 
         if self.tiny_lfu_frequency == 0 {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "TinyLFU frequency", 
-                issue: "Must be a postive integer" 
-            });
+            return Err(TectonicError::invalid_parameter(
+                "Strategy Frequency",
+                "Must be a positive integer"
+            ));
         }
 
         if self.window_capacity == 0 {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "Window Capacity", 
-                issue: "Must be a postive integer" 
-            });
+            return Err(TectonicError::invalid_parameter(
+                "Window Capacity",
+                "Must be a positive integer"
+            ));
+        }
+
+        if self.window_capacity == 0 {
+            return Err(TectonicError::invalid_parameter(
+                "Window Capacity",
+                "Must be a positive integer"
+            ));
         }
 
         if self.window_capacity > self.capacity {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "Window Capacity", 
-                issue: "Must not exceed strategy capacity" 
-            });
+            return Err(TectonicError::invalid_parameter(
+                "Window Capacity",
+                "Must not exceed strategy capacity"
+            ));
         }
 
         Ok(())

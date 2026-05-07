@@ -8,7 +8,7 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 
 use crate::error::TectonicError;
 use crate::location::location_entry::{ShardEntry};
-use crate::utility::typings::DimVector;
+use crate::utility::typings::{DimVector, TectonicResult};
 
 // ============================================================
 // GENERAL UTILITY METHODS & STRUCTS
@@ -94,13 +94,11 @@ pub fn secondary_arena_hash(hash: u64) -> u64 {
     hash.rotate_left(32) ^ 0x9e3779b97f4a7c15
 }
 
-pub fn validate_vector<const D: usize>(vector: &DimVector<D>) -> Result<(), TectonicError> {
+pub fn validate_vector<const D: usize>(vector: &DimVector<D>) -> TectonicResult<()> {
     for index in 0..D {
         let value = vector[index];
         if !value.is_finite() {
-            return Err(TectonicError::InvalidVectorError { 
-                index: index 
-            })
+            return Err(TectonicError::invalid_vector(index));
         }
     }
     Ok(())
