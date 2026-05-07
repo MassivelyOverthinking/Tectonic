@@ -9,7 +9,7 @@ use crate::error::TectonicError;
 use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::result::{SearchResult};
 use crate::utility::router::BootstrapEntry;
-use crate::utility::typings::DimVector;
+use crate::utility::typings::{DimVector, TectonicResult};
 use crate::search::distance::{SearchMethod};
 use crate::location::location_entry::{ShardEntry};
 use crate::storage::partition::CachePartition;
@@ -35,26 +35,29 @@ pub struct CacheRepo<const D: usize> {
 
 #[allow(dead_code)]
 impl<const D: usize> CacheRepo<D> {
-    pub fn with_capacity(max_entries: usize, partitions: usize, shards: usize, strategy: &StrategyConfig) -> Result<Self, TectonicError> {
+    pub fn with_capacity(max_entries: usize, partitions: usize, shards: usize, strategy: &StrategyConfig) -> TectonicResult<Self> {
         if max_entries == 0 {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "Cache Max Entries",
-                issue: "Maximum entries must be greater than 0",
-            });
+            return Err(TectonicError::invalid_parameter(
+                "Cache Max Entries",
+                "Maximum entries must be greater than 0"));
         }
 
         if partitions == 0 {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "Cache Partitions",
-                issue: "Number of partitions must be greater than 0",
-            });
+            return Err(TectonicError::invalid_parameter(
+                "Cache Partitions",
+                "Number of partitions must be greater than 0"));
         }
 
         if shards == 0 {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "Cache Shards",
-                issue: "Number of shards must be greater than 0",
-            });
+            return Err(TectonicError::invalid_parameter(
+                "Cache Shards",
+                "Number of shards must be greater than 0"));
+        }
+
+        if shards == 0 {
+            return Err(TectonicError::invalid_parameter(
+                "Cache Strategy",
+                "Strategy configuration is required for cache initialization"));
         }
         
         let partition_capacities = calculate_sizes(max_entries, partitions);
@@ -84,7 +87,7 @@ impl<const D: usize> CacheRepo<D> {
         quanttized_vector: QuantizedEntry,
         internal_id: UniqueID,
         distance: &M,
-    ) -> Result<bool, TectonicError>
+    ) -> TectonicResult<bool>
     where M: SearchMethod<D> {
         if !self.centroids_initialized {
             let entry = BootstrapEntry {
@@ -113,10 +116,10 @@ impl<const D: usize> CacheRepo<D> {
         search_method: &M, 
         k: usize,
         search_partitions: usize,
-    ) -> Result<Vec<SearchResult>, TectonicError> 
+    ) -> TectonicResult<Vec<SearchResult>> 
     where M: SearchMethod<D> + Sync, {
         if self.is_empty() {
-            return Err(TectonicError::RepoError { message: "Vector repository is currently empty" });
+            return Err(TectonicError::repository("Vector repository is currently empty"));
         }
 
         if k == 0 {
@@ -124,9 +127,7 @@ impl<const D: usize> CacheRepo<D> {
         }
 
         if self.vector_repo.is_empty() {
-            return Err(TectonicError::RepoError { 
-                message: "No internal partitions found!" 
-            });
+            return Err(TectonicError::repository("No internal partitions found!"));
         }
 
         let partition_budget = search_partitions.min(self.vector_repo.len());
@@ -176,18 +177,16 @@ impl<const D: usize> CacheRepo<D> {
     }
 
     #[inline]
-    pub fn get_candidate_partitions(&self, current_tick: u64, target_bytes: usize, k: usize) -> Result<Vec<usize>, TectonicError> {
+    pub fn get_candidate_partitions(&self, current_tick: u64, target_bytes: usize, k: usize) -> TectonicResult<Vec<usize>> {
         if self.vector_repo.is_empty() {
-            return Err(TectonicError::RepoError { 
-                message: "No internal partitions found!" 
-            });
+            return Err(TectonicError::repository("No internal partitions found!"));
         }
 
         if target_bytes == 0 {
-            return Err(TectonicError::InvalidParamaterError { 
-                param: "Target partition byte size", 
-                issue: "Must be greater than 0" 
-            });
+            return Err(TectonicError::invalid_parameter(
+                "Target partition byte size",
+                "Must be greater than 0"
+            ));
         }
 
         if k == 0 {
@@ -218,9 +217,7 @@ impl<const D: usize> CacheRepo<D> {
         }
 
         if candidates.is_empty() {
-            return Err(TectonicError::RepoError { 
-                message: "No candidate partitions found based on weakness score!" 
-            });
+            return Err(TectonicError::repository("No candidate partitions found based on weakness score!"));
         }
 
         candidates.sort_unstable_by(|x, y| {
@@ -234,11 +231,11 @@ impl<const D: usize> CacheRepo<D> {
         Ok(candidates.into_iter().map(|(index, _)| index).collect())
     }
 
-    pub fn find_nearest_centroids<M>(&self, vector: &DimVector<D>, top_n: usize, distance: &M) -> Result<Vec<usize>, TectonicError> 
+    pub fn find_nearest_centroids<M>(&self, vector: &DimVector<D>, top_n: usize, distance: &M) -> TectonicResult<Vec<usize>> 
     where M: SearchMethod<D> {
         
         if self.vector_repo.is_empty() {
-            return Err(TectonicError::RepoError { message: "No internal partitions found!" });
+            return Err(TectonicError::repository("No internal partitions found!"));
         }
 
         if top_n == 0 {
@@ -258,7 +255,7 @@ impl<const D: usize> CacheRepo<D> {
 
         
         if candidates.is_empty() {
-            return Err(TectonicError::RepoError { message: "No partitions with centroids found!" });
+            return Err(TectonicError::repository("No partitions with centroids found!"));
         }
 
         candidates.sort_unstable_by(|x, y| {
@@ -276,15 +273,15 @@ impl<const D: usize> CacheRepo<D> {
         Ok(result)
     }
 
-    fn choose_bootstrap_seed_indices(&self, partition_count: usize) -> Result<Vec<usize>, TectonicError> {
+    fn choose_bootstrap_seed_indices(&self, partition_count: usize) -> TectonicResult<Vec<usize>> {
         let n = self.centroid_buffer.len();
 
         if partition_count == 0 {
-            return Err(TectonicError::RepoError { message: "Partition count cannot be 0" });
+            return Err(TectonicError::repository("Partition count cannot be 0"));
         }
 
         if n < partition_count {
-            return Err(TectonicError::RepoError { message: "Not enough buffered vectors to initialize centroids" });
+            return Err(TectonicError::repository("Not enough buffered vectors to initialize centroids"));
         }
 
         let mut seeds = Vec::with_capacity(partition_count);
@@ -314,7 +311,7 @@ impl<const D: usize> CacheRepo<D> {
             }
 
             if best_index == usize::MAX {
-                return Err(TectonicError::RepoError { message: "Could not determine next bootstrap seed" });
+                return Err(TectonicError::repository("Could not determine next bootstrap seed"));
             }
 
             seeds.push(best_index);
@@ -353,18 +350,18 @@ impl<const D: usize> CacheRepo<D> {
         best_partition
     }
 
-    fn bootstrap_centroids_from_buffer(&mut self) -> Result<bool, TectonicError> {
+    fn bootstrap_centroids_from_buffer(&mut self) -> TectonicResult<bool> {
         if self.centroids_initialized {
             return Ok(false);
         }
 
         let partition_count = self.vector_repo.len();
         if partition_count == 0 {
-            return Err(TectonicError::RepoError { message: "No partitions available for centroid bootstrap" });
+            return Err(TectonicError::repository("No partitions available for centroid bootstrap"));
         }
 
         if self.centroid_buffer.len() < partition_count {
-            return Err(TectonicError::RepoError { message: "Bootstrap buffer has fewer vectors than partitions" });
+            return Err(TectonicError::repository("Bootstrap buffer has fewer vectors than partitions"));
         }
 
         let seed_indices = self.choose_bootstrap_seed_indices(partition_count)?;
@@ -420,7 +417,7 @@ impl<const D: usize> CacheRepo<D> {
         Ok(true)
     }
 
-    fn route_partition_for_vector<M>(&self, vector: &DimVector<D>, distance: &M) -> Result<usize, TectonicError>
+    fn route_partition_for_vector<M>(&self, vector: &DimVector<D>, distance: &M) -> TectonicResult<usize>
     where
         M: SearchMethod<D>,
     {
@@ -428,7 +425,7 @@ impl<const D: usize> CacheRepo<D> {
         nearest
             .into_iter()
             .next()
-            .ok_or_else(|| TectonicError::RepoError { message: "No centroid route found" })
+            .ok_or_else(|| TectonicError::repository("No centroid route found"))
     }
 
     fn insert_into_initialized_partitions<M>(
@@ -437,7 +434,7 @@ impl<const D: usize> CacheRepo<D> {
         quantized: QuantizedEntry,
         id: UniqueID,
         distance: &M,
-    ) -> Result<bool, TectonicError>
+    ) -> TectonicResult<bool>
     where
         M: SearchMethod<D>,
     {
