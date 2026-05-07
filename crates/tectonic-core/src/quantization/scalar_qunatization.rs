@@ -3,6 +3,7 @@
 // ============================================================
 
 use crate::{error::TectonicError, quantization::quantized_entry::QuantizedEntry};
+use crate::utility::typings::TectonicResult;
 
 use std::arch::x86_64::*;
 
@@ -11,14 +12,14 @@ use std::arch::x86_64::*;
 // ============================================================
 
 
-pub fn quantize(input: &[f32]) -> Result<QuantizedEntry, TectonicError> {
+pub fn quantize(input: &[f32]) -> TectonicResult<QuantizedEntry> {
     if input.is_empty() {
-        return Err(TectonicError::QuantizationError { message: "Quantizationn input is empty!" });
+        return Err(TectonicError::quantization("Quantizationn input is empty!"));
     }
 
     for &value in input.iter() {
         if !value.is_finite() {
-            return Err(TectonicError::QuantizationError { message: "One values is non-finite in quantization" });
+            return Err(TectonicError::quantization("One values is non-finite in quantization"));
         }
     }
 

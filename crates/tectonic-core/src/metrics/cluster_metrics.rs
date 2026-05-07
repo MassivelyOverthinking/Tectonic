@@ -136,27 +136,19 @@ impl ClusterMetrics {
 #[inline]
 pub fn validate(&self) -> Result<(), TectonicError> {
     if !self.distance_sum.is_finite() {
-        return Err(TectonicError::RepoError { 
-            message: "ClusterMetrics distance_sum must be finite!" 
-        });
+        return Err(TectonicError::repository("ClusterMetrics distance_sum must be finite!"));
     }
 
     if self.count == 0 && self.bytes != 0 {
-        return Err(TectonicError::RepoError { 
-            message: "ClusterMetrics with zero count must have zero bytes!" 
-        });
+        return Err(TectonicError::repository("ClusterMetrics with zero count must have zero bytes!"));
     }
 
     if self.count == 0 && self.distance_sum != 0.0 {
-        return Err(TectonicError::RepoError { 
-            message: "ClusterMetrics with zero count must have zero distance_sum!" 
-        });
+        return Err(TectonicError::repository("ClusterMetrics with zero count must have zero distance_sum!"));
     }
 
     if self.evictions > self.inserts {
-        return Err(TectonicError::RepoError { 
-            message: "ClusterMetrics evictions cannot exceed inserts!" 
-        });
+        return Err(TectonicError::repository("ClusterMetrics evictions cannot exceed inserts!"));
     }
     Ok(())
 }
