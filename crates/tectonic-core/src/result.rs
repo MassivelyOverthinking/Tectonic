@@ -36,9 +36,15 @@ impl<const D: usize> VectorEntry<D> {
         }
     }
 
+    #[inline]
     pub fn replace_internal_vector(&mut self, new_vector: DimVector<D>) -> UniqueID {
         self.vector = new_vector;
         self.vector_id
+    }
+
+    #[inline]
+    pub fn get_unique_id(&self) -> &UniqueID {
+        &self.vector_id
     }
 }
 

@@ -16,6 +16,7 @@ pub struct LocationSlab {
 }
 
 impl Default for LocationSlab {
+    #[inline]
     fn default() -> Self {
         Self { 
             storage: HashMap::new(),
@@ -26,19 +27,23 @@ impl Default for LocationSlab {
 
 #[allow(dead_code)]
 impl LocationSlab {
+    #[inline]
     pub fn add_location(&mut self, id: &UniqueID, hash: u64, entry: LocationEntry) {
         self.storage.insert(*id, entry);
         self.hashes.insert(hash, *id);
     }
 
+    #[inline]
     pub fn get_location(&self, id: &UniqueID) -> Option<&LocationEntry> {
         self.storage.get(id)
     }
 
+    #[inline]
     pub fn contains_location(&self, id: &UniqueID) -> bool {
         self.storage.contains_key(id)
     }
 
+    #[inline]
     pub fn get_by_hash(&self, hash: u64) -> Option<&LocationEntry> {
         if let Some(found_id) = self.hashes.get(&hash) {
             self.storage.get(found_id)
@@ -59,6 +64,7 @@ pub struct LocationEntry {
 
 #[allow(dead_code)]
 impl LocationEntry {
+    #[inline]
     fn new(partition: usize, shard: usize, slot: usize, arena: usize) -> Self {
         Self {
             partition_index: partition,
@@ -68,34 +74,42 @@ impl LocationEntry {
         }
     }
 
+    #[inline]
     pub fn get_partition(&self) -> &usize {
         &self.partition_index
     }
 
+    #[inline]
     pub fn get_shard(&self) -> &usize {
         &self.shard_index
     }
 
+    #[inline]
     pub fn get_slot(&self) -> &usize {
         &self.slot_index
     }
 
+    #[inline]
     pub fn get_arena(&self) -> &usize {
         &self.arena_index
     }
 
+    #[inline]
     pub fn set_partition(&mut self, index: usize) {
         self.partition_index = index;
     }
 
+    #[inline]
     pub fn set_shard(&mut self, index: usize) {
         self.shard_index = index;
     }
 
+    #[inline]
     pub fn set_slot(&mut self, index: usize) {
         self.slot_index = index;
     }
 
+    #[inline]
     pub fn set_arena(&mut self, index: usize) {
         self.arena_index = index;
     }

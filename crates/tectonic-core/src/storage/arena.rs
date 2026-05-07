@@ -77,6 +77,7 @@ impl<const D: usize> VectorArena<D> {
     // Returns:
     // - Ok(index) => The Arean/Slab index where the vector entry was inserted.
     // - Err(TectonicError) => If the Arena/Slab is full or due to inconsistencies.
+    #[inline]
     pub fn insert(&mut self, value: DimVector<D>, metrics_enabled: bool) -> Result<usize, TectonicError> {
         // Check if the internal Slab/Arena structure is currently full.
         if self.is_full() {
