@@ -4,7 +4,7 @@
 
 use std::{collections::{BinaryHeap, VecDeque}};
 
-use crate::{error::TectonicError, quantization::quantized_entry::QuantizedEntry, result::SearchResult, search::distance::SearchMethod, location::location_entry::{ShardEntry}, utility::{typings::{HeapResult, usize_to_f32}, utils::UniqueID}};
+use crate::{error::TectonicError, location::location_entry::ShardEntry, quantization::quantized_entry::QuantizedEntry, result::SearchResult, search::distance::SearchMethod, utility::{typings::{HeapResult, TectonicResult, usize_to_f32}, utils::UniqueID}};
 
 // ============================================================
 // INTERNAL SHARDS (MULTITHREADING)
@@ -33,9 +33,9 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn insert(&mut self, entry: ShardEntry) -> Result<usize, TectonicError> {
+    pub fn insert(&mut self, entry: ShardEntry) -> TectonicResult<usize> {
         if self.is_full() {
-            return Err(TectonicError::RepoError { message: "Internal Shard is currently full!" });
+            return Err(TectonicError::repository("Internal Shard is currently full!"));
         }
 
         if let Some(free_index) = self.free_list.pop_back() {
@@ -50,11 +50,9 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn remove(&mut self, index: usize) -> Result<UniqueID, TectonicError> {
+    pub fn remove(&mut self, index: usize) -> TectonicResult<UniqueID> {
         if index >= self.capacity {
-            return Err(TectonicError::RepoError { message: 
-                "Index out of bounds (Repository Shard)"
-            });
+            return Err(TectonicError::repository("Index out of bounds (Repository Shard)"));
         }
 
         if let Some(entry) = self.location_storage[index].take() {
@@ -62,7 +60,7 @@ impl<const D: usize> CacheShard<D> {
             self.decrement_and_update_factor();
             Ok(entry.get_id().clone())
         } else {
-            return Err(TectonicError::RepoError { message: "Could not locate Location inside Repo" });
+            return Err(TectonicError::repository("Could not locate Location inside Repo"));
         }
     }
 
@@ -71,7 +69,7 @@ impl<const D: usize> CacheShard<D> {
         vector: &QuantizedEntry, 
         search_method: &M, 
         k: usize
-    ) -> Result<HeapResult, TectonicError>
+    ) -> TectonicResult<HeapResult>
     where M: SearchMethod<D> {
         if self.is_empty() || k == 0 {
             return Ok(Vec::new());
