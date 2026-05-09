@@ -36,6 +36,8 @@ pub enum TectonicErrorKind {
     Admission,
     Eviction,
     InconsistentState,
+    NonFiniteValue,
+    InternalMismatch,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -119,6 +121,16 @@ pub enum TectonicError {          // Simple Error with custom messaging
     InconsistentState { 
         message: &'static str 
     },
+
+    // Output vector contains non-finite values (NaN or Inf) after quantization.
+    NonFiniteValue {
+        message: &'static str
+    },
+
+    // Internal mismatch error for unexpected state or logic errors that should never happen.
+    InternalMismatch {
+        message: &'static str
+    },
 }
 
 impl TectonicError {
@@ -140,6 +152,8 @@ impl TectonicError {
             TectonicError::Admission { .. } => TectonicErrorKind::Admission,
             TectonicError::Eviction { .. } => TectonicErrorKind::Eviction,
             TectonicError::InconsistentState { .. } => TectonicErrorKind::InconsistentState,
+            TectonicError::NonFiniteValue { .. } => TectonicErrorKind::NonFiniteValue,
+            TectonicError::InternalMismatch { .. } => TectonicErrorKind::InternalMismatch,
         }
     }
 
@@ -217,6 +231,16 @@ impl TectonicError {
     pub fn inconsistent_state(message: &'static str) -> Self {
         TectonicError::InconsistentState { message }
     }
+
+    #[inline]
+    pub fn non_finit_value(message: &'static str) -> Self {
+        TectonicError::NonFiniteValue { message }
+    }
+
+    #[inline]
+    pub fn internal_mismatch(message: &'static str) -> Self {
+        TectonicError::InternalMismatch { message }
+    }
 }
 
 
@@ -253,6 +277,10 @@ impl fmt::Display for TectonicError {
             write!(f, "Eviction error: {}", message),
             Self::InconsistentState { message } => 
             write!(f, "Inconsistent state error: {}", message),
+            Self::NonFiniteValue { message } => 
+            write!(f, "Non-finite value error: {}", message),
+            Self::InternalMismatch { message } => 
+            write!(f, "Internal mismatch error: {}", message),
         }
     }
 }

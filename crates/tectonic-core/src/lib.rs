@@ -113,7 +113,7 @@ impl<const D: usize> VectorCache<D> {
                 &vector, 
                 quantized_vector, 
                 vector_id,
-                &self.config.search.distance_metric
+                &self.config.search.distance_metric,
             )?;
             
 
