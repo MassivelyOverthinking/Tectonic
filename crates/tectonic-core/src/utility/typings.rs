@@ -8,7 +8,8 @@ use crate::{result::SearchResult, utility::utils::UniqueID};
 // CUSTOM DTYPES ANNOTATIONS
 // ============================================================
 
-pub type DimVector<const D: usize> = [f32; D]; 
+pub type DimVector<const D: usize> = [f32; D];
+pub type Hash64 = u64; 
 pub type NodeValue = usize;
 
 pub type HeapResult = Vec<SearchResult>;

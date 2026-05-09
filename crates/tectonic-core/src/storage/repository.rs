@@ -90,12 +90,11 @@ impl<const D: usize> CacheRepo<D> {
     ) -> TectonicResult<bool>
     where M: SearchMethod<D> {
         if !self.centroids_initialized {
-            let entry = BootstrapEntry {
-                vector: *vector,
-                quantized: quanttized_vector,
-                internal_id,
-                vector_hash: hash_dimvector(vector),
-            };
+            let entry = BootstrapEntry::new(
+                *vector, 
+                quanttized_vector,
+                internal_id, hash_dimvector(vector)
+                );
 
             self.centroid_buffer.push(entry);
 
@@ -292,9 +291,9 @@ impl<const D: usize> CacheRepo<D> {
         seeds.push(first_seed);
         chosen[first_seed] = true;
 
-        let first_vector = &self.centroid_buffer[first_seed].vector;
+        let first_vector = &self.centroid_buffer[first_seed].get_vector();
         for i in 0..n {
-            let d = Self::squared_l2(&self.centroid_buffer[i].vector, first_vector);
+            let d = Self::squared_l2(&self.centroid_buffer[i].get_vector(), first_vector);
             min_distances[i] = d;
         }
         min_distances[first_seed] = -1.0;
@@ -318,13 +317,13 @@ impl<const D: usize> CacheRepo<D> {
             chosen[best_index] = true;
             min_distances[best_index] = -1.0;
 
-            let seed_vector = &self.centroid_buffer[best_index].vector;
+            let seed_vector = &self.centroid_buffer[best_index].get_vector();
             for i in 0..n {
                 if chosen[i] {
                     continue;
                 }
 
-                let d = Self::squared_l2(&self.centroid_buffer[i].vector, seed_vector);
+                let d = Self::squared_l2(&self.centroid_buffer[i].get_vector(), seed_vector);
                 if d < min_distances[i] {
                     min_distances[i] = d;
                 }
@@ -338,7 +337,7 @@ impl<const D: usize> CacheRepo<D> {
         let mut best_distance = f32::INFINITY;
 
         for (partition_idx, &seed_buffer_index) in seed_indices.iter().enumerate() {
-            let seed_vector = &self.centroid_buffer[seed_buffer_index].vector;
+            let seed_vector = &self.centroid_buffer[seed_buffer_index].get_vector();
             let d = Self::squared_l2(vector, seed_vector);
 
             if d < best_distance {
@@ -372,12 +371,12 @@ impl<const D: usize> CacheRepo<D> {
 
         // Assignment + accumulation
         for (buffer_index, entry) in self.centroid_buffer.iter().enumerate() {
-            let partition_index = self.assign_buffered_vector_to_seed(&entry.vector, &seed_indices);
+            let partition_index = self.assign_buffered_vector_to_seed(entry.get_vector(), &seed_indices);
             assignments[buffer_index] = partition_index;
             counts[partition_index] += 1;
 
             for dim in 0..D {
-                centroid_sums[partition_index][dim] += entry.vector[dim];
+                centroid_sums[partition_index][dim] += entry.get_vector()[dim];
             }
         }
 
@@ -385,7 +384,7 @@ impl<const D: usize> CacheRepo<D> {
         for partition_index in 0..partition_count {
             if counts[partition_index] == 0 {
                 let seed_idx = seed_indices[partition_index];
-                self.vector_repo[partition_index].set_centroid(self.centroid_buffer[seed_idx].vector)?;
+                self.vector_repo[partition_index].set_centroid(*self.centroid_buffer[seed_idx].get_vector())?;
                 self.vector_repo[partition_index].set_size(0)?;
                 continue;
             }
@@ -406,9 +405,9 @@ impl<const D: usize> CacheRepo<D> {
         for (buffer_index, entry) in drained_entries.into_iter().enumerate() {
             let partition_index = assignments[buffer_index];
 
-            let internal_id = entry.internal_id;
+            let internal_id = entry.get_unique_id();
 
-            let shard_entry = ShardEntry::new(internal_id, entry.quantized);
+            let shard_entry = ShardEntry::new(*internal_id, entry.get_quantized_entry().clone());
 
             let _ = self.vector_repo[partition_index].route_to_shard(shard_entry)?;
         }
