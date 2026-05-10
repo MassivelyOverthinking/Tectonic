@@ -24,7 +24,7 @@ use crate::result::{CacheEntry, CacheResult};
 use crate::search::distance::SearchMethod;
 use crate::storage::arena::{VectorArena};
 use crate::storage::repository::CacheRepo;
-use crate::utility::typings::{DimVector, DuplicatePolicy, InsertOutcome, TectonicResult, ValidationMode, usize_to_f32};
+use crate::utility::typings::{DimVector, DuplicatePolicy, InsertOutcome, TectonicResult, ValidationMode, SearchType, usize_to_f32};
 use crate::utility::utils::{hash_dimvector, validate_vector};
 use crate::location::location_slab::LocationSlab;
 
@@ -127,7 +127,8 @@ impl<const D: usize> VectorCache<D> {
         vector: DimVector<D>,
         search_method: &M,
         k: usize,
-        partitions: usize
+        partitions: usize,
+        search_type: SearchType
     ) -> TectonicResult<CacheResult<D>> 
     where M: SearchMethod<D>{
         // 1. Step -> Check if main cahce is currently empty.
@@ -206,7 +207,7 @@ impl<const D: usize> VectorCache<D> {
         let repo_size = self.repository.size();
         let arena_size = self.arena.size();
         if repo_size != arena_size {
-            return Err(TectonicError::arena(
+            return Err(TectonicError::internal_mismatch(
                 "Inconsistent size count between Arena and Repository"
             ));
         }
@@ -219,7 +220,7 @@ impl<const D: usize> VectorCache<D> {
         if repo_size == arena_size {
             return Ok(repo_size);
         } else {
-            return Err(TectonicError::arena(
+            return Err(TectonicError::internal_mismatch(
                 "Inconsistent size count between Arena and Repository"
             ));
         }

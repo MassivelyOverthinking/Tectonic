@@ -63,3 +63,11 @@ pub enum DuplicatePolicy {
     KeepExisting,
     ReplaceExisting,
 }
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchType {
+    Accurate,
+    Approximate,
+    ApproximateRerank,
+}

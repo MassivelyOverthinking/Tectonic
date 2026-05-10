@@ -5,10 +5,11 @@
 use std::iter::repeat_with;
 use crate::location::location_slab::LocationEntry;
 use crate::storage::slot::ArenaSlot;
-use crate::result::{VectorEntry};
+use crate::result::{CacheEntry, VectorEntry};
 use crate::error::TectonicError;
 use crate::utility::typings::{DimVector, TectonicResult};
 use crate::utility::utils::UniqueID;
+use crate::search::distance::SearchMethod;
 
 // ============================================================
 // VECTOR STORAGE (ARENA)
@@ -141,6 +142,19 @@ impl<const D: usize> VectorArena<D> {
         self.debug_assertions_validate()?;
 
         Ok(true)
+    }
+
+    pub fn accurate_search<M>(&self, value: DimVector<D>, k: usize, search_method: &M) -> TectonicResult<Vec<CacheEntry<D>>>
+    where M: SearchMethod<D> {
+        if self.is_empty() {
+            return Err(TectonicError::arena("Cache is currently empty"));
+        };
+
+        if k == 0 {
+            return Ok(Vec::new());
+        }
+
+        todo!()
     }
 
     pub fn get_vector_by_location(&self, location: &LocationEntry, id: UniqueID) -> TectonicResult<(&DimVector<D>, &UniqueID)> {
