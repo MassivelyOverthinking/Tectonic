@@ -42,6 +42,7 @@ pub struct VectorCache<const D: usize> {
 }
 
 impl<const D: usize> VectorCache<D> {
+    #[inline]
     pub fn new(config: CacheConfig) -> TectonicResult<Self> {
         config.validate()?;
 
@@ -71,6 +72,7 @@ impl<const D: usize> VectorCache<D> {
         )
     }
 
+    #[inline]
     pub fn insert(
         &mut self, 
         vector: DimVector<D>,
@@ -122,6 +124,7 @@ impl<const D: usize> VectorCache<D> {
         todo!()
     }
 
+    #[inline]
     pub fn get<M>(
         &self,
         vector: DimVector<D>,
@@ -213,6 +216,7 @@ impl<const D: usize> VectorCache<D> {
         }
     }
 
+    #[inline]
     pub fn remove(
         &mut self,
         _internal_id: usize,
@@ -220,6 +224,7 @@ impl<const D: usize> VectorCache<D> {
         todo!()
     }
 
+    #[inline]
     pub fn extend(
         &mut self,
         _vectors: Vec<DimVector<D>>,
@@ -228,18 +233,22 @@ impl<const D: usize> VectorCache<D> {
         todo!()
     }
 
+    #[inline]
     pub fn metrics(&self) -> TectonicResult<bool> {
         todo!()
     }
 
+    #[inline]   
     pub fn config(&self) -> TectonicResult<&CacheConfig> {
         Ok(&self.config)
     }
 
+    #[inline]
     pub fn vectors(&self) -> TectonicResult<bool> {
         todo!()
     }
 
+    #[inline]
     pub fn is_full(&self) -> TectonicResult<bool> {
         let repo_size = self.repository.size();
         let arena_size = self.arena.size();
@@ -251,6 +260,7 @@ impl<const D: usize> VectorCache<D> {
         Ok(self.size()? >= self.metrics.capacity())
     }
 
+    #[inline]
     pub fn size(&self) -> TectonicResult<usize> {
         let repo_size = self.repository.size();
         let arena_size = self.arena.size();
@@ -263,10 +273,22 @@ impl<const D: usize> VectorCache<D> {
         }
     }
 
+    #[inline]
+    pub fn clear(&mut self) -> TectonicResult<bool> {
+        self.arena.clear()?;
+        self.repository.clear()?;
+        self.locations.clear();
+        self.metrics.reset();
+
+        Ok(true)
+    }
+
+    #[inline]
     pub fn load_factor(&self) -> f32 {
         usize_to_f32(self.repository.size) / usize_to_f32(self.repository.capacity)
     }
 
+    #[inline]
     fn compare_vectors(&self, found_vector: DimVector<D>, new_vector: DimVector<D>) -> bool {
         found_vector == new_vector
     }

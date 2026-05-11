@@ -269,6 +269,7 @@ impl<const D: usize> VectorArena<D> {
         Ok(vector_id)       // Returns Vector-ID for clarity & debugging.
     }
 
+    #[inline]
     pub fn update_vector(&mut self, new_vector: DimVector<D>, index: &usize) -> TectonicResult<UniqueID> {
         // Helper-method
         // Replaces the internal VectorEntry-instance with new value found by ArenaLocation.
@@ -287,6 +288,19 @@ impl<const D: usize> VectorArena<D> {
         // Use internal Helper-method to replace the internal VectorEntry.
         let vector_id = entry.replace_internal_vector(new_vector);
         Ok(vector_id)       // Returns Vector-ID for clarity & debugging.
+    }
+
+    #[inline]
+    pub fn clear(&mut self) -> TectonicResult<bool> {
+        self.arena.iter_mut().for_each(|slot| slot.vector = None);
+        self.free_list.clear();
+        self.next_index = 0;
+        self.size = 0;
+
+        #[cfg(debug_assertions)]
+        self.debug_assertions_validate()?;
+
+        Ok(true)
     }
 
     // ============================================================
