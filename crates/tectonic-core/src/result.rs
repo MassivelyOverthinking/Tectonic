@@ -72,6 +72,32 @@ impl<const D: usize> fmt::Display for CacheEntry<D> {
     }
 }
 
+impl<const D: usize> Eq for CacheEntry<D> {}
+
+impl<const D: usize> PartialEq for CacheEntry<D> {
+    fn eq(&self, other: &Self) -> bool {
+        self.distance == other.distance && self.index == other.index
+    }
+    
+}
+
+impl<const D: usize> PartialOrd for CacheEntry<D> {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<const D: usize> Ord for CacheEntry<D> {
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.distance
+            .total_cmp(&other.distance)
+            .then_with(|| self.index.cmp(&other.index))
+    }
+    
+}
+
 impl<const D: usize> CacheEntry<D> {
     pub fn new(index: usize, vector: DimVector<D>, distance: f32) -> Self {
         Self {
