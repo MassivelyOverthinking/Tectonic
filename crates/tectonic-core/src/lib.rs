@@ -141,6 +141,30 @@ impl<const D: usize> VectorCache<D> {
         // 2. Step -> Start lantency timer for search-method execution.
         let time_before_method = Instant::now();
 
+        // 3. Step -> Validate and execute search type.
+        match search_type {
+            // Exact similarity using non-quantized vectors for high accuracy.
+            SearchType::Accurate => {
+                let accurate_results = self.arena.accurate_search(vector, k, search_method)?;
+
+                let candidate_count = accurate_results.len();
+
+                // Stop latency timer & calculate total execution time.
+                let method_latency = time_before_method.elapsed();
+
+                // Return the final CacheResult instance. 
+                Ok(CacheResult::new(k, partitions, candidate_count, method_latency, accurate_results));
+            },
+            SearchType::Approximate => {
+                // Approximate similarity using quantized vectors for faster search.
+                todo!()
+            },
+            SearchType::ApproximateRerank => {
+                // Aprroximate similarity search without final reranking step.
+                todo!()
+            }
+        }
+
         // 3. Step -> Quantize incomming Vector for faster search.
         let quantized_vector = quantize(&vector)?;
 

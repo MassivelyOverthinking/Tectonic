@@ -2,7 +2,10 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use std::collections::BinaryHeap;
 use std::iter::repeat_with;
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+
 use crate::location::location_slab::LocationEntry;
 use crate::storage::slot::ArenaSlot;
 use crate::result::{CacheEntry, VectorEntry};
@@ -154,7 +157,64 @@ impl<const D: usize> VectorArena<D> {
             return Ok(Vec::new());
         }
 
-        todo!()
+        let heap = self
+            .arena
+            .par_iter()
+            .enumerate()
+            .fold(
+                || BinaryHeap::<CacheEntry<D>>::with_capacity(k + 1), 
+                |mut local_heap, (arena_index, slot)| {
+                    let Some(entry) = slot.vector.as_ref() else {
+                        return local_heap;
+                    };
+
+                    let distance = search_method.distance_f32(&value, &entry.vector);
+
+                    if !distance.is_finite() {
+                        #[cfg(debug_assertions)]
+                        panic!("Non-finite distance calculated for vector at index {}: {}", arena_index, distance);
+
+                        #[cfg(not(debug_assertions))]
+                        return local_heap;
+                    }
+
+                    local_heap.push(CacheEntry::new(
+                        arena_index,
+                        entry.vector.clone(),
+                        distance,
+                    ));
+
+                    if local_heap.len() > k {
+                        local_heap.pop();
+                    }
+
+                    local_heap
+                },
+            )
+            .reduce(
+                || BinaryHeap::<CacheEntry<D>>::with_capacity(k + 1), 
+                |mut global_heap, local_heap| {
+                    for candidate in local_heap {
+                        global_heap.push(candidate);
+
+                        if global_heap.len() > k {
+                            global_heap.pop();
+                        }
+                    }
+
+                    global_heap
+                },
+            );
+
+        let results: Vec<CacheEntry<D>> = heap.into_sorted_vec();
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert!(results.len() <= k, "Expcted result length doesn't match k");
+            debug_assert!(results.len() <= self.size, "Expected result length exceeds number of entries in Arena");
+        }
+
+        Ok(results)
     }
 
     pub fn get_vector_by_location(&self, location: &LocationEntry, id: UniqueID) -> TectonicResult<(&DimVector<D>, &UniqueID)> {
