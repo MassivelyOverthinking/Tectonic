@@ -147,20 +147,21 @@ impl<const D: usize> VectorCache<D> {
             SearchType::Accurate => {
                 let accurate_results = self.arena.accurate_search(vector, k, search_method)?;
 
+                // Final length of candidate vectors returned from accurate search.
                 let candidate_count = accurate_results.len();
 
                 // Stop latency timer & calculate total execution time.
                 let method_latency = time_before_method.elapsed();
 
                 // Return the final CacheResult instance. 
-                Ok(CacheResult::new(k, partitions, candidate_count, method_latency, accurate_results));
+                Ok(CacheResult::new(k, partitions, candidate_count, method_latency, accurate_results))
             },
             SearchType::Approximate => {
                 // Approximate similarity using quantized vectors for faster search.
-                // 3. Step -> Quantize incomming Vector for faster search.
+                // Calculate quantized vector for incoming query.
                 let quantized_vector = quantize(&vector)?;
 
-                // 4. Step -> Executre internal search for Top K candidate vectors.
+                // Execute internal search for Top K candidate vectors.
                 let search_results = self.repository.search(
                     &quantized_vector,
                     &vector,
@@ -169,23 +170,24 @@ impl<const D: usize> VectorCache<D> {
                     partitions
                 )?;
 
-                // 5. Step -> Convert the search results into CacheResult with necessary metadata.
+                // Final length of candidate vectors returned from approximate search.
                 let candidate_count = search_results.len();
 
+                // Convert the candiate results into finalized CacheResult entries.
                 let entries = self.convert_search_results(search_results, vector, search_method)?;
 
                 // Stop latency timer & calculate total execution time.
                 let method_latency = time_before_method.elapsed();
 
-                // 7. Step -> Return the final CacheResult instance. 
-                Ok(CacheResult::new(k, partitions, candidate_count, method_latency, entries));
+                // Return the final CacheResult instance. 
+                Ok(CacheResult::new(k, partitions, candidate_count, method_latency, entries))
             },
             SearchType::ApproximateRerank => {
                 // Aprroximate similarity search without final reranking step.
-                // 3. Step -> Quantize incomming Vector for faster search.
+                // Calculate quantized vector for incoming query.
                 let quantized_vector = quantize(&vector)?;
 
-                // 4. Step -> Executre internal search for Top K candidate vectors.
+                // Execute internal search for Top K candidate vectors.
                 let search_results = self.repository.search(
                     &quantized_vector,
                     &vector,
@@ -194,52 +196,21 @@ impl<const D: usize> VectorCache<D> {
                     partitions
                 )?;
 
-                // 5. Step -> Convert the search results into CacheResult with necessary metadata.
+                // Final length of candidate vectors returned from approximate search.
                 let candidate_count = search_results.len();
 
-                let entries = self.convert_search_results(search_results, vector, search_method)?;
+                // Convert the candiate results into finalized CacheResult entries.
+                // And perform a final reranking step.
+                let mut entries = self.convert_search_results(search_results, vector, search_method)?;
+                entries.sort_unstable_by(|a, b| a.distance.total_cmp(&b.distance));
 
                 // Stop latency timer & calculate total execution time.
                 let method_latency = time_before_method.elapsed();
 
-                // 7. Step -> Return the final CacheResult instance. 
-                Ok(CacheResult::new(k, partitions, candidate_count, method_latency, entries));
-            }
+                // Return the final CacheResult instance.
+                Ok(CacheResult::new(k, partitions, candidate_count, method_latency, entries))
+            },
         }
-
-        // 3. Step -> Quantize incomming Vector for faster search.
-        let quantized_vector = quantize(&vector)?;
-
-        // 4. Step -> Executre internal search for Top K candidate vectors.
-        let search_results = self.repository.search(
-            &quantized_vector,
-            &vector,
-            search_method,
-            k,
-            partitions
-        )?;
-
-        // 5. Step -> Convert the search results into CacheResult with necessary metadata.
-        let candidate_count = search_results.len();
-
-        let mut entries = search_results
-            .into_iter()
-            .map(|result| {
-                let arena_position = self.locations.get_location(&result.id).expect("Found nothing!");
-                let (candidate, _found_id) = self.arena.get_vector_at_position(*arena_position.get_arena())?;
-                let distance = search_method.distance_f32(&vector, candidate);
-                
-                Ok(CacheEntry::new(*arena_position.get_arena(), candidate.clone(), distance))
-            })
-            .collect::<Result<Vec<_>, TectonicError>>()?;
-
-        entries.sort_unstable_by(|a, b| a.distance.total_cmp(&b.distance));
-
-        // 6. Step -> Stop latency timer & calculate total execution time.
-        let method_latency = time_before_method.elapsed();
-
-        // 7. Step -> Return the final CacheResult instance. 
-        Ok(CacheResult::new(k, partitions, candidate_count, method_latency, entries))
     }
 
     pub fn remove(
