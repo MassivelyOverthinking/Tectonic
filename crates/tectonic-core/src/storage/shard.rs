@@ -120,4 +120,14 @@ impl<const D: usize> CacheShard<D> {
     fn is_empty(&self) -> bool {
         self.size == 0
     }
+
+    #[inline]
+    pub fn clear(&mut self) -> TectonicResult<bool> {
+        self.location_storage.iter_mut().for_each(|entry| *entry = None);
+        self.free_list.clear();
+        self.size = 0;
+        self.load_factor = 0.0;
+        
+        Ok(true)
+    }
 }

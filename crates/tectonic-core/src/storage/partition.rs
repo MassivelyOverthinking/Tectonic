@@ -263,6 +263,18 @@ impl<const D: usize> CachePartition<D> {
         self.size >= self.capacity
     }
 
+    #[inline]
+    pub fn clear(&mut self) -> TectonicResult<bool> {
+        for shard in self.shards.iter_mut() {
+            shard.clear()?;
+        };
+
+        self.centroid = None;
+        self.size = 0;
+        Ok(true)
+    }
+
+    #[inline]
     pub fn insert_admission(&mut self, id: UniqueID) -> TectonicResult<bool> {
         self.strategy.get_admission_mut().on_insert(&id);
         Ok(true)

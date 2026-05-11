@@ -12,7 +12,7 @@ use crate::utility::router::BootstrapEntry;
 use crate::utility::typings::{DimVector, TectonicResult};
 use crate::search::distance::{SearchMethod};
 use crate::location::location_entry::{ShardEntry};
-use crate::storage::partition::CachePartition;
+use crate::storage::partition::{CachePartition};
 use crate::utility::utils::{UniqueID, calculate_sizes, hash_dimvector};
 use crate::config::StrategyConfig;
 
@@ -462,15 +462,28 @@ impl<const D: usize> CacheRepo<D> {
         x == y
     }
 
+    #[inline]
     pub fn size(&self) -> usize {
         self.size
     }
 
+    #[inline]
     pub fn is_full(&self) -> bool {
         self.size >= self.capacity
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.size == 0
+    }
+
+    #[inline]
+    pub fn clear(&mut self) -> TectonicResult<bool> {
+        for partition in self.vector_repo.iter_mut() {
+            partition.clear()?;
+        };
+
+        self.size = 0;
+        Ok(true)
     }
 }
