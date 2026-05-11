@@ -80,6 +80,14 @@ impl CacheMetrics {
         self.actions.record_update(latency);
     }
 
+    #[inline]
+    pub fn reset(&mut self) {
+        self.created_at = Instant::now();
+        self.size = 0;
+        self.capacity = 0;
+        self.actions = ActionMetrics::default();
+    }
+
 // ============================================================
 // CACHE BASIC ACCESSORS
 // ============================================================

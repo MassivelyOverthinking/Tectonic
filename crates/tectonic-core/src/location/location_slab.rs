@@ -51,6 +51,12 @@ impl LocationSlab {
             None
         }
     }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.storage.clear();
+        self.hashes.clear();
+    }
 }
 
 #[allow(dead_code)]
