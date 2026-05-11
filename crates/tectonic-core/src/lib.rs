@@ -20,7 +20,7 @@ use crate::config::{CacheConfig};
 use crate::error::TectonicError;
 use crate::metrics::cache_metrics::CacheMetrics;
 use crate::quantization::scalar_qunatization::{quantize};
-use crate::result::{CacheEntry, CacheResult};
+use crate::result::{CacheEntry, CacheResult, SearchResult};
 use crate::search::distance::SearchMethod;
 use crate::storage::arena::{VectorArena};
 use crate::storage::repository::CacheRepo;
@@ -157,11 +157,53 @@ impl<const D: usize> VectorCache<D> {
             },
             SearchType::Approximate => {
                 // Approximate similarity using quantized vectors for faster search.
-                todo!()
+                // 3. Step -> Quantize incomming Vector for faster search.
+                let quantized_vector = quantize(&vector)?;
+
+                // 4. Step -> Executre internal search for Top K candidate vectors.
+                let search_results = self.repository.search(
+                    &quantized_vector,
+                    &vector,
+                    search_method,
+                    k,
+                    partitions
+                )?;
+
+                // 5. Step -> Convert the search results into CacheResult with necessary metadata.
+                let candidate_count = search_results.len();
+
+                let entries = self.convert_search_results(search_results, vector, search_method)?;
+
+                // Stop latency timer & calculate total execution time.
+                let method_latency = time_before_method.elapsed();
+
+                // 7. Step -> Return the final CacheResult instance. 
+                Ok(CacheResult::new(k, partitions, candidate_count, method_latency, entries));
             },
             SearchType::ApproximateRerank => {
                 // Aprroximate similarity search without final reranking step.
-                todo!()
+                // 3. Step -> Quantize incomming Vector for faster search.
+                let quantized_vector = quantize(&vector)?;
+
+                // 4. Step -> Executre internal search for Top K candidate vectors.
+                let search_results = self.repository.search(
+                    &quantized_vector,
+                    &vector,
+                    search_method,
+                    k,
+                    partitions
+                )?;
+
+                // 5. Step -> Convert the search results into CacheResult with necessary metadata.
+                let candidate_count = search_results.len();
+
+                let entries = self.convert_search_results(search_results, vector, search_method)?;
+
+                // Stop latency timer & calculate total execution time.
+                let method_latency = time_before_method.elapsed();
+
+                // 7. Step -> Return the final CacheResult instance. 
+                Ok(CacheResult::new(k, partitions, candidate_count, method_latency, entries));
             }
         }
 
@@ -261,5 +303,22 @@ impl<const D: usize> VectorCache<D> {
 // ============================================================
 // HELPER METHODS
 // ============================================================
+
+    #[inline]
+    fn convert_search_results<M>(&self, results: Vec<SearchResult>, vector: DimVector<D>, search_method: &M)
+    -> TectonicResult<Vec<CacheEntry<D>>> where M: SearchMethod<D> {
+        let entries = results
+            .into_iter()
+            .map(|result| {
+                let arena_position = self.locations.get_location(&result.id).expect("Found nothing!");
+                let (candidate, _found_id) = self.arena.get_vector_at_position(*arena_position.get_arena())?;
+                let distance = search_method.distance_f32(&vector, candidate);
+                
+                Ok(CacheEntry::new(*arena_position.get_arena(), candidate.clone(), distance))
+            })
+            .collect::<Result<Vec<_>, TectonicError>>()?;
+
+        Ok(entries)
+    }
 }
 
