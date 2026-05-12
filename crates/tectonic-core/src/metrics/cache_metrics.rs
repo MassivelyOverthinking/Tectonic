@@ -4,11 +4,28 @@
 
 use std::{fmt::Debug, time::{Duration, Instant}};
 
-use crate::utility::typings::usize_to_f32;
+use crate::{error::TectonicError, utility::typings::{TectonicResult, usize_to_f32}};
 
 // ============================================================
 // INTERNAL CACHE METRICS
 // ============================================================
+// Main cache-level metrics.
+// ---
+// Metrics track cache occupancy stats, operation counts, search behavior,
+// latency, and cache lifecycle. 
+// Unlike standard key-value cache elements, vector-based similarity search
+// does not possess a clean "miss" concept. 
+// A query may return fewer than desired (K)
+// results, no results at all, or approximate candidates, but this is not equivalent
+// to a lookup miss.
+//
+// Therefore cache metrics tracks:
+// - insert/remove/update/eviction operations.
+// - search/query operations.
+// - number of returned search results.
+// - number of candidate vectors inspected.
+// - latency per operation class.
+// - cache occupancy and throughput.
 
 #[derive(Clone, Copy)]
 #[allow(dead_code)]
@@ -25,8 +42,11 @@ impl Debug for CacheMetrics {
             .field("size", &self.size)
             .field("capacity", &self.capacity)
             .field("load_factor", &self.load_factor())
+            .field("free_capacity", &self.free_capacity())
             .field("is_full", &self.is_full())
             .field("is_empty", &self.is_empty())
+            .field("uptime", &self.uptime())
+            .field("operations_per_sec", &self.operations_per_second())
             .field("actions", &self.actions)
             .finish()
     }
@@ -49,35 +69,46 @@ impl CacheMetrics {
 
     #[inline]
     pub fn on_insert(&mut self, latency: Duration) {
-        self.size += 1;
+        debug_assert!(
+            self.size < self.capacity,
+            "Insert element would exceed current cache size"
+        );
+
+        self.size = self.size.saturating_add(1);
         self.actions.record_insert(latency);
+
+        #[cfg(debug_assertions)]
+        todo!()
     }
 
     #[inline]
     pub fn on_remove(&mut self, latency: Duration) {
         debug_assert!(self.size > 0, "Cannot remove entry from Empty Cache");
-        self.size -= 1;
+
+        self.size = self.size.saturating_sub(1);
         self.actions.record_remove(latency);
-    }
 
-    #[inline]
-    pub fn on_get_hit(&mut self, latency: Duration) {
-        self.actions.record_get_hit(latency);
-    }
-
-    #[inline]
-    pub fn on_get_miss(&mut self, latency: Duration) {
-        self.actions.record_get_miss(latency);
+        #[cfg(debug_assertions)]
+        todo!()
     }
 
     #[inline]
     pub fn on_evict(&mut self, latency: Duration) {
+        debug_assert!(self.size > 0, "Cannot remove entry from Empty Cache");
+
+        self.size = self.size.saturating_sub(1);
         self.actions.record_evict(latency);
+
+        #[cfg(debug_assertions)]
+        todo!()
     }
 
     #[inline]
     pub fn on_update(&mut self, latency: Duration) {
         self.actions.record_update(latency);
+
+        #[cfg(debug_assertions)]
+        todo!()
     }
 
     #[inline]
@@ -88,9 +119,46 @@ impl CacheMetrics {
         self.actions = ActionMetrics::default();
     }
 
-// ============================================================
-// CACHE BASIC ACCESSORS
-// ============================================================
+    #[inline]
+    pub fn on_search(
+        &mut self,
+        latency: Duration,
+        requested_k: usize,
+        returned_k: usize,
+        scanned_k: usize
+    ) {
+        todo!()
+    }
+
+    #[inline]
+    pub fn set_size(&mut self, size: usize) -> TectonicResult<()> {
+        if size > self.capacity {
+            return Err(TectonicError::invalid_parameter(
+                "Cache metrics size", 
+                "Msust not exceed capacity"
+            ));
+        };
+
+        self.size = size;
+        Ok(())
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.created_at = Instant::now();
+        self.size = 0;
+        self.actions = ActionMetrics::default();
+    }
+
+    // ============================================================
+    // CACHE METRICS: VALIDATION
+    // ============================================================
+
+
+
+    // ============================================================
+    // CACHE BASIC ACCESSORS
+    // ============================================================
 
     #[inline]
     pub fn size(&self) -> usize {
@@ -141,16 +209,6 @@ impl CacheMetrics {
     }
 
     #[inline]
-    pub fn hit_rate(&self) -> f32 {
-        self.actions.hit_rate()
-    }
-
-    #[inline]
-    pub fn miss_rate(&self) -> f32 {
-        self.actions.miss_rate()
-    }
-
-    #[inline]
     pub fn operations_per_second(&self) -> f64 {
         let elapsed = self.uptime().as_secs_f64();
         if elapsed == 0.0 {
@@ -159,6 +217,15 @@ impl CacheMetrics {
             self.actions.total_actions() as f64 / elapsed
         }
     }
+
+    #[inline]
+    pub fn search_selectivity(&self) {}
+
+    #[inline]
+    pub fn average_results_pr_search(&self) {}
+
+    #[inline]
+    pub fn average_candidates_pr_search(&self) {}
 }
 
 // ============================================================

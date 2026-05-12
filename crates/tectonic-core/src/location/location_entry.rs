@@ -16,6 +16,7 @@ pub struct ShardEntry {
 }
 
 impl ShardEntry {
+    #[inline]
     pub fn new(id: UniqueID, entry: QuantizedEntry) -> Self {
         Self { 
             unique_id: id,
@@ -23,10 +24,12 @@ impl ShardEntry {
         }
     }
 
+    #[inline]
     pub fn get_id(&self) -> &UniqueID {
         &self.unique_id
     }
 
+    #[inline]
     pub fn get_vector(&self) -> &QuantizedEntry {
         &self.search_vector
     }
