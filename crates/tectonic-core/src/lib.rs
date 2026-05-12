@@ -217,6 +217,25 @@ impl<const D: usize> VectorCache<D> {
     }
 
     #[inline]
+    pub fn contains(&self, vector: DimVector<D>) -> TectonicResult<bool> {
+
+        // 1. Step -> Hash the incoming vector value.
+        let hashed_value = hash_dimvector(&vector);
+
+        // 2. Step -> Check Global Location Slab for existing hash value.
+        if let Some(location_entry) = self.locations.get_by_hash(hashed_value) {
+            // 3. Step -> If hash exists, retrieve the correct arena index.
+            let arena_index = location_entry.get_arena();
+
+            // 4. Step -> Retieve the vector from arena and make final comparison.
+            let (found_vector, _found_id) = self.arena.get_vector_at_position(*arena_index)?;
+            Ok(self.compare_vectors(*found_vector, vector))
+        } else {
+            Ok(false)
+        }
+    }
+
+    #[inline]
     pub fn remove(
         &mut self,
         _internal_id: usize,
