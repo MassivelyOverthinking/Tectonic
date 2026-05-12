@@ -115,7 +115,6 @@ impl CacheMetrics {
     pub fn reset(&mut self) {
         self.created_at = Instant::now();
         self.size = 0;
-        self.capacity = 0;
         self.actions = ActionMetrics::default();
     }
 
@@ -127,6 +126,9 @@ impl CacheMetrics {
         returned_k: usize,
         scanned_k: usize
     ) {
+        self.actions.record_search(latency, requested_k, returned_k, scanned_k);
+
+        #[cfg(debug_assertions)]
         todo!()
     }
 
@@ -239,36 +241,42 @@ pub struct ActionMetrics {
 
     insert_actions: usize,
     remove_actions: usize,
-    get_actions: usize,
+    search_actions: usize,
     update_actions: usize,
     eviction_actions: usize,
 
-    get_hits: usize,
-    get_misses: usize,
+    requested_results: usize,
+    returned_results: usize,
+    scanned_results: usize,
 
     total_latency_ns: u128,
     insert_latency_ns: u128,
     remove_latency_ns: u128,
-    get_latency_ns: u128,
+    search_latency_ns: u128,
     update_latency_ns: u128,
     eviction_latency_ns: u128,
 }
 
 impl Default for ActionMetrics {
+    #[inline]
     fn default() -> Self {
         Self {
             total_actions: 0,
+
             insert_actions: 0,
             remove_actions: 0,
-            get_actions: 0,
+            search_actions: 0,
             update_actions: 0,
             eviction_actions: 0,
-            get_hits: 0,
-            get_misses: 0,
+            
+            requested_results: 0,
+            returned_results: 0,
+            scanned_results: 0,
+
             total_latency_ns: 0,
             insert_latency_ns: 0,
             remove_latency_ns: 0,
-            get_latency_ns: 0,
+            search_latency_ns: 0,
             update_latency_ns: 0,
             eviction_latency_ns: 0
         }
@@ -283,63 +291,109 @@ impl Default for ActionMetrics {
 impl ActionMetrics {
     #[inline]
     pub fn record_insert(&mut self, latency: Duration) {
+        // Convert Duration-instance to Nanoseconds.
         let ns = latency.as_nanos();
-        self.total_actions += 1;
-        self.insert_actions += 1;
-        self.total_latency_ns += ns;
-        self.insert_latency_ns += ns;
+
+        // Add the attributes to correct internal values.
+        self.total_actions = self.total_actions.saturating_add(1);
+        self.insert_actions = self.insert_actions.saturating_add(1);
+        self.total_latency_ns = self.total_latency_ns.saturating_add(ns);
+        self.insert_latency_ns = self.insert_latency_ns.saturating_add(ns);
     }
 
     #[inline]
     pub fn record_remove(&mut self, latency: Duration) {
+        // Convert Duration-instance to Nanoseconds.
         let ns = latency.as_nanos();
-        self.total_actions += 1;
-        self.remove_actions += 1;
-        self.total_latency_ns += ns;
-        self.remove_latency_ns += ns;
-    }
 
-    #[inline]
-    pub fn record_get_hit(&mut self, latency: Duration) {
-        let ns = latency.as_nanos();
-        self.total_actions += 1;
-        self.get_actions += 1;
-        self.get_hits += 1;
-        self.total_latency_ns += ns;
-        self.get_latency_ns += ns;
-    }
-
-    #[inline]
-    pub fn record_get_miss(&mut self, latency: Duration) {
-        let ns = latency.as_nanos();
-        self.total_actions += 1;
-        self.get_actions += 1;
-        self.get_misses += 1;
-        self.total_latency_ns += ns;
-        self.get_latency_ns += ns;
+        // Add the attributes to correct internal values.
+        self.total_actions = self.total_actions.saturating_add(1);
+        self.remove_actions = self.remove_actions.saturating_add(1);
+        self.total_latency_ns = self.total_latency_ns.saturating_add(ns);
+        self.remove_latency_ns = self.remove_latency_ns.saturating_add(ns);
     }
 
     #[inline]
     pub fn record_update(&mut self, latency: Duration) {
+        // Convert Duration-instance to Nanoseconds.
         let ns = latency.as_nanos();
-        self.total_actions += 1;
-        self.update_actions += 1;
-        self.total_latency_ns += ns;
-        self.update_latency_ns += ns;
+
+        // Add the attributes to correct internal values.
+        self.total_actions = self.total_actions.saturating_add(1);
+        self.update_actions = self.update_actions.saturating_add(1);
+        self.total_latency_ns = self.total_latency_ns.saturating_add(ns);
+        self.update_latency_ns = self.update_latency_ns.saturating_add(ns);
     }
 
     #[inline]
     pub fn record_evict(&mut self, latency: Duration) {
+        // Convert Duration-instance to Nanoseconds.
         let ns = latency.as_nanos();
-        self.total_actions += 1;
-        self.eviction_actions += 1;
-        self.total_latency_ns += ns;
-        self.eviction_latency_ns += ns;
+
+        // Add the attributes to correct internal values.
+        self.total_actions = self.total_actions.saturating_add(1);
+        self.eviction_actions = self.eviction_actions.saturating_add(1);
+        self.total_latency_ns = self.total_latency_ns.saturating_add(ns);
+        self.eviction_latency_ns = self.eviction_latency_ns.saturating_add(ns);
     }
 
-// ============================================================
-// ACTION BASIC ACCESSORS
-// ============================================================
+    #[inline]
+    pub fn record_search(
+        &mut self, 
+        latency: Duration, 
+        requested: usize, 
+        returned: usize, 
+        scanned: usize, 
+    ) {
+        debug_assert!(
+            returned <= requested || requested == 0,
+            "Returned more search results that requested"
+        );
+
+        let ns = latency.as_nanos();
+
+        self.total_actions = self.total_actions.saturating_add(1);
+        self.search_actions = self.search_actions.saturating_add(1);
+
+        self.requested_results = self.requested_results.saturating_add(requested);
+        self.returned_results = self.returned_results.saturating_add(returned);
+        self.scanned_results = self.scanned_results.saturating_add(scanned);
+
+        self.total_latency_ns = self.total_latency_ns.saturating_add(ns);
+        self.search_latency_ns = self.search_latency_ns.saturating_add(ns);
+    }
+
+    // ============================================================
+    // ACTION METRICS: VALIDATION
+    // ============================================================
+
+    #[inline]
+    pub fn validate(&self) -> TectonicResult<()> {
+        let grouped_actions = self
+            .insert_actions
+            .saturating_add(self.remove_actions)
+            .saturating_add(self.search_actions)
+            .saturating_add(self.update_actions)
+            .saturating_add(self.eviction_actions);
+
+        if grouped_actions != self.total_actions {
+            return Err(TectonicError::inconsistent_state(
+                "Total Action metrics does not equal grouped actions!"
+            ));
+        };
+
+        if self.returned_results > self.requested_results {
+            return Err(TectonicError::inconsistent_state(
+                "Returned search results exceed requested search results"
+            ));
+        };
+
+        Ok(())
+    }
+
+    // ============================================================
+    // ACTION METRICS: ACCESSORS
+    // ============================================================
 
     #[inline]
     pub fn total_actions(&self) -> usize {
@@ -357,8 +411,8 @@ impl ActionMetrics {
     }
 
     #[inline]
-    pub fn get_actions(&self) -> usize {
-        self.get_actions
+    pub fn search_actions(&self) -> usize {
+        self.search_actions
     }
 
     #[inline]
@@ -372,91 +426,91 @@ impl ActionMetrics {
     }
 
     #[inline]
-    pub fn get_hits(&self) -> usize {
-        self.get_hits
+    pub fn requested_results(&self) -> usize {
+        self.requested_results
     }
 
     #[inline]
-    pub fn get_misses(&self) -> usize {
-        self.get_misses
+    pub fn returned_results(&self) -> usize {
+        self.returned_results
     }
 
-// ============================================================
-// ACTION DERIVED METRICS
-// ============================================================
+    #[inline]
+    pub fn scanned_results(&self) -> usize {
+        self.scanned_results
+    }
+
+    // ============================================================
+    // ACTION METRICS: SEARCH RESULTS
+    // ============================================================
 
     #[inline]
-    pub fn hit_rate(&self) -> f32 {
-        let total_gets = self.get_hits + self.get_misses;
-        if total_gets == 0 {
+    pub fn search_selectivity(&self) -> f32 {
+        if self.search_actions == 0 {
             0.0
         } else {
-            self.get_hits as f32 / total_gets as f32
+            usize_to_f32(self.returned_results) / usize_to_f32(self.requested_results)
         }
     }
 
     #[inline]
-    pub fn miss_rate(&self) -> f32 {
-        let total_gets = self.get_hits + self.get_misses;
-        if total_gets == 0 {
+    pub fn average_results_per_search(&self) -> f32 {
+        if self.search_actions == 0 {
             0.0
         } else {
-            self.get_misses as f32 / total_gets as f32
+            usize_to_f32(self.returned_results) / usize_to_f32(self.search_actions)
+        }
+    }
+
+    #[inline]
+    pub fn average_candidates_per_search(&self) -> f32 {
+        if self.search_actions == 0 {
+            0.0
+        } else {
+            usize_to_f32(self.scanned_results) / usize_to_f32(self.search_actions)
+        }
+    }
+
+    // ============================================================
+    // ACTION METRICS: LATENCY
+    // ============================================================
+
+    #[inline]
+    fn average_ns(latency: u128, count: usize) -> f64 {
+        if count == 0 {
+            0.0
+        } else {
+            latency as f64 / count as f64
         }
     }
 
     #[inline]
     pub fn average_latency_ns(&self) -> f64 {
-        if self.total_actions == 0 {
-            0.0
-        } else {
-            self.total_latency_ns as f64 / self.total_actions as f64
-        }
+        Self::average_ns(self.total_latency_ns, self.total_actions)
     }
 
     #[inline]
     pub fn average_insert_latency_ns(&self) -> f64 {
-        if self.insert_actions == 0 {
-            0.0
-        } else {
-            self.insert_latency_ns as f64 / self.insert_actions as f64
-        }
+        Self::average_ns(self.insert_latency_ns, self.total_actions)
     }
 
     #[inline]
     pub fn average_remove_latency_ns(&self) -> f64 {
-        if self.remove_actions == 0 {
-            0.0
-        } else {
-            self.remove_latency_ns as f64 / self.remove_actions as f64
-        }
+        Self::average_ns(self.remove_latency_ns, self.total_actions)
     }
 
     #[inline]
-    pub fn average_get_latency_ns(&self) -> f64 {
-        if self.get_actions == 0 {
-            0.0
-        } else {
-            self.get_latency_ns as f64 / self.get_actions as f64
-        }
+    pub fn average_search_latency_ns(&self) -> f64 {
+        Self::average_ns(self.search_latency_ns, self.total_actions)
     }
 
     #[inline]
     pub fn average_update_latency_ns(&self) -> f64 {
-        if self.update_actions == 0 {
-            0.0
-        } else {
-            self.update_latency_ns as f64 / self.update_actions as f64
-        }
+        Self::average_ns(self.update_latency_ns, self.total_actions)
     }
 
     #[inline]
     pub fn average_eviction_latency_ns(&self) -> f64 {
-        if self.eviction_actions == 0 {
-            0.0
-        } else {
-            self.eviction_latency_ns as f64 / self.eviction_actions as f64
-        }
+        Self::average_ns(self.eviction_latency_ns, self.total_actions)
     }
-
 }
