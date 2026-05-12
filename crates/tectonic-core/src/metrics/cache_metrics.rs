@@ -63,9 +63,9 @@ impl CacheMetrics {
         }
     }
 
-// ============================================================
-// CACHE STATE EVENTS
-// ============================================================
+    // ============================================================
+    // CACHE METRICS: MAIN METHODS
+    // ============================================================
 
     #[inline]
     pub fn on_insert(&mut self, latency: Duration) {
@@ -78,7 +78,7 @@ impl CacheMetrics {
         self.actions.record_insert(latency);
 
         #[cfg(debug_assertions)]
-        todo!()
+        self.debug_assertion_valid();
     }
 
     #[inline]
@@ -89,7 +89,7 @@ impl CacheMetrics {
         self.actions.record_remove(latency);
 
         #[cfg(debug_assertions)]
-        todo!()
+        self.debug_assertion_valid();
     }
 
     #[inline]
@@ -100,7 +100,7 @@ impl CacheMetrics {
         self.actions.record_evict(latency);
 
         #[cfg(debug_assertions)]
-        todo!()
+        self.debug_assertion_valid();
     }
 
     #[inline]
@@ -108,7 +108,7 @@ impl CacheMetrics {
         self.actions.record_update(latency);
 
         #[cfg(debug_assertions)]
-        todo!()
+        self.debug_assertion_valid();
     }
 
     #[inline]
@@ -129,7 +129,7 @@ impl CacheMetrics {
         self.actions.record_search(latency, requested_k, returned_k, scanned_k);
 
         #[cfg(debug_assertions)]
-        todo!()
+        self.debug_assertion_valid();
     }
 
     #[inline]
@@ -156,10 +156,26 @@ impl CacheMetrics {
     // CACHE METRICS: VALIDATION
     // ============================================================
 
+    #[inline]
+    pub fn validate(&self) -> TectonicResult<()> {
+        if self.size > self.capacity {
+            return Err(TectonicError::inconsistent_state(
+                "Cache metrics size exceed capacity",
+            ));
+        };
 
+        self.actions.validate()?;
+        Ok(())
+    }
+
+    #[inline]
+    pub fn debug_assertion_valid(&self) {
+        debug_assert!(self.size <= self.capacity);
+        self.actions.debug_assertion_valid();
+    }
 
     // ============================================================
-    // CACHE BASIC ACCESSORS
+    // CACHE METRICS: ACCESSORS
     // ============================================================
 
     #[inline]
@@ -182,9 +198,9 @@ impl CacheMetrics {
         self.created_at.elapsed()
     }
 
-// ============================================================
-// CACHE DERIVED METRICS
-// ============================================================
+    // ============================================================
+    // CACHE METRICS: HELPER METHODS
+    // ============================================================
 
     #[inline]
     pub fn load_factor(&self) -> f32 {
@@ -231,7 +247,7 @@ impl CacheMetrics {
 }
 
 // ============================================================
-// INTERNAL ACTION METRICS
+// ACTION METRICS: CONSTRUCTOR
 // ============================================================
 
 #[derive(Debug, Clone, Copy)]
@@ -284,7 +300,7 @@ impl Default for ActionMetrics {
 }
 
 // ============================================================
-// INTERNAL ACTION METHODS
+// ACTION METRICS: MAIN METHODS
 // ============================================================
 
 #[allow(dead_code)]
@@ -389,6 +405,19 @@ impl ActionMetrics {
         };
 
         Ok(())
+    }
+
+    #[inline]
+    pub fn debug_assertion_valid(&self) {
+        let grouped_actions = self
+            .insert_actions
+            .saturating_add(self.remove_actions)
+            .saturating_add(self.search_actions)
+            .saturating_add(self.update_actions)
+            .saturating_add(self.eviction_actions);
+
+        debug_assert_eq!(grouped_actions, self.total_actions);
+        debug_assert!(self.returned_results <= self.requested_results);
     }
 
     // ============================================================
