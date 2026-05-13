@@ -205,7 +205,7 @@ impl<const D: usize> VectorCache<D> {
                 // Convert the candiate results into finalized CacheResult entries.
                 // And perform a final reranking step.
                 let mut entries = self.convert_search_results(search_results, vector, search_method)?;
-                entries.sort_unstable_by(|a, b| a.distance.total_cmp(&b.distance));
+                entries.sort_unstable_by(|a, b| a.get_distance().total_cmp(&b.get_distance()));
 
                 // Stop latency timer & calculate total execution time.
                 let method_latency = time_before_method.elapsed();

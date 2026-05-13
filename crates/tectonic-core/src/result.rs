@@ -76,9 +76,9 @@ impl<const D: usize> VectorEntry<D> {
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct CacheEntry<const D: usize> {
-   pub index: usize,
-   pub vector: DimVector<D>,
-   pub distance: f32,
+   index: usize,
+   vector: DimVector<D>,
+   distance: f32,
 }
 
 impl<const D: usize> fmt::Display for CacheEntry<D> {
@@ -130,6 +130,20 @@ impl<const D: usize> CacheEntry<D> {
         }
     }
     
+    #[inline]
+    pub fn get_index(&self) -> &usize {
+        &self.index
+    }
+
+    #[inline]
+    pub fn get_vector(&self) -> &DimVector<D> {
+        &self.vector
+    } 
+
+    #[inline]
+    pub fn get_distance(&self) -> &f32 {
+        &self.distance
+    } 
 }
 
 #[derive(Debug, Clone)]

@@ -133,7 +133,7 @@ impl<const D: usize> VectorArena<D> {
         let entry = slot_value.vector.as_ref()
             .ok_or(TectonicError::arena("Could not locate Vector inside Entry"))?;
 
-        if entry.vector_id != id {
+        if *entry.get_unique_id() != id {
             return Err(TectonicError::inconsistent_state("Arena entry ID doesn't match found ID"));
         }
 
@@ -168,7 +168,7 @@ impl<const D: usize> VectorArena<D> {
                         return local_heap;
                     };
 
-                    let distance = search_method.distance_f32(&value, &entry.vector);
+                    let distance = search_method.distance_f32(&value, entry.get_vector());
 
                     if !distance.is_finite() {
                         #[cfg(debug_assertions)]
@@ -180,7 +180,7 @@ impl<const D: usize> VectorArena<D> {
 
                     local_heap.push(CacheEntry::new(
                         arena_index,
-                        entry.vector.clone(),
+                        entry.get_vector().clone(),
                         distance,
                     ));
 
@@ -224,8 +224,8 @@ impl<const D: usize> VectorArena<D> {
         let entry = arena_entry.vector.as_ref()
             .ok_or(TectonicError::arena("Could not locate Vector inside Entry"))?;
 
-        if entry.vector_id == id {
-            Ok((&entry.vector, &entry.vector_id))
+        if *entry.get_unique_id() == id {
+            Ok((entry.get_vector(), entry.get_unique_id()))
         } else {
             return Err(TectonicError::inconsistent_state("Arena entry ID doesn't match found ID"));
         }
@@ -246,7 +246,7 @@ impl<const D: usize> VectorArena<D> {
         let entry = arena_entry.vector.as_ref()
             .ok_or(TectonicError::arena("Could not locate Vector inside Entry"))?;
 
-        Ok((&entry.vector, &entry.vector_id))   // Return Borrowed-instance of the internal VectorEntry.
+        Ok((entry.get_vector(), entry.get_unique_id()))   // Return Borrowed-instance of the internal VectorEntry.
     }
 
     pub fn replace_vector(&mut self, new_vector: DimVector<D>, location: &LocationEntry) ->TectonicResult<UniqueID> {
