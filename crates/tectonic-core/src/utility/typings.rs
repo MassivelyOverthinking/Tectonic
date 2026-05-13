@@ -3,9 +3,10 @@
 // ============================================================
 
 use crate::{result::SearchResult, utility::utils::UniqueID};
+use crate::error::TectonicError;
 
 // ============================================================
-// CUSTOM DTYPES ANNOTATIONS
+// CUSTOM DATA-TYPES ANNOTATIONS
 // ============================================================
 
 pub type DimVector<const D: usize> = [f32; D];
@@ -13,7 +14,7 @@ pub type Hash64 = u64;
 pub type NodeValue = usize;
 
 pub type HeapResult = Vec<SearchResult>;
-pub type TectonicResult<T> = Result<T, crate::error::TectonicError>;
+pub type TectonicResult<T> = Result<T, TectonicError>;
 
 // ============================================================
 // CUSTOM TYPE TRANSFORMATION

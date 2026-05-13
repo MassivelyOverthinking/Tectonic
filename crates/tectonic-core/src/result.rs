@@ -4,7 +4,7 @@
 
 use crate::{metrics::entry_metrics::EntryMetrics, utility::utils::UniqueID};
 use crate::metrics::entry_metrics::{EvictionMetadata, EvictionScores};
-use crate::utility::typings::DimVector;
+use crate::utility::typings::{DimVector, TectonicResult};
 use core::fmt;
 use std::cmp::Ordering;
 use std::ops::Range;
@@ -18,14 +18,15 @@ use std::usize;
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
 pub struct VectorEntry<const D: usize> {
-    pub vector_id: UniqueID,
-    pub vector: DimVector<D>,
-    pub metrics: Option<EntryMetrics>,
-    pub eviction_data: EvictionMetadata,
-    pub eviction_scores: EvictionScores,
+    vector_id: UniqueID,
+    vector: DimVector<D>,
+    metrics: Option<EntryMetrics>,
+    eviction_data: EvictionMetadata,
+    eviction_scores: EvictionScores,
 }
 
 impl<const D: usize> VectorEntry<D> {
+    #[inline]
     pub fn new(id: usize, generation: u32, vector: DimVector<D>, metrics_enabled: bool) -> Self {
         Self { 
             vector_id: UniqueID::new(id, generation),
@@ -45,6 +46,26 @@ impl<const D: usize> VectorEntry<D> {
     #[inline]
     pub fn get_unique_id(&self) -> &UniqueID {
         &self.vector_id
+    }
+
+    #[inline]
+    pub fn get_vector(&self) -> &DimVector<D> {
+        &self.vector
+    }
+
+    #[inline]
+    pub fn get_metrics(&self) -> TectonicResult<Option<&EntryMetrics>> {
+        Ok(self.metrics.as_ref())
+    }
+
+    #[inline]
+    pub fn get_eviction_data(&self) -> &EvictionMetadata {
+        &self.eviction_data
+    }
+
+    #[inline]
+    pub fn get_eviction_scores(&self) -> &EvictionScores {
+        &self.eviction_scores
     }
 }
 
@@ -75,6 +96,7 @@ impl<const D: usize> fmt::Display for CacheEntry<D> {
 impl<const D: usize> Eq for CacheEntry<D> {}
 
 impl<const D: usize> PartialEq for CacheEntry<D> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.distance == other.distance && self.index == other.index
     }
@@ -99,6 +121,7 @@ impl<const D: usize> Ord for CacheEntry<D> {
 }
 
 impl<const D: usize> CacheEntry<D> {
+    #[inline]
     pub fn new(index: usize, vector: DimVector<D>, distance: f32) -> Self {
         Self {
             index,
@@ -120,6 +143,7 @@ pub struct CacheResult<const D: usize> {
 }
 
 impl<const D: usize> CacheResult<D> {
+    #[inline]
     pub fn new(k: usize, partitions: usize, candidates: usize, latency: Duration, entries: Vec<CacheEntry<D>>) -> Self {
         Self { 
             k,
@@ -130,51 +154,63 @@ impl<const D: usize> CacheResult<D> {
         }
     }
 
+    #[inline]
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 
+    #[inline]
     pub fn best_distance(&self) -> Option<f32> {
         self.entries.first().map(|e| e.distance)
     }
 
+    #[inline]
     pub fn worst_distance(&self) -> Option<f32> {
         self.entries.last().map(|e| e.distance)
     }
 
+    #[inline]
     pub fn get(&self, index: usize) -> Option<&CacheEntry<D>> {
         self.entries.get(index)
     }
 
+    #[inline]
     pub fn first(&self) -> Option<&CacheEntry<D>> {
         self.entries.first()
     }
 
+    #[inline]
     pub fn last(&self) -> Option<&CacheEntry<D>> {
         self.entries.last()
     }
 
+    #[inline]
     pub fn as_slice(&self) -> &[CacheEntry<D>] {
         &self.entries
     }
 
+    #[inline]
     pub fn slice(&self, range: Range<usize>) -> &[CacheEntry<D>] {
         &self.entries[range]
     }
 
+    #[inline]
     pub fn top(&self, n: usize) -> &[CacheEntry<D>] {
         let end = n.min(self.entries.len());
         &self.entries[..end]
     }
 
+    #[inline]
     pub fn vectors(&self) -> Vec<&DimVector<D>> {
         self.entries.iter().map(|entry| &entry.vector).collect()
     }
 
+    #[inline]
     pub fn average_distance(&self) -> Option<f32> {
         if self.entries.is_empty() {
             return None;
