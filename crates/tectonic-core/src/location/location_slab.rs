@@ -97,37 +97,64 @@ pub struct LocationEntry {
     hash: Hash64,
     arena_index: usize,
     state: LocationState,
-    partition_index: usize,
-    shard_index: usize,
-    slot_index: usize,
-    arena_index: usize,
 }
 
 #[allow(dead_code)]
 impl LocationEntry {
     #[inline]
-    fn new(partition: usize, shard: usize, slot: usize, arena: usize) -> Self {
-        Self {
-            partition_index: partition,
-            shard_index: shard,
-            slot_index: slot,
-            arena_index: arena
+    pub fn new_pending(id: UniqueID, hash: Hash64, arena_index: usize) -> Self {
+        Self { 
+            id, 
+            hash, 
+            arena_index, 
+            state: LocationState::Pending, 
         }
     }
 
     #[inline]
-    pub fn get_partition(&self) -> &usize {
-        &self.partition_index
+    pub fn new_routed(
+        id: UniqueID, 
+        hash: Hash64, 
+        arena_index: usize,
+        partition_index: usize,
+        shard_index: usize,
+        slot_index: usize,
+    ) -> Self {
+        Self { 
+            id, 
+            hash, 
+            arena_index, 
+            state: LocationState::Routed { 
+                partition_index, 
+                shard_index, 
+                slot_index 
+            }, 
+        }
     }
 
     #[inline]
-    pub fn get_shard(&self) -> &usize {
-        &self.shard_index
+    pub fn get_id(&self) -> &UniqueID {
+        &self.id
     }
 
     #[inline]
-    pub fn get_slot(&self) -> &usize {
-        &self.slot_index
+    pub fn get_hash(&self) -> &Hash64 {
+        &self.hash
+    }
+
+    #[inline]
+    pub fn get_state(&self) -> &LocationState {
+        &self.state
+    }
+
+    #[inline]
+    pub fn is_pending(&self) -> bool {
+        matches!(self.state, LocationState::Pending)
+    }
+
+    #[inline]
+    pub fn is_routed(&self) -> bool {
+        matches!(self.state, LocationState::Routed { .. })
     }
 
     #[inline]
@@ -136,23 +163,33 @@ impl LocationEntry {
     }
 
     #[inline]
-    pub fn set_partition(&mut self, index: usize) {
-        self.partition_index = index;
+    pub fn get_partition(&self) -> TectonicResult<usize> {
+        match self.state {
+            LocationState::Routed { partition_index,.. } => Ok(partition_index),
+            LocationState::Pending => Err(TectonicError::location(
+                "Pending location holds no concrete partition index"
+            )),
+        }
     }
 
     #[inline]
-    pub fn set_shard(&mut self, index: usize) {
-        self.shard_index = index;
+    pub fn get_shard(&self) -> TectonicResult<usize> {
+        match self.state {
+            LocationState::Routed { shard_index,.. } => Ok(shard_index),
+            LocationState::Pending => Err(TectonicError::location(
+                "Pending location holds no concrete shard index"
+            )),
+        }
     }
 
     #[inline]
-    pub fn set_slot(&mut self, index: usize) {
-        self.slot_index = index;
-    }
-
-    #[inline]
-    pub fn set_arena(&mut self, index: usize) {
-        self.arena_index = index;
+    pub fn get_slot(&self) -> TectonicResult<usize> {
+        match self.state {
+            LocationState::Routed { slot_index,.. } => Ok(slot_index),
+            LocationState::Pending => Err(TectonicError::location(
+                "Pending location holds no concrete slot index"
+            )),
+        }
     }
 }
 
@@ -165,8 +202,8 @@ impl LocationEntry {
 // partition/shard/slot, the location becomes `Routed`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocationState {
-        Routed,
-        Pending {
+        Pending,
+        Routed {
             partition_index: usize,
             shard_index: usize,
             slot_index: usize,
