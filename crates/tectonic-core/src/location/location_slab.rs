@@ -56,6 +56,79 @@ impl LocationSlab {
                 "Vector hash already exists in location slab"
             ));
         };
+
+        let entry = LocationEntry::new_routed(
+            id, 
+            hash, 
+            arena_index, 
+            partition_index, 
+            shard_index, 
+            slot_index
+        );
+
+        self.storage.insert(id, entry);
+        self.hashes.insert(hash, id);
+
+        #[cfg(debug_assertions)]
+        todo!();
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn insert_routed(&mut self, id: UniqueID, hash: Hash64,arena_index: usize) -> TectonicResult<()> {
+        if self.storage.contains_key(&id) {
+            return Err(TectonicError::location(
+                "Location ID already exists in location slab"
+            ));
+        };
+
+        if self.hashes.contains_key(&hash) {
+            return Err(TectonicError::location(
+                "Vector hash already exists in location slab"
+            ));
+        };
+
+        let entry = LocationEntry::new_pending(
+            id, 
+            hash, 
+            arena_index
+        );
+
+        self.storage.insert(id, entry);
+        self.hashes.insert(hash, id);
+
+        #[cfg(debug_assertions)]
+        todo!();
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn complete_pending(
+        &mut self, 
+        id: UniqueID, 
+        partition_index: usize, 
+        shard_index: usize, 
+        slot_index: usize
+    ) -> TectonicResult<()> {
+        let entry = self
+            .storage
+            .get_mut(&id)
+            .ok_or_else(|| TectonicError::location("Pending location ID not located"))?;
+
+        if !entry.is_pending() {
+            return Err(TectonicError::location(
+                "Requested location entry is non-pending"
+            ));
+        };
+
+        entry.update_state(partition_index, shard_index, slot_index);
+
+        #[cfg(debug_assertions)]
+        todo!();
+
+        Ok(()) 
     }
 
     #[inline]
@@ -160,6 +233,28 @@ impl LocationEntry {
     #[inline]
     pub fn get_arena(&self) -> &usize {
         &self.arena_index
+    }
+
+    #[inline]
+    pub fn update_state(
+        &mut self, 
+        partition_index: usize, 
+        shard_index: usize, 
+        slot_index: usize
+    ) -> TectonicResult<()> {
+        if !self.is_pending() {
+            return Err(TectonicError::location(
+                "Cannot update non-pending LocationEntry"
+            ))
+        };
+
+        self.state = LocationState::Routed { 
+            partition_index, 
+            shard_index, 
+            slot_index 
+        };
+
+        Ok(())
     }
 
     #[inline]
