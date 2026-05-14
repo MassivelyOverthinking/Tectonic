@@ -122,7 +122,7 @@ impl<const D: usize> CacheRepo<D> {
         let location = self.insert_into_initialized_partitions(vector, quanttized_vector, internal_id, distance)?;
         self.size += 1;
 
-        Ok(RepoInsertOutcome::Routed)
+        Ok(RepoInsertOutcome::Routed { location })
     }
 
     pub fn search<M>(
@@ -366,12 +366,13 @@ impl<const D: usize> CacheRepo<D> {
         best_partition
     }
 
-    fn bootstrap_centroids_from_buffer(&mut self) -> TectonicResult<bool> {
+    fn bootstrap_centroids_from_buffer(&mut self) -> TectonicResult<Vec<(UniqueID, Repolocation)>> {
         if self.centroids_initialized {
-            return Ok(false);
+            return Ok(Vec::new());
         }
 
         let partition_count = self.vector_repo.len();
+        
         if partition_count == 0 {
             return Err(TectonicError::repository("No partitions available for centroid bootstrap"));
         }
@@ -418,6 +419,7 @@ impl<const D: usize> CacheRepo<D> {
 
         // Route buffered entries into their assigned partitions/shards
         let drained_entries = std::mem::take(&mut self.centroid_buffer);
+        let mut routed_locations = Vec::with_capacity(drained_entries.len());
 
         for (buffer_index, entry) in drained_entries.into_iter().enumerate() {
             let partition_index = assignments[buffer_index];
@@ -426,11 +428,23 @@ impl<const D: usize> CacheRepo<D> {
 
             let shard_entry = ShardEntry::new(*internal_id, entry.get_quantized_entry().clone());
 
-            let _ = self.vector_repo[partition_index].route_to_shard(shard_entry)?;
+            let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(shard_entry)?;
+
+            routed_locations.push(
+                (
+                    *internal_id,
+                    Repolocation::new(
+                        partition_index, 
+                        shard_index, 
+                        slot_index
+                    ),
+                )
+            );
         }
 
         self.centroids_initialized = true;
-        Ok(true)
+
+        Ok(routed_locations)
     }
 
     fn route_partition_for_vector<M>(&self, vector: &DimVector<D>, distance: &M) -> TectonicResult<usize>
@@ -506,5 +520,14 @@ impl<const D: usize> CacheRepo<D> {
 
         self.size = 0;
         Ok(true)
+    }
+
+    // ============================================================
+    // CACHE REPOSITORY: DEBUGGING
+    // ============================================================
+
+    #[inline]
+    pub fn validate_integrity(&self) -> TectonicResult<()> {
+
     }
 }

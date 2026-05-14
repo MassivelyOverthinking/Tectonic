@@ -48,7 +48,9 @@ pub enum InsertOutcome {
 #[derive(Debug)]
 pub enum RepoInsertOutcome {
     Buffered,
-    Routed,
+    Routed {
+        location: Repolocation
+    },
     Bootstrapped {
         routed: Vec<(UniqueID, Repolocation)>,
     },
