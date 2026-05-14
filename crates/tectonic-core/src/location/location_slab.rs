@@ -70,7 +70,7 @@ impl LocationSlab {
         self.hashes.insert(hash, id);
 
         #[cfg(debug_assertions)]
-        todo!();
+        self.validate_integrity();
 
         Ok(())
     }
@@ -99,7 +99,7 @@ impl LocationSlab {
         self.hashes.insert(hash, id);
 
         #[cfg(debug_assertions)]
-        todo!();
+        self.validate_integrity();
 
         Ok(())
     }
@@ -126,9 +126,30 @@ impl LocationSlab {
         entry.update_state(partition_index, shard_index, slot_index);
 
         #[cfg(debug_assertions)]
-        todo!();
+        self.validate_integrity();
 
         Ok(()) 
+    }
+
+    #[inline]
+    pub fn remove(&mut self, id: &UniqueID) -> TectonicResult<LocationEntry> {
+        let entry = self
+            .storage
+            .get(id)
+            .ok_or_else(|| TectonicError::location("Location ID not found"))?;
+
+        let removed_hash = self.hashes.remove(&entry.hash);
+
+        if removed_hash != Some(*id) {
+            return Err(TectonicError::inconsistent_state(
+                "Location Hash index did not point to correct ID placement"
+            ));
+        };
+
+        #[cfg(debug_assertions)]
+        self.validate_integrity();
+
+        Ok(*entry)
     }
 
     #[inline]
@@ -140,6 +161,11 @@ impl LocationSlab {
     #[inline]
     pub fn get_location(&self, id: &UniqueID) -> Option<&LocationEntry> {
         self.storage.get(id)
+    }
+
+    #[inline]
+    pub fn get_location_mut(&mut self, id: &UniqueID) -> Option<&mut LocationEntry> {
+        self.storage.get_mut(id)
     }
 
     #[inline]
@@ -157,10 +183,67 @@ impl LocationSlab {
     }
 
     #[inline]
+    pub fn pending_count(&self) -> usize {
+        self.storage
+            .values()
+            .filter(|entry| entry.is_pending())
+            .count()
+    }
+
+    #[inline]
+    pub fn routed_count(&self) -> usize {
+        self.storage
+            .values()
+            .filter(|entry| entry.is_routed())
+            .count()
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.storage.len()
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.storage.is_empty()
+    }
+
+    #[inline]
     pub fn clear(&mut self) {
         self.storage.clear();
         self.hashes.clear();
     }
+
+    #[inline]
+    pub fn validate_integrity(&self) -> TectonicResult<()> {
+        if self.storage.len() != self.hashes.len() {
+            return Err(TectonicError::inconsistent_state(
+                "Location storage and HashMap index size mismatch"
+            ));
+        };
+
+        for (id, entry) in self.storage.iter() {
+            if *id != entry.id {
+                return Err(TectonicError::inconsistent_state(
+                    "Location ID key doesn't match requested Entry ID"
+                ));
+            }
+
+            let hash_value = self.hashes.get(&entry.hash).ok_or_else(|| {
+                TectonicError::inconsistent_state("Location entry has misisng HashMap index")
+            })?;
+
+            if hash_value != id {
+                return Err(TectonicError::location(
+                    "Location HashMap index points to wrond ID value"
+                ));
+            };
+        };
+
+        Ok(())
+
+    }
+
 }
 
 #[allow(dead_code)]
