@@ -111,16 +111,25 @@ impl<const D: usize> CacheRepo<D> {
             if self.centroid_buffer.len() >= self.centroid_buffer_threshold {
                 let routed = self.bootstrap_centroids_from_buffer()?;
 
+                #[cfg(debug_assertions)]
+                self.validate_integrity()?;
+
                 return Ok(RepoInsertOutcome::Bootstrapped { 
                     routed: routed 
                 });
             }
+
+            #[cfg(debug_assertions)]
+            self.validate_integrity()?;
 
             return Ok(RepoInsertOutcome::Buffered);
         }
 
         let location = self.insert_into_initialized_partitions(vector, quanttized_vector, internal_id, distance)?;
         self.size += 1;
+
+        #[cfg(debug_assertions)]
+        self.validate_integrity()?;
 
         Ok(RepoInsertOutcome::Routed { location })
     }
@@ -528,6 +537,24 @@ impl<const D: usize> CacheRepo<D> {
 
     #[inline]
     pub fn validate_integrity(&self) -> TectonicResult<()> {
+        if self.size > self.capacity {
+            return Err(TectonicError::inconsistent_state(
+                "Repository size exceed capacity"
+            ));
+        };
 
+        if self.centroids_initialized && !self.centroid_buffer.is_empty() {
+            return Err(TectonicError::inconsistent_state(
+                "Centroid Buffer is empty after initialization"
+            ));
+        };
+
+        if self.vector_repo.is_empty() {
+            return Err(TectonicError::inconsistent_state(
+                "Repository has no Partitions structs"
+            ));
+        };
+
+        Ok(())
     }
 }
