@@ -23,6 +23,10 @@ pub struct LocationSlab {
     hashes: HashMap<u64, UniqueID>
 }
 
+// ============================================================
+// LOCATION SLAB: CONSTRUCTORS
+// ============================================================
+
 impl Default for LocationSlab {
     #[inline]
     fn default() -> Self {
@@ -35,6 +39,11 @@ impl Default for LocationSlab {
 
 #[allow(dead_code)]
 impl LocationSlab {
+
+    // ============================================================
+    // LOCATION SLAB: INSERTION
+    // ============================================================
+
     #[inline]
     pub fn insert_routed(
         &mut self, 
@@ -76,7 +85,7 @@ impl LocationSlab {
     }
 
     #[inline]
-    pub fn insert_routed(&mut self, id: UniqueID, hash: Hash64,arena_index: usize) -> TectonicResult<()> {
+    pub fn insert_pending(&mut self, id: UniqueID, hash: Hash64, arena_index: usize) -> TectonicResult<()> {
         if self.storage.contains_key(&id) {
             return Err(TectonicError::location(
                 "Location ID already exists in location slab"
@@ -149,8 +158,12 @@ impl LocationSlab {
         #[cfg(debug_assertions)]
         self.validate_integrity();
 
-        Ok(*entry)
+        Ok(entry)
     }
+
+    // ============================================================
+    // LOCATION SLAB: HELPER METHODS
+    // ============================================================
 
     #[inline]
     pub fn add_location(&mut self, id: &UniqueID, hash: u64, entry: LocationEntry) {
@@ -214,6 +227,10 @@ impl LocationSlab {
         self.hashes.clear();
     }
 
+    // ============================================================
+    // LOCATION SLAB: DEBUGGING
+    // ============================================================
+
     #[inline]
     pub fn validate_integrity(&self) -> TectonicResult<()> {
         if self.storage.len() != self.hashes.len() {
@@ -246,6 +263,17 @@ impl LocationSlab {
 
 }
 
+
+// ============================================================
+// INTERNAL LOCATION ENTRY
+// ============================================================
+// Internal entry class used for arena/partition/shard/slot pointer storage.
+// Also contains relevant information => ID & Hash.
+// ---
+// Location Entries store relevant information in an easily accessible mapping-based format for
+// quick, high-performance retrieval. Stored values (arena/partition/shard/slot) act as individual 
+// pointer-values, directing cache features to concrete final placement of related values.
+
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct LocationEntry {
@@ -254,6 +282,10 @@ pub struct LocationEntry {
     arena_index: usize,
     state: LocationState,
 }
+
+// ============================================================
+// LOCATION ENTRY: CONSTRUCTORS
+// ============================================================
 
 #[allow(dead_code)]
 impl LocationEntry {
@@ -287,6 +319,10 @@ impl LocationEntry {
             }, 
         }
     }
+
+    // ============================================================
+    // LOCATION ENTRY: HELPER METHODS
+    // ============================================================
 
     #[inline]
     pub fn get_id(&self) -> &UniqueID {
@@ -371,6 +407,9 @@ impl LocationEntry {
     }
 }
 
+// ============================================================
+// INTERNAL LOCATION STATUS
+// ============================================================
 // Routing state for cached vectors.
 // ---
 // During bootstrapping, vectors exist in the location arena before repository routing is
