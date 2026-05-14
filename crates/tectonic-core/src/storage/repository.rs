@@ -9,9 +9,9 @@ use crate::error::TectonicError;
 use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::result::{SearchResult};
 use crate::utility::router::BootstrapEntry;
-use crate::utility::typings::{DimVector, TectonicResult};
+use crate::utility::typings::{DimVector, RepoInsertOutcome, TectonicResult};
 use crate::search::distance::{SearchMethod};
-use crate::location::location_entry::{ShardEntry};
+use crate::location::location_entry::{Repolocation, ShardEntry};
 use crate::storage::partition::{CachePartition};
 use crate::utility::utils::{UniqueID, calculate_sizes, hash_dimvector};
 use crate::config::StrategyConfig;
@@ -87,25 +87,42 @@ impl<const D: usize> CacheRepo<D> {
         quanttized_vector: QuantizedEntry,
         internal_id: UniqueID,
         distance: &M,
-    ) -> TectonicResult<bool>
+    ) -> TectonicResult<RepoInsertOutcome>
     where M: SearchMethod<D> {
+        if self.is_full() {
+            return Err(TectonicError::capacity_exceeded(
+                "Repository capacity exceeded", 
+                self.size, 
+                self.capacity
+            ));
+        }
+
         if !self.centroids_initialized {
             let entry = BootstrapEntry::new(
                 *vector, 
                 quanttized_vector,
-                internal_id, hash_dimvector(vector)
-                );
+                internal_id, 
+                hash_dimvector(vector)
+            );
 
             self.centroid_buffer.push(entry);
+            self.size += 1;
 
             if self.centroid_buffer.len() >= self.centroid_buffer_threshold {
-                self.bootstrap_centroids_from_buffer()?;
+                let routed = self.bootstrap_centroids_from_buffer()?;
+
+                return Ok(RepoInsertOutcome::Bootstrapped { 
+                    routed: routed 
+                });
             }
 
-            return Ok(true);
+            return Ok(RepoInsertOutcome::Buffered);
         }
 
-        self.insert_into_initialized_partitions(vector, quanttized_vector, internal_id, distance)
+        let location = self.insert_into_initialized_partitions(vector, quanttized_vector, internal_id, distance)?;
+        self.size += 1;
+
+        Ok(RepoInsertOutcome::Routed)
     }
 
     pub fn search<M>(
@@ -433,7 +450,7 @@ impl<const D: usize> CacheRepo<D> {
         quantized: QuantizedEntry,
         id: UniqueID,
         distance: &M,
-    ) -> TectonicResult<bool>
+    ) -> TectonicResult<Repolocation>
     where
         M: SearchMethod<D>,
     {
@@ -441,10 +458,14 @@ impl<const D: usize> CacheRepo<D> {
 
         let shard_entry = ShardEntry::new(id, quantized);
 
-        let _ = self.vector_repo[partition_index].route_to_shard(shard_entry)?;
+        let (shard_index, slot_index) = self.vector_repo[partition_index].route_to_shard(shard_entry)?;
         self.vector_repo[partition_index].increase_centroid_average(vector)?;
 
-        Ok(true)
+        Ok(Repolocation::new(
+            partition_index, 
+            shard_index, 
+            slot_index
+        ))
     }
 
     #[inline]

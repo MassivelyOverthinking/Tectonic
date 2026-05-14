@@ -2,6 +2,7 @@
 // IMPORTS AND MODULES
 // ============================================================
 
+use crate::location::location_entry::Repolocation;
 use crate::{result::SearchResult, utility::utils::UniqueID};
 use crate::error::TectonicError;
 
@@ -42,6 +43,17 @@ pub enum InsertOutcome {
     DuplicateReplaced { id: UniqueID },
     Rejected
 }
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub enum RepoInsertOutcome {
+    Buffered,
+    Routed,
+    Bootstrapped {
+        routed: Vec<(UniqueID, Repolocation)>,
+    },
+}
+
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
