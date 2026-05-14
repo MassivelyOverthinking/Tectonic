@@ -35,6 +35,7 @@ pub struct CacheRepo<const D: usize> {
 
 #[allow(dead_code)]
 impl<const D: usize> CacheRepo<D> {
+    #[inline]
     pub fn with_capacity(max_entries: usize, partitions: usize, shards: usize, strategy: &StrategyConfig) -> TectonicResult<Self> {
         if max_entries == 0 {
             return Err(TectonicError::invalid_parameter(
@@ -81,6 +82,7 @@ impl<const D: usize> CacheRepo<D> {
         })
     }
 
+    #[inline]
     pub fn insert<M>(
         &mut self,
         vector: &DimVector<D>,
@@ -134,6 +136,7 @@ impl<const D: usize> CacheRepo<D> {
         Ok(RepoInsertOutcome::Routed { location })
     }
 
+    #[inline]
     pub fn search<M>(
         &self, 
         quanttized_vector: &QuantizedEntry,
@@ -189,6 +192,7 @@ impl<const D: usize> CacheRepo<D> {
         Ok(merged_results)
     }
 
+    #[inline]
     fn retain_top_k(results: &mut Vec<SearchResult>, k: usize) {
         if results.len() < k {
             return;
@@ -256,6 +260,7 @@ impl<const D: usize> CacheRepo<D> {
         Ok(candidates.into_iter().map(|(index, _)| index).collect())
     }
 
+    #[inline]
     pub fn find_nearest_centroids<M>(&self, vector: &DimVector<D>, top_n: usize, distance: &M) -> TectonicResult<Vec<usize>> 
     where M: SearchMethod<D> {
         
@@ -298,6 +303,7 @@ impl<const D: usize> CacheRepo<D> {
         Ok(result)
     }
 
+    #[inline]
     fn choose_bootstrap_seed_indices(&self, partition_count: usize) -> TectonicResult<Vec<usize>> {
         let n = self.centroid_buffer.len();
 
@@ -358,6 +364,7 @@ impl<const D: usize> CacheRepo<D> {
         Ok(seeds)
     }
 
+    #[inline]
     fn assign_buffered_vector_to_seed(&self, vector: &DimVector<D>, seed_indices: &[usize]) -> usize {
         let mut best_partition = 0usize;
         let mut best_distance = f32::INFINITY;
@@ -375,6 +382,7 @@ impl<const D: usize> CacheRepo<D> {
         best_partition
     }
 
+    #[inline]
     fn bootstrap_centroids_from_buffer(&mut self) -> TectonicResult<Vec<(UniqueID, Repolocation)>> {
         if self.centroids_initialized {
             return Ok(Vec::new());

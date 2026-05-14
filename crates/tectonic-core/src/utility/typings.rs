@@ -48,6 +48,9 @@ pub enum InsertOutcome {
 #[derive(Debug)]
 pub enum RepoInsertOutcome {
     Buffered,
+    Rejected {
+        id: UniqueID,
+    },
     Routed {
         location: Repolocation
     },
