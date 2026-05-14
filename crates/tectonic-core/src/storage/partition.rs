@@ -160,7 +160,7 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
-    pub fn route_to_shard(&mut self, entry: ShardEntry) -> TectonicResult<bool> {
+    pub fn route_to_shard(&mut self, entry: ShardEntry) -> TectonicResult<(usize, usize)> {
         let hash_value = hash_shard_entry(&entry);
         let length = self.shards.len();
 
@@ -180,8 +180,8 @@ impl<const D: usize> CachePartition<D> {
             idx2
         };
 
-        let _slot_index = self.shards[target_index].insert(entry)?;
-        Ok(true)
+        let slot_index = self.shards[target_index].insert(entry)?;
+        Ok((target_index, slot_index))
     }
 
     pub fn size(&self) -> u64 {
