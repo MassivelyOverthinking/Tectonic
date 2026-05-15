@@ -270,7 +270,23 @@ impl<const D: usize> VectorCache<D> {
 
         let removed_vector = *found_vector;
 
-        todo!()
+        self.repository.remove(
+            location.get_partition()?, 
+            location.get_shard()?, 
+            location.get_slot()?, 
+            id, 
+            &removed_vector
+        )?;
+
+        self.arena.remove(id, arena_index)?;
+
+        self.locations.remove(&id)?;
+
+        let time_after_method = time_before_method.elapsed();
+
+        self.metrics.on_remove(time_after_method);
+
+        Ok(removed_vector)
     }
 
     #[inline]

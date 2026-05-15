@@ -138,7 +138,7 @@ impl<const D: usize> VectorArena<D> {
         }
 
         slot_value.vector = None;     // Clear the slot by setting it to None.
-        self.size -= 1;              // Decrease the size count of the Arena/Slab.
+        self.size = self.size.saturating_sub(1);              // Decrease the size count of the Arena/Slab.
         self.free_list.push(index);   // Add the index of the removed entry to the Free
 
         #[cfg(debug_assertions)]

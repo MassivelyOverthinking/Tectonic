@@ -158,7 +158,7 @@ impl LocationSlab {
         #[cfg(debug_assertions)]
         self.validate_integrity();
 
-        Ok(entry)
+        Ok(entry.clone())
     }
 
     // ============================================================
@@ -275,7 +275,7 @@ impl LocationSlab {
 // pointer-values, directing cache features to concrete final placement of related values.
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct LocationEntry {
     id: UniqueID,
     hash: Hash64,
