@@ -214,6 +214,29 @@ impl<const D: usize> CacheRepo<D> {
     }
 
     #[inline]
+    pub fn remove_pending(&mut self, id: UniqueID) -> TectonicResult<bool> {
+        if self.centroids_initialized {
+            return Err(TectonicError::repository(
+                "Cannot remove pending entry - Centroids have been initialized"
+            ));
+        };
+
+        let length_before = self.centroid_buffer.len();
+
+        self.centroid_buffer.retain(|entry| *entry.get_unique_id() != id);
+
+        if self.centroid_buffer.len() == length_before {
+            return Err(TectonicError::repository(
+                "Pendingrepository entry not found in centroids buffer"
+            ));
+        };
+
+        self.size = self.size.saturating_sub(1);
+
+        Ok(true)
+    }
+
+    #[inline]
     fn retain_top_k(results: &mut Vec<SearchResult>, k: usize) {
         if results.len() < k {
             return;
