@@ -6,7 +6,6 @@ use core::f32;
 use std::usize;
 
 use crate::error::TectonicError;
-use crate::location::location_slab::LocationEntry;
 use crate::quantization::quantized_entry::QuantizedEntry;
 use crate::result::{SearchResult};
 use crate::utility::router::BootstrapEntry;
@@ -194,7 +193,7 @@ impl<const D: usize> CacheRepo<D> {
     }
 
     #[inline]
-    pub fn remove_by_location(
+    pub fn remove(
         &mut self, 
         location: usize,
         shard: usize,
@@ -207,6 +206,11 @@ impl<const D: usize> CacheRepo<D> {
             .get_mut(location)
             .ok_or_else(|| TectonicError::repository("Partition index out of bounds"))?;
 
+            partition.remove_from_shard(shard, slot, id, vector)?;
+
+            self.size = self.size.saturating_sub(1);
+
+            Ok(true)
     }
 
     #[inline]
