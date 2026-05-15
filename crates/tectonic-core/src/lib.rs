@@ -25,7 +25,7 @@ use crate::search::distance::SearchMethod;
 use crate::storage::arena::{VectorArena};
 use crate::storage::repository::CacheRepo;
 use crate::utility::typings::{DimVector, DuplicatePolicy, InsertOutcome, TectonicResult, ValidationMode, SearchType, usize_to_f32};
-use crate::utility::utils::{hash_dimvector, validate_vector};
+use crate::utility::utils::{UniqueID, hash_dimvector, validate_vector};
 use crate::location::location_slab::LocationSlab;
 
 // ============================================================
@@ -238,8 +238,38 @@ impl<const D: usize> VectorCache<D> {
     #[inline]
     pub fn remove(
         &mut self,
-        _internal_id: usize,
-    ) -> TectonicResult<DimVector<D>> {
+        id: UniqueID,
+        force: bool,
+    ) -> TectonicResult<DimVector<D>> {    
+        // 1. Step -> Start lantency timer for removal execution.
+        let time_before_method = Instant::now();
+
+        // 2. Step -> Retrive Location-entry from global Location Arena/Slab.
+        let location = self
+            .locations
+            .get_location(&id)
+            .ok_or_else(|| TectonicError::location("No Location entry found for requested ID"))
+            .clone()?;
+
+        // 3. Step ->
+        if location.is_pending() && !force {
+            return Err(TectonicError::location(
+                "Cannot remove 'Pending' vector - Leverage 'Force' parameter to enable this behaviour"
+            ));
+        };
+
+        let arena_index = *location.get_arena();
+
+        let (found_vector, found_id) = self.arena.get_vector_at_position(arena_index)?;
+
+        if *found_id != id {
+            return Err(TectonicError::inconsistent_state(
+                "Location Slab index doesn't match requested ID"
+            ));
+        };
+
+        let removed_vector = *found_vector;
+
         todo!()
     }
 
