@@ -138,6 +138,26 @@ impl<const D: usize> CachePartition<D> {
     }
 
     #[inline]
+    pub fn remove_from_shard(
+        &mut self, 
+        shard: usize, 
+        slot: usize,
+        id: UniqueID,
+        vector: &DimVector<D>
+    ) -> TectonicResult<bool> {
+        let shard = self
+            .shards
+            .get_mut(shard)
+            .ok_or_else(|| TectonicError::repository("Shard index ouf of bounds"))?;
+
+        shard.remove(slot, id)?;
+
+        self.decrease_centroid_average(vector)?;
+
+        Ok(true)
+    }
+
+    #[inline]
     pub fn decrease_centroid_average(&mut self, vector: &DimVector<D>) -> TectonicResult<bool> {
         let centroid = self.centroid.as_mut().ok_or_else(|| {
             TectonicError::centroid("No centroid available!")
