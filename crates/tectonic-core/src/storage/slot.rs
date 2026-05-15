@@ -27,4 +27,8 @@ impl<const D: usize> ArenaSlot<D> {
         self.generation += 1;
         gen_id
     }
+
+    pub fn remove_value(&mut self) {
+        self.vector = None;
+    }
 }

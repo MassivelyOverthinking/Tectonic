@@ -50,18 +50,27 @@ impl<const D: usize> CacheShard<D> {
         }
     }
 
-    pub fn remove(&mut self, index: usize) -> TectonicResult<UniqueID> {
-        if index >= self.capacity {
-            return Err(TectonicError::repository("Index out of bounds (Repository Shard)"));
-        }
+    pub fn remove(&mut self, slot_index: usize, id: UniqueID) -> TectonicResult<bool> {
+        let slot = self
+            .location_storage
+            .get_mut(slot_index)
+            .ok_or_else(|| TectonicError::repository("Could not location correct Slot in repository Shard"))?;
 
-        if let Some(entry) = self.location_storage[index].take() {
-            self.free_list.push_front(index);
-            self.decrement_and_update_factor();
-            Ok(entry.get_id().clone())
-        } else {
-            return Err(TectonicError::repository("Could not locate Location inside Repo"));
-        }
+        let entry = slot
+            .as_ref()
+            .ok_or_else(|| TectonicError::repository("No entry located at repository slot"))?;
+
+        if *entry.get_id() != id {
+            return Err(TectonicError::repository(
+                "Removal ID does not match internal entry ID"
+            ));
+        };
+
+        *slot = None;
+        self.size = self.size.saturating_sub(1);
+        self.free_list.push_front(slot_index);
+
+        Ok(true)
     }
 
     pub fn search<M>(
