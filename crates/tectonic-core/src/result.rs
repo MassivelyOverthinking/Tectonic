@@ -352,3 +352,43 @@ impl MergeResult {
         }
     }
 }
+
+// ============================================================
+// STORED RESULT STRUCTURE
+// ============================================================
+
+#[derive(Debug, Clone)]
+pub struct StoredResult<const D: usize> {
+    vector: DimVector<D>,
+    id: UniqueID,
+}
+
+impl<const D: usize> StoredResult<D> {
+    #[inline]
+    pub fn new(vector: DimVector<D>, id: UniqueID) -> Self {
+        Self { 
+            vector, 
+            id 
+        }
+    }
+
+    #[inline]
+    pub fn get_vector(&self) -> &DimVector<D> {
+        &self.vector
+    }
+
+    #[inline]
+    pub fn get_vector_mut(&mut self) -> &mut DimVector<D> {
+        &mut self.vector
+    }
+
+    #[inline]
+    pub fn get_id(&self) -> &UniqueID {
+        &self.id
+    }
+
+    #[inline]
+    pub fn get_id_mut(&mut self) -> &mut UniqueID {
+        &mut self.id
+    }
+}
