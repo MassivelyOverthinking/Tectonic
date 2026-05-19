@@ -26,9 +26,13 @@ use crate::utility::utils::UniqueID;
 // * Fix size memory footprint
 // * Highly cache efficient and scan resistant structure
 
-const DEFAULT_SKETCH_WIDTH: usize = 4096;
-const DEFAULT_SKETCH_DEPTH: usize = 4;
-const DEFAULT_MIN_FREQUENCY: u8 = 2;
+const DEFAULT_SKETCH_WIDTH: usize = 4096;   // Count-Min Sketch structure attribute.
+const DEFAULT_SKETCH_DEPTH: usize = 4;      // Count-Min Sketch structure attribute.
+const DEFAULT_MIN_FREQUENCY: u8 = 2;        // Count-Min Sketch structure attribute.
+
+// ============================================================
+// ADMISSION STRATEGY: CONSTRUCTORS
+// ============================================================
 
 #[derive(Debug, Clone)]
 pub struct TinyLFUAdmission {
@@ -47,6 +51,8 @@ impl Default for TinyLFUAdmission {
 impl TinyLFUAdmission {
     #[inline]
     pub fn with_params(width: usize, depth: usize, frequency: u8) -> Self {
+        // Initiate new TinyLFUAdmission structure with User-defined parameters.
+        // Parameters specify internal Count-Min Sketch size and depth.
         let frequency = frequency.max(1);
 
         let policy = Self {
@@ -62,6 +68,9 @@ impl TinyLFUAdmission {
 
     #[inline]
     pub fn with_sample_size(width: usize, depth: usize, frequency: u8, sample_size: usize) -> Self {
+        // Initiate new TinyLFUAdmission structure with User-defined parameters.
+        // Parameters specify internal Count-Min Sketch size and depth and user frequency.
+        
         let frequency = frequency.max(1);
 
         let policy = Self {
@@ -77,12 +86,17 @@ impl TinyLFUAdmission {
 
     #[inline]
     pub fn new() -> Self {
+        // DEFAULT CONSTRUCTOR -> Utilizes default values to initiate Count-Min Sketch.
         Self::with_params(
             DEFAULT_SKETCH_WIDTH, 
             DEFAULT_SKETCH_DEPTH,
             DEFAULT_MIN_FREQUENCY,
         )
     }
+
+    // ============================================================
+    // ADMISSION STRATEGY: HELPER-METHODS
+    // ============================================================
 
     #[inline]
     pub fn estimated_frequency(&self, entry_id: &UniqueID) -> u8 {
@@ -106,6 +120,10 @@ impl TinyLFUAdmission {
         #[cfg(debug_assertions)]
         self.debug_assertions_basic();
     }
+
+    // ============================================================
+    // ADMISSION STRATEGY: DEBUGGING
+    // ============================================================
 
     #[inline]
     #[cfg(debug_assertions)]
@@ -142,6 +160,10 @@ impl TinyLFUAdmission {
         );
     }
 }
+
+// ============================================================
+// ADMISSION STRATEGY: STRATEGY METHODS
+// ============================================================
 
 impl AdmissionStrategy for TinyLFUAdmission {
     #[inline]
