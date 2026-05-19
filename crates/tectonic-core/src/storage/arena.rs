@@ -322,6 +322,10 @@ impl<const D: usize> VectorArena<D> {
         self.capacity
     }
 
+    pub fn slots(&self) -> &[ArenaSlot<D>] {
+        &self.arena
+    }
+
     pub fn remain_capacity(&self) -> usize {
         // Helper-method for determining the remaining capacity of the Arena/Slab.
         self.capacity - self.size

@@ -20,7 +20,7 @@ use crate::config::{CacheConfig};
 use crate::error::TectonicError;
 use crate::metrics::cache_metrics::CacheMetrics;
 use crate::quantization::scalar_qunatization::{quantize};
-use crate::result::{CacheEntry, CacheResult, SearchResult};
+use crate::result::{CacheEntry, CacheResult, SearchResult, StoredResult};
 use crate::search::distance::SearchMethod;
 use crate::storage::arena::{VectorArena};
 use crate::storage::repository::CacheRepo;
@@ -309,8 +309,50 @@ impl<const D: usize> VectorCache<D> {
     }
 
     #[inline]
-    pub fn vectors(&self) -> TectonicResult<bool> {
-        todo!()
+    pub fn vectors(&self) -> TectonicResult<Vec<StoredResult<D>>> {
+        let size = self.size()?;
+
+        if size == 0 {
+            return Ok(Vec::new());
+        };
+
+        let mut elements: Vec<StoredResult<D>> = Vec::with_capacity(size);
+
+        for (index, slot) in self.arena.slots().iter().enumerate() {
+            let Some(entry) = slot.vector.as_ref() else {
+                continue;
+            };
+            
+            #[cfg(debug_assertions)]
+            {
+                let location = self
+                    .locations
+                    .get_location(&entry.get_unique_id())
+                    .ok_or_else(|| {
+                        TectonicError::inconsistent_state(
+                            "Arena vector has no matching Location entry")
+                    })?;
+
+                debug_assert_eq!(
+                    *location.get_arena(),
+                    index,
+                    "Location Arena/Slab index does not match arena position"
+                );
+            }
+
+            elements.push(StoredResult::new(
+                *entry.get_vector(), 
+                *entry.get_unique_id()
+            ));
+        }
+
+        if size != elements.len() {
+            return Err(TectonicError::inconsistent_state(
+                "Output array length doesn't match correct Arena size"
+            ));
+        };
+
+        Ok(elements)
     }
 
     #[inline]
