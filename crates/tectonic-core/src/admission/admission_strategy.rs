@@ -23,10 +23,11 @@ pub enum Admission {
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
 pub struct AdmissionCandidate {
-    id: UniqueID,
-    score: Option<f32>,
-    cost: usize,
-    priority: u32,
+    // Internal struct for Admission Candidancy.
+    id: UniqueID,           // Generational ID.
+    score: Option<f32>,     // Semantic Score (SemAware).
+    cost: usize,            // Admission cost. 
+    priority: u32,          // Entry priority. 
 }
 
 #[allow(dead_code)]

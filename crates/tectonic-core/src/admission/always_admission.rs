@@ -51,6 +51,8 @@ impl AlwaysAdmission {
     #[inline]
     #[cfg(debug_assertions)]
     pub fn debug_assertions_state(&self) {
+        // Checks internal memory size of Admission structure to ensure state consistency.
+        // Must always be 0, as the structure stores no concrete values.
         debug_assert_eq!(
             core::mem::size_of::<Self>(),
             0,
@@ -66,21 +68,34 @@ impl AlwaysAdmission {
 impl AdmissionStrategy for AlwaysAdmission {
     #[inline]
     fn on_get(&mut self, _entry_id: &UniqueID) {
+        // Internal Strategy method executed on .get() functionality from Main Cache.
+        // Performs no additional actions - Other than internal state check.
+
         #[cfg(debug_assertions)]
         self.debug_assertions_state();
     }
 
     fn on_insert(&mut self, _entry_id: &UniqueID) {
+        // Internal Strategy method executed on .insert() functionality from Main Cache.
+        // Performs no additional actions - Other than internal state check.
+
         #[cfg(debug_assertions)]
         self.debug_assertions_state();
     }
 
     fn on_remove(&mut self, _entry_id: &UniqueID) {
+        // Internal Strategy method executed on .remove() functionality from Main Cache.
+        // Performs no additional actions - Other than internal state check. 
+
         #[cfg(debug_assertions)]
         self.debug_assertions_state();
     }
 
     fn should_admit(&mut self, _entry_id: &UniqueID) -> bool {
+        // Internal Strategy method executed on .get() functionality from Main Cache.
+        // Performs no additional actions - Other than internal state check.
+        // Will always return 'True', as all entries are permitted access.
+
         #[cfg(debug_assertions)]
         self.debug_assertions_state();
 
