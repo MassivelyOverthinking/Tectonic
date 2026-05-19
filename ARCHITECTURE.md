@@ -7,6 +7,7 @@ Tectonic is a high-performance **vector caching framework** designed for:
 - low-latency similarity search
 - memory-efficient storage
 - adaptive cache behavior
+- User customisation and optimisation
 - scalable and parallel execution
 
 The system is built around a clear separation of concerns between **static vector storage** and **dynamic indexing/search structures**, enabling both performance and flexibility. The main design choice for the primary cache implementation is based on **IVF-PQ (Inverted File Structure)** architecture used in high-performance Vector DBs like FAISS and Milvus. [Documentation](https://milvus.io/docs/ivf-pq.md)
