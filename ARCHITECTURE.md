@@ -21,17 +21,52 @@ This design idea intends to limit approximate search space and efficiently direc
 
 Tectonic separates:
 
-- **Arena (Slab)** → authoritative storage of concrete vectors  
-- **Repository** → dynamic indexing, search and lookup
+- **Arena (Slab)**      ->  Authoritative storage of Vectors & related data.
+- **Repository**        ->  Dynamic indexing, search and lookup.
+- **Location Slab**     ->  Middle-layer between Repository & Arena.
 
-This allows:
+In order to support further self-healing functionality in the form of **Hysteresis**, while also ensuring contiguous memory layout of high-vlue vectors concrete Vectors are stored seperately in the stable **Arena** and dynamic pointers in the dynamic **Repository**. 
+For swift lookup Tectonic employs a third distinct data structure - **Location Slab** - that holds dynamic records of Vector location in arena/partitions/shards/slots. 
 
-- fast mutation of search structures without moving data
-- stable, contiguous memory layout for vector entries 
-- flexible indexing strategies  
+All this allows for:
+
+- Fast, stable mutation of search structures without moving data (**Hysteresis**).
+- Stable, contiguous memory layout for vector entries.
+- Flexible indexing strategies.
 
 This seperation of vector storage was primarily intended to settle 2 main issues; **Stable & Congiguous memory layout** and **Dynamic Clustering**. 
 
+#### 1.1 Arena/Slab
+
+The *Arena* acts as the primary storage structure for incoming semantic vectors, and also as the main source of truth throughout the application - fx. **Vector comparison**, **Similarity search**.
+Each individual entry are stored utilising a UniqueID identifier based on generational ID technique, ensuring that all vector entries possess a unique identifying value. This further more helps in quickly and reliably identifying the correct vector when compared to entries located in the *Repository*. 
+To ensure dynamic indexing the *Arena* utilizes a *Free-list* structure to assign array location to incoming data. 
+
+#### 1.2 Repository
+
+The *Repository* acts as the dynamic storage portion of the application, storing copies of the UniqueID identifier along with **Quantized Vector Entries (Scalar Quantization)** for compacted storage and speedier similarity searches. The main idea behind the *Repository* structure is its dynamic behaviour - Allowing for mutation without moving actual vector entries and compromising contiguous mmemory layout.
+
+The *Repository* is divided into 3 main distinct parts to lessen the overall search space:
+- Partitions    -> Larger internal sections centered around a **Centroid** vector.
+- Shard         -> Smaller internal sections located inside Partitions to allow for multithreading.
+- Slots         -> Individual storage spaces for repository-entries.
+
+The **Centroid** vectors allow the application to swiftly divide the embedding search space into smaller more manageable sections, and then allow for multiple search-threads to begin exploring the inner Shards for candidate entries (This is accomplished by using **Min Heap** structures).
+
+#### 1.3 Location Slab
+
+The *Location Slab* acts as the intermidiary layer between *Arena* and *Repository*, answering the question: "If I retreive a Vector entry from Arena, how would I know exactly where it is located in the Repository and vice versa?" This complimentary structure allows for optimal O(1) lookup functionality across both structures withouth unnecessary overhead. 
+
+Example of LocationEntry struct:
+```rust
+pub struct Locationentry {
+    id: UniqueId,
+    arena_index: usize,
+    partition_index: usize,
+    shard_index: usize,
+    slot_index: usize,
+}
+```
 ---
 
 ### 2. Predictable Performance
