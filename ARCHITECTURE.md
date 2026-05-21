@@ -69,21 +69,45 @@ pub struct Locationentry {
 ```
 ---
 
-### 2. Predictable Performance
+### 2. Adaptive Cache Behavior
+
+For the vector cache to be stable, efficient and optimal for high through-put workloads the cache must evolve and mutate along with the desired user input. Tectonic's main priority here is therefore to enable reliable, dynamic cache behaviour:
+
+- Eviction policies tailored to vector workloads.
+- Admission policies tailored to vector workloads.
+- Dynamic protection tiers based on usage metrics. 
+- Hysteresis-based health monitoring and reorginization.  
+
+#### 2.1 Eviction Strategy
+
+Tectonic enables a wide array of pre-configured, user-customizable *Eviction Policies* designed and tailored psecifically with Vector-realted workloads in mind. The goal of these strategy implmentations is to ensure the underlying cache stores only the best and most optimal Vector entries, thereby optimising space and search efficiency. 
+
+**Examples:**
+- LIFO (Last in, First out)     -> Standard predictable eviction policy.
+- FIFO (First in, First out)    -> Standard predictable eviction policy.
+- LRU (Last Recently Used)      -> Standard eviction policy for storing most used entries.
+- Segmented LRU                 -> Advanced policy for more in-depth handling of most used entries.
+- Vector ARC                    -> Advanced Policy for data-driven handling of most used entries.
+
+#### 2.2 Admission Strategy
+
+As with *Eviction Policies* designed to discard least impactful entries in favour of stronger candidates, Tectonic's *Admission Strategies* attempt to better the cache contents by spotting low-immpact vector *before* entry into the application. Any candidates found to be lacking in concrete value will be discarded before even entering the cache.
+This feature also provides concrete pre-configured strategy implementations that can be tailored by users for specific purposes.
+
+**Examples:**
+- Always        ->  Standard becnhmarking strategy that will ALWAYS allow entry admission.
+- TwoHit        ->  Standard strategy that will only allow repeat values to enter.
+- TinyLFU       ->  Advanced strategy employing probability to determine possible entry value.
+- WindowLFU     ->  Advanced strategy employing probability & segmentation to determine entry value.
+
+---
+
+### 3. Predictable Performance
 
 - O(1) addressing via structured location mapping and Arena indexing
 - SIMD-accelerated vector quantization 
 - minimized pointer chasing  
-- cache-friendly, contiguous memory layout  
-
----
-
-### 3. Adaptive Cache Behavior
-
-- eviction policies tailored to vector workloads  
-- dynamic protection tiers based on usage metrics  
-- hysteresis-based health monitoring  
-- future support for structural reorganization  
+- cache-friendly, contiguous memory layout 
 
 ---
 
