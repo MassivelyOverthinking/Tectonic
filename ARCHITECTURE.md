@@ -161,29 +161,30 @@ The **Repository** is the dynamic indexing layer that enables fast lookup and se
 
 ### Location Slab
 
-## Repository Structure
+The **Location Slab** acts as the connecting traffic layer between *Repository* and *Arena* structures, allwoing for swift value lookups based on hash-values and UniqueID identifiers.
+- Maps Arena entries to Repository entries and vice versa.
+- Stores lookup-based metrics for individual entries.
+- Assures correctness and consistency between Arena and Repository.
+
+---
 
 ### Partitions
 
-Partitions divide the vector space into coarse regions.
-
-#### Purpose
-
-- reduce search scope  
-- group semantically similar vectors  
-- enable scalable indexing  
-
-#### Mechanism
-
-- centroid-based assignment  
-- incoming vectors mapped to closest partition  
-- query routing via centroid proximity  
+**Partitions** divide the vector search space into coarse clusters centered around dynamic *Centroid* values (K-means Clustering).
+- Limits available search space and group semantically similar values.
+- Enable efficient query routing and scalable indexing.
+- Stores primary "health" metrics.  
 
 ---
 
 ### Shards
 
-Each partition contains multiple **shards**.
+Each partition structure contains multiple smaller **Shards** that enable high-performance concurrenct similarity search across several sections. Individual Shards possess single **Min Heap** structures to temporarily store best vectors before bootstrapping results into a finalized top N candidates result. 
+- Strong isolated concurrency and multi-threading suport.
+- Further limit semantic search space.
+- Utilise Heap structures to avoid massive pointer chasing/variable unpacking.
+
+---s
 
 #### Purpose
 
