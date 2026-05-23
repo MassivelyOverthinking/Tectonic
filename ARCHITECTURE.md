@@ -100,6 +100,13 @@ This feature also provides concrete pre-configured strategy implementations that
 - TinyLFU       ->  Advanced strategy employing probability to determine possible entry value.
 - WindowLFU     ->  Advanced strategy employing probability & segmentation to determine entry value.
 
+#### Hysteresis (FUTURE)
+
+Over time as large amounts of distinct vectors are inserted and removed from the cache, the overall internal "health" of the cache slowly deteriorates and performance is compromised. An example of this would be that *Centroid* values no longer accurately represents the underlying *Partition* thay are cnetered arounnd, thereby leading to poor vector returns. 
+To combat exactly this **Tectonic** intends to implement a commplete system *Hysteresis* mechanic to dynamically monitor internal "health" and restructure the cache when operations become weakened. This *Hysteresis* feature would utilise a performmance-optimised *K-mean Clustering* algorithm to recompute ALL internal vectors into new, highly-accurate partitions when "health" runs dangerously low - Ensuring continous "health" monitoring and cache self-healing when application becomes unstable. 
+
+**NOTE**: The implementation feature is still experimental and will be launched later. 
+
 ---
 
 ### 3. Predictable Performance
@@ -112,6 +119,8 @@ This feature also provides concrete pre-configured strategy implementations that
 ---
 
 ### 4. Extensibility
+
+Another key feature to consider was that of general user-customisation. Basically, allowing individual users to tailor critical parts of the overall vector cache to support niche, personlized scenarios without skimping out on overall performance. Each critical element of the underlying vector cache are therefore completely customizable and/or optional to include, supporting greater user freedom. 
 
 - pluggable eviction policies  
 - configurable validation and duplicate handling  
