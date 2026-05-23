@@ -122,47 +122,44 @@ To combat exactly this **Tectonic** intends to implement a commplete system *Hys
 
 Another key feature to consider was that of general user-customisation. Basically, allowing individual users to tailor critical parts of the overall vector cache to support niche, personlized scenarios without skimping out on overall performance. Each critical element of the underlying vector cache are therefore completely customizable and/or optional to include, supporting greater user freedom. 
 
-- pluggable eviction policies  
-- configurable validation and duplicate handling  
-- modular search strategies  
-- scalable partition/shard architecture  
+While the primary intention behind this user-defined design choice is freedom, **Tectonic** does provide strong and reliable out-of-the-box model configurations for varying workflows focused on core aspects like *High-performance*, *Vector Simmilarity*, *Latency* etc.
+
+Examples of Cache Extensions:
+
+- **Pluggable eviction policies**
+- **Pluggable admission policies**
+- **Multiple Quantization methods**
+- **Vector validation & Duplicate handling** 
+- **Similarity search strategies**  
+- **Scalable partition/shard architecture** 
+- **Internal observability metrics**
 
 ---
 
 ## Core Components
 
+This sections displays all major core components, their general design purpose and responsibilities to allow users an in-depth view of internal functionality and features.
+
 ### Arena (Slab)
 
-The **Arena** is the static storage layer responsible for holding all vector entries.
-
-#### Responsibilities
-
-- stores full, high-precision vectors (`DimVector<D>`)  
-- maintains stable memory locations  
-- owns entry lifecycle and metadata  
-- ensures memory locality and efficient access  
-
-#### Characteristics
-
-- append-friendly with slot reuse  
-- generational slot support (optional)  
-- no search logic  
-- optimized for read-heavy workloads  
+The **Arena** is the static storage layer responsible for holding all vector entries, and acting as the primary source of *truth* in the cache layer.
+- Stores full, high-precision vectors [`DimVector<D>`]
+- Maintains stable memory locations
+- Contiguous memory layout
+- Generational ID identifiers 
 
 ---
 
 ### Repository
 
-The **Repository** is the dynamic indexing layer that enables fast lookup and search.
-
-#### Responsibilities
-
-- maps vector hashes → storage locations  
-- organizes vectors into searchable structures  
-- reduces search space using partitioning  
-- supports concurrent access via sharding  
+The **Repository** is the dynamic indexing layer that enables fast lookup and search. Utilises internal splits (*Partitions*, *Shards*, *Slots*) to minimize search space and enable efficient multithreading support.
+- Organizes vectors into searchable structures.
+- Limits embedding space using internal partitioning.
+- Supports conncurrent search efforts via internal sharding. 
 
 ---
+
+### Location Slab
 
 ## Repository Structure
 
