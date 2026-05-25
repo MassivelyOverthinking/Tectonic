@@ -30,6 +30,7 @@ pub struct AlwaysAdmission;
 // ADMISSION STRATEGY: CONSTRUCTORS
 // ============================================================
 
+// Default object constructor (Internal use):
 impl Default for AlwaysAdmission {
     #[inline]
     fn default() -> Self {
@@ -37,6 +38,7 @@ impl Default for AlwaysAdmission {
     }
 }
 
+// Widely-used object constructor (External use).
 #[allow(dead_code)]
 impl AlwaysAdmission {
     #[inline]
@@ -47,12 +49,14 @@ impl AlwaysAdmission {
     // ============================================================
     // ADMISSION STRATEGY: DEBUGGING
     // ============================================================ 
+    // Flexible Rust debugging assertions (methods) for ensuring internal Cache consistency, 
+    // method outputs vs. inputs, and state handling. 
 
     #[inline]
     #[cfg(debug_assertions)]
     pub fn debug_assertions_state(&self) {
         // Checks internal memory size of Admission structure to ensure state consistency.
-        // Must always be 0, as the structure stores no concrete values.
+        // Must always be 0, as Always Admission structure stores no concrete values.
         debug_assert_eq!(
             core::mem::size_of::<Self>(),
             0,
@@ -64,6 +68,7 @@ impl AlwaysAdmission {
 // ============================================================
 // ADMISSION STRATEGY: STRATEGY METHODS
 // ============================================================
+// Internal Strategy Methods for handling candidate admission across various critical Cache method calls.
 
 impl AdmissionStrategy for AlwaysAdmission {
     #[inline]
