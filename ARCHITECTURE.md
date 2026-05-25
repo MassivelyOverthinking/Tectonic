@@ -182,32 +182,32 @@ The **Location Slab** acts as the connecting traffic layer between *Repository* 
 Each partition structure contains multiple smaller **Shards** that enable high-performance concurrenct similarity search across several sections. Individual Shards possess single **Min Heap** structures to temporarily store best vectors before bootstrapping results into a finalized top N candidates result. 
 - Strong isolated concurrency and multi-threading suport.
 - Further limit semantic search space.
-- Utilise Heap structures to avoid massive pointer chasing/variable unpacking.
-
----s
-
-#### Purpose
-
-- enable multi-threaded access  
-- reduce lock contention  
-- improve parallel search throughput  
-
-#### Characteristics
-
-- independent substructures  
-- local indexing within partition  
-- optimized for concurrent reads/writes  
+- Utilise *Heap structures* to avoid excessive pointer chasing. 
 
 ---
 
-### RepoLocation
+### Slots
 
-The bridge between Repository and Arena:
+Each individual Shard structure contains an contiguous array of entry wrappers called: **Slots**, designed to store generational ID identifiers, Quantized vector values and entry-specific metrics.
+- Generational ID support for entry uniqueness.
+- Collected storage of critical data.
 
-```rust
-pub struct RepoLocation {
-    pub partition_idx: usize,
-    pub shard_idx: usize,
-    pub slot_idx: usize,
-}
-```
+---
+
+### Min Heap (Binary Heap)
+
+Seperate data structure used for quick, efficient and stable sorting of similarity search data (*Distance metrics*) inside Shard. Each *Thread* instance during search is afforded a single distinct *Heap* to avoid excessive lock contention across multiple Threads.
+- Optimal value sorting.
+- Low lock contention.
+
+--- 
+
+### Location Entry
+
+Critical systems component designed for quick and efficient lookup of entry-values across *Arena* and *Repository* storage instances using distinct interger-based pointer values (*usize*).
+- Flexible integer-based pointers.
+- O(1) entry lookup.
+- Extensive checking/debugging value.
+
+--- 
+
