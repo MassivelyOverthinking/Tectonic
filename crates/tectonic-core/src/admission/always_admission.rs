@@ -294,5 +294,4 @@ mod test {
             "'should_admit' must not introduce state and increase memory size"
         );
     }
-
 }
