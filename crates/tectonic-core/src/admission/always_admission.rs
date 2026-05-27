@@ -181,4 +181,118 @@ mod test {
         assert_eq!(size_of_val(&test_clone), 0);
     }
 
+    // ============================================================
+    // ALWAYS ADMISSION: ADMISSIONN BEHAVIOUR
+    // ============================================================
+
+    #[test]
+    fn should_admit_must_always_return_true_on_insert() {
+        let mut test_policy = AlwaysAdmission::new();
+        let test_id = make_id(1, 1);
+
+        assert!(
+            test_policy.should_admit(&test_id),
+            "AlwaysAdmission instance must admit every candidate value"
+        );
+    }
+
+    #[test]
+    fn should_admit_must_always_return_true_on_insert_multiple() {
+        let mut test_policy = AlwaysAdmission::new();
+        
+        for id in 0..512 as usize {
+            let gen_id = id as u32;
+            let test_entry = make_id(
+                gen_id, 
+                id
+            );
+
+            assert!(
+                test_policy.should_admit(&test_entry),
+                "AlwaysAdmission instance must admit every candidate value"
+            );
+        };
+    }
+
+    #[test]
+    fn should_admit_remains_true_after_inserts_and_removal() {
+        let mut test_policy = AlwaysAdmission::new();
+
+        let test_entry_a = make_id(1, 1);
+        let test_entry_b = make_id(2, 2);
+        let test_entry_c = make_id(3, 3);
+
+        test_policy.on_get(&test_entry_a);
+        test_policy.on_insert(&test_entry_b);
+        test_policy.on_remove(&test_entry_c);
+
+        assert!(
+            test_policy.should_admit(&test_entry_a),
+            "AlwaysAdmission should remain 'True' after 'on_get'"
+        );
+
+        assert!(
+            test_policy.should_admit(&test_entry_b),
+            "AlwaysAdmission should remain 'True' after 'on_insert'"
+        );
+
+        assert!(
+            test_policy.should_admit(&test_entry_c),
+            "AlwaysAdmission should remain 'True' after 'on_remove'"
+        );
+    }
+
+    #[test]
+    fn policy_lifecycle_events_dont_change_behaviour() {
+        let mut test_policy = AlwaysAdmission::new();
+        let test_id = make_id(1, 1);
+
+        for _ in 0..512 {
+            test_policy.on_get(&test_id);
+            test_policy.on_insert(&test_id);
+            test_policy.on_remove(&test_id);
+
+            assert!(
+                test_policy.should_admit(&test_id),
+                "AlwaysAdmission behaviour should remain consistent after extended lifecycle"
+            );
+        };
+    }
+
+    #[test]
+    fn policy_lifecycle_events_dont_change_memory_size() {
+        let mut test_policy = AlwaysAdmission::new();
+        let test_id = make_id(1, 1);
+
+        assert_eq!(size_of_val(&test_policy), 0);
+
+        test_policy.on_get(&test_id);
+        assert_eq!(
+            size_of_val(&test_policy),
+            0,
+            "'on_get' must not introduce state and increase memory size"
+        );
+
+        test_policy.on_insert(&test_id);
+        assert_eq!(
+            size_of_val(&test_policy),
+            0,
+            "'on_insert' must not introduce state and increase memory size"
+        );
+
+        test_policy.on_remove(&test_id);
+        assert_eq!(
+            size_of_val(&test_policy),
+            0,
+            "'on_remove' must not introduce state and increase memory size"
+        );
+
+        let _ = test_policy.should_admit(&test_id);
+        assert_eq!(
+            size_of_val(&test_policy),
+            0,
+            "'should_admit' must not introduce state and increase memory size"
+        );
+    }
+
 }
