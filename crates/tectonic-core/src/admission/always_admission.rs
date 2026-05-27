@@ -107,3 +107,78 @@ impl AdmissionStrategy for AlwaysAdmission {
         true
     }
 }
+
+// ============================================================
+// ALWAYS ADMISSION: UNIT TEST
+// ============================================================
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use core::mem::{size_of, size_of_val};
+
+    // ============================================================
+    // ALWAYS ADMISSION: TEST HELPER
+    // ============================================================
+    // Create UniqueID instance for testing purposes
+
+    fn make_id(gen: u32, id: usize) -> UniqueID {
+        UniqueID { 
+            slot_id: id, 
+            gen_id: gen 
+        }
+    }
+
+    // ============================================================
+    // ALWAYS ADMISSION: CONSTRUCTOR TESTS
+    // ============================================================
+
+    #[test]
+    fn default_constructor_stateless_behaviour() {
+        let policy = AlwaysAdmission::default();
+
+        assert_eq!(
+            size_of_val(&policy),
+            0,
+            "AlwaysAdmission policy should remain zero-sized at runtime",
+        );
+    }
+
+    #[test]
+    fn new_constructor_stateless_behaviour() {
+        let policy = AlwaysAdmission::new();
+
+        assert_eq!(
+            size_of_val(&policy),
+            0,
+            "AlwaysAdmission policy should remain zero-sized at runtime",
+        );
+    }
+
+    #[test]
+    fn zero_size_check() {
+        assert_eq!(
+            size_of::<AlwaysAdmission>(),
+            0,
+            "AlwaysAdmission policy must remain zero-sized and stateless at runtime"
+        )
+    }
+
+    #[test]
+    fn always_admission_copy_and_clone() {
+        fn assert_clone<T: Clone>() {}
+        fn assert_copy<T: Copy>() {}
+
+        assert_clone::<AlwaysAdmission>();
+        assert_copy::<AlwaysAdmission>();
+
+        let test_policy = AlwaysAdmission::new();
+        let test_copy = test_policy;
+        let test_clone = test_policy.clone();
+
+        assert_eq!(size_of_val(&test_policy), 0);
+        assert_eq!(size_of_val(&test_copy), 0);
+        assert_eq!(size_of_val(&test_clone), 0);
+    }
+
+}
